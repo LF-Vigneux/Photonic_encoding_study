@@ -1,16 +1,8 @@
-import sys
-from pathlib import Path
-
 import merlin as ml
 import torch
 import torch.nn as nn
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-REPO_ROOT = Path(__file__).resolve().parents[3]
-sys.path.insert(0, str(REPO_ROOT))
-sys.path.insert(0, str(PROJECT_ROOT))
-
-from papers.nn_embedding.utils.utils import (  # noqa: E402
+from utils.utils import (  # noqa: E402
     randomize_trainable_parameters,
 )
 

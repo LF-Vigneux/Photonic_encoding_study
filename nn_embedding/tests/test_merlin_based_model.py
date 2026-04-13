@@ -2,20 +2,12 @@
 Note: An LLM was used to create some tests.
 """
 
-import sys
-from pathlib import Path
-
 import merlin as ml
 import pytest
 import torch
 import torch.nn as nn
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-REPO_ROOT = Path(__file__).resolve().parents[3]
-sys.path.insert(0, str(REPO_ROOT))
-sys.path.insert(0, str(PROJECT_ROOT))
-
-from papers.nn_embedding.lib.merlin_based_model import (  # noqa: E402
+from lib.merlin_based_model import (  # noqa: E402
     NeuralEmbeddingMerLinKernel,
     NeuralEmbeddingMerLinModel,
     create_basic_merlin_model,

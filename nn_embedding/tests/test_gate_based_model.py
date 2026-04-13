@@ -2,23 +2,15 @@
 Note: An LLM was used to create some tests.
 """
 
-import sys
-from pathlib import Path
-
 import pytest
 import torch
 import torch.nn as nn
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-REPO_ROOT = Path(__file__).resolve().parents[3]
-sys.path.insert(0, str(REPO_ROOT))
-sys.path.insert(0, str(PROJECT_ROOT))
-
-from papers.nn_embedding.lib.gate_based_model import (  # noqa: E402
+from lib.gate_based_model import (  # noqa: E402
     NeuralEmbeddingGateBasedKernel,
     NeuralEmbeddingGateBasedModel,
 )
-from papers.nn_embedding.utils.gate_based_embedding import (  # noqa: E402
+from utils.gate_based_embedding import (  # noqa: E402
     QCNN,
     EmbeddingCallable,
 )

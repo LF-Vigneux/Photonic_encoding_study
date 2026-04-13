@@ -1,19 +1,11 @@
-import sys
-from pathlib import Path
-
 import merlin as ml
 import pennylane as qml
 import torch
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-REPO_ROOT = Path(__file__).resolve().parents[3]
-sys.path.insert(0, str(REPO_ROOT))
-sys.path.insert(0, str(PROJECT_ROOT))
-
-from papers.nn_embedding.utils.merlin_model_utils import (  # noqa: E402
+from utils.merlin_model_utils import (  # noqa: E402
     assign_params,
 )
-from papers.nn_embedding.utils.utils import (  # noqa: E402
+from utils.utils import (  # noqa: E402
     LinearLoss,
     calculate_distance,
     create_basic_gate_based_model,

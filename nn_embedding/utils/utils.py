@@ -1,7 +1,5 @@
 import argparse
-import sys
 from copy import deepcopy
-from pathlib import Path
 
 import merlin as ml
 import numpy as np
@@ -9,14 +7,7 @@ import pennylane as qml
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, TensorDataset
-
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-REPO_ROOT = Path(__file__).resolve().parents[3]
-sys.path.insert(0, str(REPO_ROOT))
-sys.path.insert(0, str(PROJECT_ROOT))
-
-
-from papers.nn_embedding.utils.merlin_model_utils import assign_params  # noqa: E402
+from utils.merlin_model_utils import assign_params  # noqa: E402
 
 ############################################################################################################
 # Adapted from the original repository:

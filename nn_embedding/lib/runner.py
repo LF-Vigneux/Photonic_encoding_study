@@ -1,19 +1,12 @@
-import sys
 from pathlib import Path
-
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-REPO_ROOT = Path(__file__).resolve().parents[3]
-sys.path.insert(0, str(REPO_ROOT))
-sys.path.insert(0, str(PROJECT_ROOT))
-
-from papers.nn_embedding.lib.figure_reproductions import (  # noqa: E402
+from .figure_reproductions import (  # noqa: E402
     reproduce_figure_2,
     reproduce_figure_3,
     reproduce_figure_4,
     reproduce_figure_5,
     reproduce_figure_6,
 )
-from papers.nn_embedding.utils.utils import (  # noqa: E402
+from utils.utils import (  # noqa: E402
     parse_args,
     str_to_bool,
 )

@@ -1,21 +1,14 @@
-import sys
-from pathlib import Path
-
 import pennylane as qml
 import torch
 import torch.nn as nn
 from merlin import LexGrouping
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-REPO_ROOT = Path(__file__).resolve().parents[3]
-sys.path.insert(0, str(REPO_ROOT))
-sys.path.insert(0, str(PROJECT_ROOT))
 
-from papers.nn_embedding.utils.gate_based_embedding import (  # noqa: E402
+from utils.gate_based_embedding import (  # noqa: E402
     QCNN,
     EmbeddingCallable,
 )
-from papers.nn_embedding.utils.utils import (  # noqa: E402
+from utils.utils import (  # noqa: E402
     LinearLoss,
     calculate_distance,
     create_random_pairs,

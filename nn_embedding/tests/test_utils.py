@@ -2,21 +2,13 @@
 Note: An LLM was used to create some tests.
 """
 
-import sys
 from copy import deepcopy
-from pathlib import Path
-
 import merlin as ml
 import numpy as np
 import pytest
 import torch
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-REPO_ROOT = Path(__file__).resolve().parents[3]
-sys.path.insert(0, str(REPO_ROOT))
-sys.path.insert(0, str(PROJECT_ROOT))
-
-from papers.nn_embedding.utils.merlin_model_utils import (  # noqa: E402
+from utils.merlin_model_utils import (  # noqa: E402
     assign_params,
     compute_x2_permutation,
     count_parameters_with_prefixes,
@@ -24,7 +16,7 @@ from papers.nn_embedding.utils.merlin_model_utils import (  # noqa: E402
     rename_params_in_current_order,
     strip_simple_negation_expressions,
 )  # noqa: E402
-from papers.nn_embedding.utils.utils import (  # noqa: E402
+from utils.utils import (  # noqa: E402
     LinearLoss,
     TransparentModel,
     calculate_distance,

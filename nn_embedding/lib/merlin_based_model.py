@@ -1,25 +1,18 @@
-import sys
 from copy import deepcopy
-from pathlib import Path
 
 import merlin as ml
 import torch
 import torch.nn as nn
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-REPO_ROOT = Path(__file__).resolve().parents[3]
-sys.path.insert(0, str(REPO_ROOT))
-sys.path.insert(0, str(PROJECT_ROOT))
 
-
-from papers.nn_embedding.utils.merlin_model_utils import (  # noqa: E402
+from utils.merlin_model_utils import (  # noqa: E402
     assign_params,
     compute_x2_permutation,
     count_parameters_with_prefixes,
     rename_params_in_current_order,
     strip_simple_negation_expressions,
 )
-from papers.nn_embedding.utils.utils import (  # noqa: E402
+from utils.utils import (  # noqa: E402
     LinearLoss,
     calculate_distance,
     create_random_pairs,
