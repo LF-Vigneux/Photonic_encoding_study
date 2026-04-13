@@ -64,6 +64,7 @@ def quantum_fisher_information_spread(
 
 
 def entanglement_entropy(x: torch.Tensor, embedder: ml.QuantumLayer) -> float:
+    # The same as average_bipartite_entanglement_entropy, I think
     pass
 
 
@@ -88,6 +89,7 @@ def topological_invariants_of_embedding(
 
 
 def average_bipartite_entanglement_entropy(x: torch.Tensor) -> float:
+    # Comment je peux faire une bipartition en photonique
     pass
 
 
@@ -109,6 +111,19 @@ def quantum_fisher_information(x: torch.Tensor) -> float:
 
 def topological_quantum_complexity(x: torch.Tensor) -> float:
     pass
+
+
+# general utils
+############################################################################################################
+def quantum_entropy(rho: torch.Tensor) -> float:
+    """
+    To check but I thibnk its legit
+    """
+    eigvals = torch.linalg.eigvals(rho)
+    entropy = 0
+    for val in eigvals:
+        entropy += val * np.log(val)
+    return (-1) * entropy
 
 
 # X = torch.Tensor(
