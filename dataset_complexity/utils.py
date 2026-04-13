@@ -54,8 +54,21 @@ def topological_complexity(X: torch.Tensor) -> float:
 ############################################################################################################
 
 
-def hilbert_space_support_dim(x: torch.Tensor, embedder: ml.QuantumLayer) -> float:
-    pass
+def hilbert_space_support_dim(
+    x: torch.Tensor,
+    embedder: ml.QuantumLayer,
+    eps: float = 1e-8,
+) -> int:
+    """
+    Per the kernel effective dim of p.8 eq 12
+    """
+    rhos = embedder(x)
+    rho = torch.sum(rhos, dim=0) / x.size(0)
+    eigvals = torch.linalg.eigvals(rho)
+    effective_dim = 0
+    for val in eigvals:
+        effective_dim += val / (val + eps)
+    return effective_dim
 
 
 def quantum_fisher_information_spread(
