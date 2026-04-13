@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 import merlin as ml
+import scipy as sp
 
 
 # Classical
@@ -124,6 +125,23 @@ def quantum_entropy(rho: torch.Tensor) -> float:
     for val in eigvals:
         entropy += val * np.log(val)
     return (-1) * entropy
+
+
+def get_kernel_matrix(rhos: torch.Tensor) -> torch.Tensor:
+    """
+    Not efficent but legit for any density. matrix state, if we stick to pure states, it is much easier: Tr(rho_a*rho_b)
+    """
+    N = rhos.size(0)
+    kernel_matrix = torch.empty((N, N))
+    for i in range(N):
+        kernel_matrix[i] = 1.0
+        sqrt_A = sp.linalg.sqrtm(rhos[i])
+        for j in range(i + 1, N):
+            to_trace = sp.linalg.sqrtm(
+                torch.matmul(sqrt_A, torch.matmul(rhos[j], sqrt_A))
+            )
+            kernel_matrix[i, j] = torch.trace(to_trace) ** 2
+    return kernel_matrix
 
 
 # X = torch.Tensor(
