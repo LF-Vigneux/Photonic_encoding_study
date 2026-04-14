@@ -2,6 +2,8 @@ import numpy as np
 import torch
 import merlin as ml
 import scipy as sp
+from itertools import product, combinations
+import quimb.tensor as qtn
 
 
 # Classical
@@ -64,7 +66,7 @@ def hilbert_space_support_dim(
     """
     rhos = embedder(x)
     rho = torch.sum(rhos, dim=0) / x.size(0)
-    eigvals = torch.linalg.eigvals(rho)
+    eigvals = torch.linalg.eigvalsh(rho)
     effective_dim = 0
     for val in eigvals:
         effective_dim += val / (val + eps)
@@ -79,7 +81,44 @@ def quantum_fisher_information_spread(
 
 def entanglement_entropy(x: torch.Tensor, embedder: ml.QuantumLayer) -> float:
     # The same as average_bipartite_entanglement_entropy, I think
-    pass
+    state_keys = embedder.output_keys
+
+    # Get data for the partial trace
+    if embedder.computation_space is ml.ComputationSpace.DUAL_RAIL:
+        dim_per_state = 2
+        num_states = embedder.circuit.m // 2
+    else:
+        dim_per_state = embedder.n_photons + 1
+        num_states = embedder.circuit.m
+    bipartitions = _get_all_bipartitions(num_states)
+    num_bipartitions = len(bipartitions)
+
+    total_entropy = 0
+
+    for point in x:
+        # Getting the density matrix in the right encoding
+        if embedder.computation_space is ml.ComputationSpace.DUAL_RAIL:
+            rho = embedder(point)
+
+        else:
+            rho = embbed_density_into_complete_fock_space(
+                embedder(point),
+                embedder.circuit.m,
+                n_photons=embedder.n_photons,
+                state_keys=state_keys,
+            )
+
+        # Computing the entropy per bipartition
+        point_entropy = 0
+        for bipartition in bipartitions:
+            point_entropy += quantum_entropy(
+                partial_trace_from_density(
+                    rho, states_to_trace=bipartition, dim_per_state=dim_per_state
+                )
+            )
+        total_entropy += point_entropy / num_bipartitions
+
+    return total_entropy / x.size(0)
 
 
 def kernel_spectrum_flatness(x: torch.Tensor, embedder: ml.QuantumLayer) -> float:
@@ -131,9 +170,9 @@ def topological_quantum_complexity(x: torch.Tensor) -> float:
 ############################################################################################################
 def quantum_entropy(rho: torch.Tensor) -> float:
     """
-    To check but I thibnk its legit
+    To check but I think its legit
     """
-    eigvals = torch.linalg.eigvals(rho)
+    eigvals = torch.linalg.eigvalsh(rho)
     entropy = 0
     for val in eigvals:
         entropy += val * np.log(val)
@@ -157,19 +196,116 @@ def get_kernel_matrix(rhos: torch.Tensor) -> torch.Tensor:
     return kernel_matrix
 
 
-# X = torch.Tensor(
-#     np.array(
-#         [
-#             [1, 2, 3, 4],
-#             [5, 6, 7, 8],
-#             [9, 2, 1, 0],
-#             [1, 2, 3, 4],
-#             [4, 3, 2, 1],
-#             [11, 1, 1, 1],
-#         ]
-#     )
-# )
+# def partial_trace(
+#     rho: torch.Tensor,
+#     modes_indexes: list[int],
+#     computation_space: ml.ComputationSpace,
+#     state_keys: list[tuple[int]],
+#     n_photons: int | None = None,
+#     n_modes: int | None = None,
+# ) -> torch.Tensor:
+#     """If it is qubits, write the qubit index
 
-# output = distributional_entropy(X)
+#     Here we assume litte-endian formalism: q0 tensor q1 tensor q2 ...
+#     """
+#     if (computation_space is not ml.ComputationSpace.DUAL_RAIL) and (
+#         (n_photons is None) or (n_modes is None)
+#     ):
+#         assert ValueError(
+#             "n_photons must be given if the computation space is not Dual Rail"
+#         )
+#     if computation_space is ml.ComputationSpace.DUAL_RAIL:
+#         return compute_partial_trace_from_density(
+#             rho, states_to_trace=modes_indexes, dim_per_state=2
+#         )
+#     else:
+#         basic_states = _all_photon_mode_configurations(m=n_modes, n=n_photons)
+#         space_size = len(basic_states)
 
-# print(output)
+#         # Embbed the density matrix in the more physically accurate
+#         larger_density = torch.zeros((space_size, space_size))
+#         for i in enumerate(len(state_keys)):
+#             for j in enumerate(len(state_keys)):
+#                 larger_matrix_i = basic_states.index(state_keys[i])
+#                 larger_matrix_j = basic_states.index(state_keys[j])
+#                 larger_density[larger_matrix_i, larger_matrix_j] = rho[i, j]
+
+#         return compute_partial_trace_from_density(
+#             larger_density, states_to_trace=None, dim_per_state=n_photons + 1
+#         )
+
+
+def embbed_density_into_complete_fock_space(
+    rho: torch.Tensor,
+    n_modes: int,
+    n_photons: int,
+    state_keys: list[tuple[int]],
+):
+    # Get the basis states
+    basis_states = _all_photon_mode_configurations(m=n_modes, n=n_photons)
+    space_size = len(basis_states)
+
+    # Embbed the density matrix in the more physically accurate
+    larger_density = torch.zeros((space_size, space_size))
+    for i in enumerate(len(state_keys)):
+        for j in enumerate(len(state_keys)):
+            larger_matrix_i = basis_states.index(state_keys[i])
+            larger_matrix_j = basis_states.index(state_keys[j])
+            larger_density[larger_matrix_i, larger_matrix_j] = rho[i, j]
+
+    return rho
+
+
+def partial_trace_from_density(
+    torch_state: torch.Tensor, states_to_trace: list[int], dim_per_state: int
+) -> torch.Tensor:
+    mpo = qtn.MatrixProductOperator.from_dense(
+        torch_state.detach().numpy(), dims=dim_per_state
+    )
+    num_qubits = mpo.num_tensors
+    reduced_state = mpo.trace(
+        left_inds=[f"b{i}" for i in states_to_trace],
+        right_inds=[f"k{i}" for i in states_to_trace],
+    )
+    new_num_qubits = num_qubits - len(states_to_trace)
+
+    rho_dense = reduced_state.contract().data
+    rho_torch = torch.from_numpy(rho_dense)
+    rho_torch = rho_torch.reshape(
+        (dim_per_state**new_num_qubits, dim_per_state**new_num_qubits)
+    )
+    return rho_torch
+
+
+######################################
+"""
+Here onwards are quick utility function that copilot generated,
+TODO Test them in details
+"""
+
+
+def _all_photon_mode_configurations(m: int, n: int):
+    return list(product(range(n + 1), repeat=m))
+
+
+def _get_all_bipartitions(m: int) -> list[list[int]]:
+    states = set(range(m))
+    others = list(range(1, m))
+
+    result = []
+
+    for r in range(m):
+        for combo in combinations(others, r):
+            A = set(combo) | {0}
+            B = states - A
+
+            if not B:
+                continue
+
+            # keep only the larger subset
+            if len(A) >= len(B):
+                result.append(sorted(A))
+            else:
+                result.append(sorted(B))
+
+    return result
