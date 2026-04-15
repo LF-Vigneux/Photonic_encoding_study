@@ -5,6 +5,8 @@ import merlin as ml
 import scipy as sp
 from itertools import product, combinations
 import quimb.tensor as qtn
+import zlib
+from ripser import ripser
 
 from pathlib import Path
 import sys
@@ -31,23 +33,9 @@ from nn_embedding.utils.utils import (
 ############################################################################################################
 def distributional_entropy(X: torch.Tensor) -> float:
     N = X.size(0)
-    unique_tensors = torch.unique(X, dim=0)
-    if unique_tensors.size(0) == N:
+    _, frequencies = torch.unique(X, dim=0, return_counts=True)
+    if frequencies.size(0) == N:
         return np.log(N)
-
-    frequencies = np.zeros(unique_tensors.size(0))
-    for tensor in X:
-        print(tensor)
-        for index, tensor_u in enumerate(unique_tensors):
-            if torch.allclose(tensor_u, tensor, rtol=1e-09):
-                frequencies[index] += 1
-                print(index)
-                break
-
-    if not np.sum(frequencies) == N:
-        raise ValueError(
-            "The sum of freqencies did not match the total amount of elements in X"
-        )
 
     probs = frequencies / N
     entropy = 0
@@ -57,18 +45,74 @@ def distributional_entropy(X: torch.Tensor) -> float:
     return (-1) * entropy
 
 
-def correlation_order(X: torch.Tensor) -> float:
-    # How to implement it efficiently, factorial (entropy per possibile subset of features)
-    pass
+def correlation_order(
+    X: torch.Tensor,
+    max_order: int | None = None,
+) -> float:
+    N, d = X.shape
+    if max_order is None:
+        max_order = d
+    max_order = min(max_order, d)
+
+    X_np = X.detach().numpy()
+
+    def joint_entropy(indices: list[int]) -> float:
+        X_sub = X_np[:, indices]
+        _, counts = np.unique(X_sub, axis=0, return_counts=True)
+        probs = counts / N
+        return float(-np.sum(probs * np.log(probs)))
+
+    def multivariate_mi(S: tuple) -> float:
+        mi = 0.0
+        for j in range(1, len(S) + 1):
+            sign = (-1) ** (j - 1)
+            for T in combinations(S, j):
+                mi += sign * joint_entropy(list(T))
+        return mi
+
+    total = 0.0
+    for k in range(2, max_order + 1):
+        subsets = list(combinations(range(d), k))
+        total += sum(multivariate_mi(S) for S in subsets) / len(subsets)
+
+    return total
 
 
 def kolmogorov_complexity(X: torch.Tensor) -> float:
-    # How to find the legnt of representation in bits and find the optimal lossless compression
-    pass
+    raw_bytes = X.numpy().tobytes()
+    compressed_bytes = zlib.compress(raw_bytes, level=9)
+    return len(compressed_bytes) / len(raw_bytes)
 
 
-def topological_complexity(X: torch.Tensor) -> float:
-    pass
+# With LLM, TODO verify in detail, but seems to work at first glance
+def topological_complexity(
+    X: torch.Tensor,
+    max_dim: int = 2,
+    weights: list[float] | None = None,
+) -> float:
+    # Requires: pip install ripser
+    # Per eq. 3: C_top(D) = sum_k w_k * Pers_k(D)
+    # where Pers_k(D) = sum of lifetimes (death - birth) of all k-dim homological features.
+    # k=0: connected components, k=1: loops, k=2: voids.
+    # Infinite death values (the single surviving 0-dim component) are excluded.
+
+    if weights is None:
+        weights = [1.0] * (max_dim + 1)
+    if len(weights) != max_dim + 1:
+        raise ValueError(f"weights must have length max_dim+1={max_dim + 1}")
+
+    points = X.detach().numpy()
+    diagrams = ripser(points, maxdim=max_dim)["dgms"]
+
+    total = 0.0
+    for k, dgm in enumerate(diagrams):
+        # Exclude infinite death values (unpaired features)
+        # Removes features that are not dead
+        finite_mask = np.isfinite(dgm[:, 1])
+        lifetimes = dgm[finite_mask, 1] - dgm[finite_mask, 0]
+        total += weights[k] * float(np.sum(lifetimes))
+
+    return total
 
 
 # Induced, MerLin gives states not density matrix (easier to compute for some metrics)
