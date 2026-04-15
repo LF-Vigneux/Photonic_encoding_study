@@ -6,11 +6,20 @@ import pytest
 import torch
 import torch.nn as nn
 
-from lib.gate_based_model import (  # noqa: E402
+from pathlib import Path
+import sys
+
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(REPO_ROOT))
+sys.path.insert(0, str(PROJECT_ROOT))
+
+from nn_embedding.lib.gate_based_model import (  # noqa: E402
     NeuralEmbeddingGateBasedKernel,
     NeuralEmbeddingGateBasedModel,
 )
-from utils.gate_based_embedding import (  # noqa: E402
+from nn_embedding.utils.gate_based_embedding import (  # noqa: E402
     QCNN,
     EmbeddingCallable,
 )

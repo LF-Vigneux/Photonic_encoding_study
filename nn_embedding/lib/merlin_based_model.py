@@ -5,14 +5,24 @@ import torch
 import torch.nn as nn
 
 
-from utils.merlin_model_utils import (  # noqa: E402
+from pathlib import Path
+import sys
+
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(REPO_ROOT))
+sys.path.insert(0, str(PROJECT_ROOT))
+
+
+from nn_embedding.utils.merlin_model_utils import (  # noqa: E402
     assign_params,
     compute_x2_permutation,
     count_parameters_with_prefixes,
     rename_params_in_current_order,
     strip_simple_negation_expressions,
 )
-from utils.utils import (  # noqa: E402
+from nn_embedding.utils.utils import (  # noqa: E402
     LinearLoss,
     calculate_distance,
     create_random_pairs,

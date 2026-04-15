@@ -5,6 +5,17 @@ import merlin as ml
 import scipy as sp
 from itertools import product, combinations
 import quimb.tensor as qtn
+
+from pathlib import Path
+import sys
+
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(REPO_ROOT))
+sys.path.insert(0, str(PROJECT_ROOT))
+
+
 from nn_embedding.lib.merlin_based_model import (
     NeuralEmbeddingMerLinKernel,
     NeuralEmbeddingMerLinModel,
@@ -251,7 +262,7 @@ def effective_kernel_rank(x: torch.Tensor) -> float:
     return (torch.sum(eigvals) ** 2) / torch.sum(eigvals_square)
 
 
-def nonclassity(x: torch.Tensor) -> float:
+def nonclassicality(x: torch.Tensor) -> float:
     pass
 
 
@@ -273,7 +284,8 @@ def quantum_entropy(rho: torch.Tensor) -> float:
     eigvals = torch.linalg.eigvalsh(rho)
     entropy = 0
     for val in eigvals:
-        entropy += val * np.log(val)
+        if val > 1e-8:
+            entropy += val * np.log(val)
     return (-1) * entropy
 
 

@@ -8,43 +8,53 @@ from pathlib import Path
 import numpy as np
 import torch
 from sklearn.datasets import make_classification
-from .gate_based_model import (  # noqa: E402
+
+from pathlib import Path
+import sys
+
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(REPO_ROOT))
+sys.path.insert(0, str(PROJECT_ROOT))
+
+from nn_embedding.lib.gate_based_model import (  # noqa: E402
     NeuralEmbeddingGateBasedKernel,
     NeuralEmbeddingGateBasedModel,
 )
-from .merlin_based_model import (  # noqa: E402
+from nn_embedding.lib.merlin_based_model import (  # noqa: E402
     NeuralEmbeddingMerLinKernel,
     NeuralEmbeddingMerLinModel,
 )
-from .training_without_nqe import (  # noqa: E402
+from nn_embedding.lib.training_without_nqe import (  # noqa: E402
     train_gate_based,
     train_merlin_based,
 )
-from utils.data import data_load_and_process  # noqa: E402
-from utils.gate_based_embedding import (  # noqa: E402
+from nn_embedding.utils.data import data_load_and_process  # noqa: E402
+from nn_embedding.utils.gate_based_embedding import (  # noqa: E402
     QCNN,
     EmbeddingCallable,
     FourQCNN,
 )
-from utils.gate_based_models import (  # noqa: E402
+from nn_embedding.utils.gate_based_models import (  # noqa: E402
     create_gate_based_fig_2_3_models,
     create_gate_based_fig_5_models,
 )
-from utils.merlin_models import (  # noqa: E402
+from nn_embedding.utils.merlin_models import (  # noqa: E402
     create_merlin_fig_2_models,
     create_merlin_fig_3_models,
     create_merlin_fig_4_models,
     create_merlin_fig_5_models,
     create_trainable_merlin_layer_fig_3,
 )
-from utils.plotting import (  # noqa: E402
+from nn_embedding.utils.plotting import (  # noqa: E402
     plot_figure_2_bc,
     plot_figure_3,
     plot_figure_4,
     plot_figure_5,
     plot_figure_6,
 )
-from utils.utils import (  # noqa: E402
+from nn_embedding.utils.utils import (  # noqa: E402
     TransparentModel,
     assign_params,
     get_error_bound,

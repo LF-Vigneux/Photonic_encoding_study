@@ -3,12 +3,21 @@ import torch
 import torch.nn as nn
 from merlin import LexGrouping
 
+from pathlib import Path
+import sys
 
-from utils.gate_based_embedding import (  # noqa: E402
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(REPO_ROOT))
+sys.path.insert(0, str(PROJECT_ROOT))
+
+
+from nn_embedding.utils.gate_based_embedding import (  # noqa: E402
     QCNN,
     EmbeddingCallable,
 )
-from utils.utils import (  # noqa: E402
+from nn_embedding.utils.utils import (  # noqa: E402
     LinearLoss,
     calculate_distance,
     create_random_pairs,
