@@ -4,6 +4,11 @@ import merlin as ml
 import scipy as sp
 from itertools import product, combinations
 import quimb.tensor as qtn
+from nn_embedding.lib.merlin_based_model import (
+    NeuralEmbeddingMerLinKernel,
+    NeuralEmbeddingMerLinModel,
+)
+from nn_embedding.utils.utils import TransparentModel
 
 
 # Classical
@@ -15,8 +20,6 @@ def distributional_entropy(X: torch.Tensor) -> float:
         return np.log(N)
 
     frequencies = np.zeros(unique_tensors.size(0))
-    print(unique_tensors)
-    print()
     for tensor in X:
         print(tensor)
         for index, tensor_u in enumerate(unique_tensors):
@@ -58,7 +61,7 @@ def topological_complexity(X: torch.Tensor) -> float:
 
 def hilbert_space_support_dim(
     x: torch.Tensor,
-    embedder: ml.QuantumLayer,
+    embedder: ml.QuantumLayer | NeuralEmbeddingMerLinModel,
     eps: float = 1e-8,
 ) -> int:
     """
@@ -74,22 +77,30 @@ def hilbert_space_support_dim(
 
 
 def quantum_fisher_information_spread(
-    x: torch.Tensor, embedder: ml.QuantumLayer
+    x: torch.Tensor, embedder: ml.QuantumLayer | NeuralEmbeddingMerLinModel
 ) -> float:
     pass
 
 
-def entanglement_entropy(x: torch.Tensor, embedder: ml.QuantumLayer) -> float:
+def entanglement_entropy(
+    x: torch.Tensor, embedder: ml.QuantumLayer | NeuralEmbeddingMerLinModel
+) -> float:
+
+    if isinstance(embedder, NeuralEmbeddingMerLinModel):
+        layer_object = embedder.quantum_embedding_layer
+    else:
+        layer_object = embedder
+
     # The same as average_bipartite_entanglement_entropy, I think
-    state_keys = embedder.output_keys
+    state_keys = layer_object.output_keys
 
     # Get data for the partial trace
-    if embedder.computation_space is ml.ComputationSpace.DUAL_RAIL:
+    if layer_object.computation_space is ml.ComputationSpace.DUAL_RAIL:
         dim_per_state = 2
-        num_states = embedder.circuit.m // 2
+        num_states = layer_object.circuit.m // 2
     else:
-        dim_per_state = embedder.n_photons + 1
-        num_states = embedder.circuit.m
+        dim_per_state = layer_object.n_photons + 1
+        num_states = layer_object.circuit.m
     bipartitions = _get_all_bipartitions(num_states)
     num_bipartitions = len(bipartitions)
 
@@ -97,14 +108,14 @@ def entanglement_entropy(x: torch.Tensor, embedder: ml.QuantumLayer) -> float:
 
     for point in x:
         # Getting the density matrix in the right encoding
-        if embedder.computation_space is ml.ComputationSpace.DUAL_RAIL:
+        if layer_object.computation_space is ml.ComputationSpace.DUAL_RAIL:
             rho = embedder(point)
 
         else:
             rho = embbed_density_into_complete_fock_space(
                 embedder(point),
-                embedder.circuit.m,
-                n_photons=embedder.n_photons,
+                layer_object.circuit.m,
+                n_photons=layer_object.n_photons,
                 state_keys=state_keys,
             )
 
@@ -121,18 +132,31 @@ def entanglement_entropy(x: torch.Tensor, embedder: ml.QuantumLayer) -> float:
     return total_entropy / x.size(0)
 
 
-def kernel_spectrum_flatness(x: torch.Tensor, embedder: ml.QuantumLayer) -> float:
-    pass
+def kernel_spectrum_flatness(
+    x: torch.Tensor, embedder: ml.QuantumLayer | NeuralEmbeddingMerLinModel
+) -> float:
+    if isinstance(embedder, NeuralEmbeddingMerLinModel):
+        kernel_object = NeuralEmbeddingMerLinKernel(
+            embedder.classical_encoder, embedder.quantum_embedding_layer
+        )
+    else:
+        # TODO Will be ok once I change the method for input parameters instead of trainable ones
+        kernel_object = NeuralEmbeddingMerLinKernel(TransparentModel(), embedder)
+
+    kernel_matrix = kernel_object.compute_kernel_matrix(x)
+    eigvals = torch.linalg.eigvalsh(kernel_matrix)
+    eigvals_square = eigvals**2
+    return (torch.sum(eigvals) ** 2) / torch.sum(eigvals_square)
 
 
 def expressibility_vs_locality_ratio(
-    x: torch.Tensor, embedder: ml.QuantumLayer
+    x: torch.Tensor, embedder: ml.QuantumLayer | NeuralEmbeddingMerLinModel
 ) -> float:
     pass
 
 
 def topological_invariants_of_embedding(
-    x: torch.Tensor, embedder: ml.QuantumLayer
+    x: torch.Tensor, embedder: ml.QuantumLayer | NeuralEmbeddingMerLinModel
 ) -> float:
     pass
 
@@ -141,9 +165,54 @@ def topological_invariants_of_embedding(
 ############################################################################################################
 
 
-def average_bipartite_entanglement_entropy(x: torch.Tensor) -> float:
-    # Comment je peux faire une bipartition en photonique
-    pass
+def average_bipartite_entanglement_entropy(
+    x: torch.Tensor,
+    computation_space: ml.ComputationSpace,
+    state_keys: list[tuple[int]],
+    n_modes: int,
+    n_photons: int | None = None,
+) -> float:
+
+    # Get data for the partial trace
+    if computation_space is ml.ComputationSpace.DUAL_RAIL:
+        dim_per_state = 2
+        num_states = n_modes // 2
+    else:
+        if n_photons is None:
+            raise ValueError(
+                "The number of photons must be given if the computation space is not DUAL_RAIL"
+            )
+        dim_per_state = n_photons + 1
+        num_states = n_modes
+    bipartitions = _get_all_bipartitions(num_states)
+    num_bipartitions = len(bipartitions)
+
+    total_entropy = 0
+
+    for point in x:
+        # Getting the density matrix in the right encoding
+        if computation_space is ml.ComputationSpace.DUAL_RAIL:
+            rho = point
+
+        else:
+            rho = embbed_density_into_complete_fock_space(
+                point,
+                n_modes,
+                n_photons=n_photons,
+                state_keys=state_keys,
+            )
+
+        # Computing the entropy per bipartition
+        point_entropy = 0
+        for bipartition in bipartitions:
+            point_entropy += quantum_entropy(
+                partial_trace_from_density(
+                    rho, states_to_trace=bipartition, dim_per_state=dim_per_state
+                )
+            )
+        total_entropy += point_entropy / num_bipartitions
+
+    return total_entropy / x.size(0)
 
 
 def multipartite_total_correlation(x: torch.Tensor) -> float:
@@ -151,7 +220,10 @@ def multipartite_total_correlation(x: torch.Tensor) -> float:
 
 
 def effective_kernel_rank(x: torch.Tensor) -> float:
-    pass
+    kernel_matrix = get_kernel_matrix(x)
+    eigvals = torch.linalg.eigvalsh(kernel_matrix)
+    eigvals_square = eigvals**2
+    return (torch.sum(eigvals) ** 2) / torch.sum(eigvals_square)
 
 
 def nonclassity(x: torch.Tensor) -> float:
@@ -194,45 +266,6 @@ def get_kernel_matrix(rhos: torch.Tensor) -> torch.Tensor:
             )
             kernel_matrix[i, j] = torch.trace(to_trace) ** 2
     return kernel_matrix
-
-
-# def partial_trace(
-#     rho: torch.Tensor,
-#     modes_indexes: list[int],
-#     computation_space: ml.ComputationSpace,
-#     state_keys: list[tuple[int]],
-#     n_photons: int | None = None,
-#     n_modes: int | None = None,
-# ) -> torch.Tensor:
-#     """If it is qubits, write the qubit index
-
-#     Here we assume litte-endian formalism: q0 tensor q1 tensor q2 ...
-#     """
-#     if (computation_space is not ml.ComputationSpace.DUAL_RAIL) and (
-#         (n_photons is None) or (n_modes is None)
-#     ):
-#         assert ValueError(
-#             "n_photons must be given if the computation space is not Dual Rail"
-#         )
-#     if computation_space is ml.ComputationSpace.DUAL_RAIL:
-#         return compute_partial_trace_from_density(
-#             rho, states_to_trace=modes_indexes, dim_per_state=2
-#         )
-#     else:
-#         basic_states = _all_photon_mode_configurations(m=n_modes, n=n_photons)
-#         space_size = len(basic_states)
-
-#         # Embbed the density matrix in the more physically accurate
-#         larger_density = torch.zeros((space_size, space_size))
-#         for i in enumerate(len(state_keys)):
-#             for j in enumerate(len(state_keys)):
-#                 larger_matrix_i = basic_states.index(state_keys[i])
-#                 larger_matrix_j = basic_states.index(state_keys[j])
-#                 larger_density[larger_matrix_i, larger_matrix_j] = rho[i, j]
-
-#         return compute_partial_trace_from_density(
-#             larger_density, states_to_trace=None, dim_per_state=n_photons + 1
-#         )
 
 
 def embbed_density_into_complete_fock_space(
