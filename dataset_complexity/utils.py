@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+import torch.nn as nn
 import merlin as ml
 import scipy as sp
 from itertools import product, combinations
@@ -8,7 +9,11 @@ from nn_embedding.lib.merlin_based_model import (
     NeuralEmbeddingMerLinKernel,
     NeuralEmbeddingMerLinModel,
 )
-from nn_embedding.utils.utils import TransparentModel
+from nn_embedding.utils.utils import (
+    TransparentModel,
+    assign_params,
+    state_vector_to_density_matrix,
+)
 
 
 # Classical
@@ -55,7 +60,7 @@ def topological_complexity(X: torch.Tensor) -> float:
     pass
 
 
-# Induced
+# Induced, MerLin gives states not density matrix (easier to compute for some metrics)
 ############################################################################################################
 
 
@@ -67,7 +72,8 @@ def hilbert_space_support_dim(
     """
     Per the kernel effective dim of p.8 eq 12
     """
-    rhos = embedder(x)
+    psis = embedder(x)
+    rhos = state_vector_to_density_matrix(psis)
     rho = torch.sum(rhos, dim=0) / x.size(0)
     eigvals = torch.linalg.eigvalsh(rho)
     effective_dim = 0
@@ -79,7 +85,24 @@ def hilbert_space_support_dim(
 def quantum_fisher_information_spread(
     x: torch.Tensor, embedder: ml.QuantumLayer | NeuralEmbeddingMerLinModel
 ) -> float:
-    pass
+    if isinstance(embedder, NeuralEmbeddingMerLinModel):
+
+        class Encoder(nn.Module):
+            def __init__(self):
+                self.classical_model = embedder.classical_model
+
+            def forward(self, x: torch.Tensor):
+                params = self.classical_model(x)
+                with torch.no_grad():
+                    output = assign_params(embedder.quantum_embedding_layer, params)
+                return output
+
+        encoder = Encoder()
+    else:
+        encoder = embedder
+
+    matricies = get_quantum_fisher_matrices(encoder, x)
+    return sum(torch.trace(mat) for mat in matricies) / x.size(0)
 
 
 def entanglement_entropy(
@@ -109,15 +132,17 @@ def entanglement_entropy(
     for point in x:
         # Getting the density matrix in the right encoding
         if layer_object.computation_space is ml.ComputationSpace.DUAL_RAIL:
-            rho = embedder(point)
+            psi = embedder(point)
+            rho = state_vector_to_density_matrix(psi)
 
         else:
-            rho = embbed_density_into_complete_fock_space(
+            psi = embbed_density_into_complete_fock_space(
                 embedder(point),
                 layer_object.circuit.m,
                 n_photons=layer_object.n_photons,
                 state_keys=state_keys,
             )
+            rho = state_vector_to_density_matrix(psi)
 
         # Computing the entropy per bipartition
         point_entropy = 0
@@ -231,6 +256,7 @@ def nonclassity(x: torch.Tensor) -> float:
 
 
 def quantum_fisher_information(x: torch.Tensor) -> float:
+    # TODO what are the parameters
     pass
 
 
@@ -308,6 +334,32 @@ def partial_trace_from_density(
         (dim_per_state**new_num_qubits, dim_per_state**new_num_qubits)
     )
     return rho_torch
+
+
+def get_quantum_fisher_matrices(
+    model: nn.Module, inputs: torch.Tensor
+) -> list[torch.Tensor]:
+    d = sum(i.numel() for i in model.parameters())
+    matricies = []
+    for point in inputs:
+        psi = model(point)
+        model
+        fim = torch.empty((d, d))
+        derivatives = torch.autograd.functional.jacobian(
+            model, point, create_graph=False
+        )
+        # Per https://arxiv.org/pdf/1907.08037 p.10
+        for i in range(d):
+            dpsi_i = derivatives[:, i]
+            for j in range(d):
+                dpsi_j = derivatives[:, j]
+                fim[i, j] = 4 * torch.real(
+                    torch.vdot(dpsi_i, dpsi_j)
+                    - (torch.vdot(dpsi_i, psi) * torch.vdot(psi, dpsi_j))
+                )
+        matricies.append(fim)
+
+    return matricies
 
 
 ######################################
