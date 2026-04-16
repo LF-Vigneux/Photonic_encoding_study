@@ -229,7 +229,7 @@ def kernel_spectrum_flatness(
     return (torch.sum(eigvals) ** 2) / torch.sum(eigvals_square)
 
 
-def locality_vs_expressibility_ratio(
+def locality_vs_expressibility(
     x: torch.Tensor,
     embedder: ml.QuantumLayer | NeuralEmbeddingMerLinModel,
     n_samples: int = 1000,
@@ -245,8 +245,24 @@ def locality_vs_expressibility_ratio(
     # TODO Check with the author, locality proxy, the entanglement entropy
     avg_entropy = entanglement_entropy(x, embedder)
 
-    # Chose the inverse ratio, if entropy big, non local --> more complex. If kl_div small, embedding more expressive so more difficult?
-    return avg_entropy / (expressibility_score + 1e-10)
+    # Find the dimension N
+    if isinstance(embedder, NeuralEmbeddingMerLinModel):
+        if (
+            embedder.quantum_embedding_layer.computation_space
+            is ml.ComputationSpace.DUAL_RAIL
+        ):
+            N = 2 ** (embedder.quantum_embedding_layer.circuit.m // 2)
+        else:
+            N = (
+                embedder.quantum_embedding_layer.n_photons + 1
+            ) ** embedder.quantum_embedding_layer.circuit.m
+    else:
+        if embedder.computation_space is ml.ComputationSpace.DUAL_RAIL:
+            N = 2 ** (embedder.circuit.m // 2)
+        else:
+            N = (embedder.n_photons + 1) ** embedder.circuit.m
+
+    return (np.exp(-expressibility_score) - (2 * avg_entropy / np.log(N))) ** 2
 
 
 def topological_invariants_of_embedding(

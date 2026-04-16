@@ -31,7 +31,7 @@ from dataset_complexity.utils import (
     embbed_density_into_complete_fock_space,
     effective_kernel_rank,
     entanglement_entropy,
-    locality_vs_expressibility_ratio,
+    locality_vs_expressibility,
     get_kernel_matrix,
     hilbert_space_support_dim,
     kernel_spectrum_flatness,
@@ -215,24 +215,40 @@ def test_kernel_spectrum_flatness_matches_participation_ratio(monkeypatch):
     assert value == pytest.approx(2.0)
 
 
-def test_locality_vs_expressibility_ratio_more_expressive_embedding_should_score_higher(
-    monkeypatch,
+@pytest.mark.parametrize(
+    "kl, entropy, expected_high",
+    [
+        # Metric: M = (exp(-kl_div) - 2*S/log(N))^2
+        # DummyDualRailEmbedder(m=4): N=4, S_max=log(2)
+        # e_hat = exp(-kl),  s_hat = S / S_max = 2*S / log(N)
+        #
+        # Expressive + local  (BAD):  e_hat≈1, s_hat≈0 → M≈1
+        pytest.param(0.01, 0.0, True, id="expressive_local_bad"),
+        # Non-expressive + global (BAD): e_hat≈0, s_hat≈1 → M≈1
+        pytest.param(10.0, np.log(2), True, id="non_expressive_global_bad"),
+        # Expressive + global (GOOD):  e_hat≈1, s_hat≈1 → M≈0
+        pytest.param(0.01, np.log(2), False, id="expressive_global_good"),
+        # Non-expressive + local (GOOD): e_hat≈0, s_hat≈0 → M≈0
+        pytest.param(10.0, 0.0, False, id="non_expressive_local_good"),
+    ],
+)
+def test_locality_vs_expressibility_mismatch_metric(
+    monkeypatch, kl, entropy, expected_high
 ):
-    # More expressive → smaller KL divergence from Haar → higher avg_entropy / kl_div
     embedder = DummyDualRailEmbedder(torch.eye(2, dtype=torch.complex64))
     x = torch.rand(4, 2)
 
+    monkeypatch.setattr("dataset_complexity.utils.kl_div", lambda *a, **kw: kl)
     monkeypatch.setattr(
-        "dataset_complexity.utils.entanglement_entropy", lambda *a, **kw: 1.0
+        "dataset_complexity.utils.entanglement_entropy", lambda *a, **kw: entropy
     )
 
-    monkeypatch.setattr("dataset_complexity.utils.kl_div", lambda *a, **kw: 0.1)
-    expressive_score = locality_vs_expressibility_ratio(x, embedder)
+    score = locality_vs_expressibility(x, embedder)
 
-    monkeypatch.setattr("dataset_complexity.utils.kl_div", lambda *a, **kw: 10.0)
-    non_expressive_score = locality_vs_expressibility_ratio(x, embedder)
-
-    assert expressive_score > non_expressive_score
+    if expected_high:
+        assert score > 0.5, f"Expected M > 0.5 (miscalibrated), got {score}"
+    else:
+        assert score < 0.05, f"Expected M < 0.05 (well calibrated), got {score}"
 
 
 def test_kl_div_is_nonnegative(monkeypatch):
