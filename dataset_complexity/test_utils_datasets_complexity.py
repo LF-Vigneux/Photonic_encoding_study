@@ -102,7 +102,6 @@ def test_distributional_entropy_is_log_n_for_unique_rows():
     assert distributional_entropy(samples) == pytest.approx(np.log(4))
 
 
-@pytest.mark.xfail(reason="Metric is not implemented yet.")
 def test_correlation_order_independent_features_should_be_minimal():
     samples = torch.tensor(
         [
@@ -113,10 +112,22 @@ def test_correlation_order_independent_features_should_be_minimal():
         ]
     )
 
-    assert correlation_order(samples) == pytest.approx(1.0)
+    assert correlation_order(samples) == pytest.approx(0.0, abs=1e-6)
 
 
-@pytest.mark.xfail(reason="Metric is not implemented yet.")
+def test_correlation_dependant_features():
+    samples = torch.tensor(
+        [
+            [0.0, 0.0],
+            [1.0, 1.0],
+            [2.0, 2.0],
+            [3.0, 3.0],
+        ]
+    )
+
+    assert correlation_order(samples) == pytest.approx(np.log(4), abs=1e-6)
+
+
 def test_kolmogorov_complexity_constant_dataset_should_be_low():
     constant = torch.zeros((8, 4))
     varied = torch.arange(32, dtype=torch.float32).reshape(8, 4)
@@ -124,7 +135,6 @@ def test_kolmogorov_complexity_constant_dataset_should_be_low():
     assert kolmogorov_complexity(constant) < kolmogorov_complexity(varied)
 
 
-@pytest.mark.xfail(reason="Metric is not implemented yet.")
 def test_topological_complexity_two_clusters_should_exceed_single_cluster():
     single_cluster = torch.zeros((8, 2))
     two_clusters = torch.tensor([[0.0, 0.0]] * 4 + [[10.0, 10.0]] * 4)
@@ -192,7 +202,9 @@ def test_kernel_spectrum_flatness_matches_participation_ratio(monkeypatch):
         def compute_kernel_matrix(self, x):
             return kernel
 
-    monkeypatch.setattr("dataset_complexity.utils.NeuralEmbeddingMerLinKernel", DummyKernel)
+    monkeypatch.setattr(
+        "dataset_complexity.utils.NeuralEmbeddingMerLinKernel", DummyKernel
+    )
 
     value = kernel_spectrum_flatness(
         torch.tensor([[0.0, 1.0], [0.0, 1.0]]),

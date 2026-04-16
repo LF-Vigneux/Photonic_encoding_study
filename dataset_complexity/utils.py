@@ -90,12 +90,6 @@ def topological_complexity(
     max_dim: int = 2,
     weights: list[float] | None = None,
 ) -> float:
-    # Requires: pip install ripser
-    # Per eq. 3: C_top(D) = sum_k w_k * Pers_k(D)
-    # where Pers_k(D) = sum of lifetimes (death - birth) of all k-dim homological features.
-    # k=0: connected components, k=1: loops, k=2: voids.
-    # Infinite death values (the single surviving 0-dim component) are excluded.
-
     if weights is None:
         weights = [1.0] * (max_dim + 1)
     if len(weights) != max_dim + 1:
