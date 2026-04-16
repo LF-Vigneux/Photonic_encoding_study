@@ -251,9 +251,33 @@ def topological_invariants_of_embedding(
     max_dim: int = 2,
     weights: list[float] | None = None,
 ) -> float:
-    # TODO Verify my choice with author, just flatten the datapoints and study the persistent homology
+    # TODO Verify my choice with author, use the kernel distance to calculate the persistent homology
+    if weights is None:
+        weights = [1.0] * (max_dim + 1)
+    if len(weights) != max_dim + 1:
+        raise ValueError(f"weights must have length max_dim+1={max_dim + 1}")
 
-    return topological_complexity(embedder(x), max_dim=max_dim, weights=weights)
+    if isinstance(embedder, NeuralEmbeddingMerLinModel):
+        kernel_object = NeuralEmbeddingMerLinKernel(
+            embedder.classical_encoder, embedder.quantum_embedding_layer
+        )
+    else:
+        # TODO Will be ok once I change the method for input parameters instead of trainable ones
+        kernel_object = NeuralEmbeddingMerLinKernel(TransparentModel(), embedder)
+
+    kernel_matrix = kernel_object.compute_kernel_matrix(x)
+
+    diagrams = ripser(kernel_matrix, maxdim=max_dim, distance_matrix=True)["dgms"]
+
+    total = 0.0
+    for k, dgm in enumerate(diagrams):
+        # Exclude infinite death values (unpaired features)
+        # Removes features that are not dead
+        finite_mask = np.isfinite(dgm[:, 1])
+        lifetimes = dgm[finite_mask, 1] - dgm[finite_mask, 0]
+        total += weights[k] * float(np.sum(lifetimes))
+
+    return total
 
 
 # Quantum
