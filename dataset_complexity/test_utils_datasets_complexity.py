@@ -352,13 +352,14 @@ def test_average_bipartite_entanglement_entropy_is_log_two_for_bell_density(bell
     assert value == pytest.approx(np.log(2), rel=1e-5)
 
 
-@pytest.mark.xfail(reason="Metric is not implemented yet.")
 def test_multipartite_total_correlation_product_states_should_be_zero():
     product_density = _density_from_state(
         torch.tensor([1.0, 0.0, 0.0, 0.0], dtype=torch.complex64)
     ).unsqueeze(0)
 
-    assert multipartite_total_correlation(product_density) == pytest.approx(0.0)
+    assert multipartite_total_correlation(
+        product_density, num_subsystem=2, fock_space=False
+    ) == pytest.approx(0.0)
 
 
 def test_effective_kernel_rank_matches_participation_ratio(monkeypatch):

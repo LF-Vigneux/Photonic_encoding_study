@@ -7,6 +7,7 @@ from itertools import product, combinations
 import quimb.tensor as qtn
 import zlib
 from ripser import ripser
+from copy import deepcopy
 
 from pathlib import Path
 import sys
@@ -134,6 +135,7 @@ def hilbert_space_support_dim(
 def quantum_fisher_information_spread(
     x: torch.Tensor, embedder: ml.QuantumLayer | NeuralEmbeddingMerLinModel
 ) -> float:
+    # Assumed QFI is the same as QFI spread
     if isinstance(embedder, NeuralEmbeddingMerLinModel):
 
         class Encoder(nn.Module):
@@ -308,8 +310,40 @@ def average_bipartite_entanglement_entropy(
     return total_entropy / x.size(0)
 
 
-def multipartite_total_correlation(x: torch.Tensor) -> float:
-    pass
+def multipartite_total_correlation(
+    x: torch.Tensor,
+    num_subsystem: int,
+    dim_per_state: int = 2,
+    fock_space: bool = True,
+    num_photons: int | None = None,
+    state_keys: list[tuple[int]] | None = None,
+) -> float:
+    rho = torch.sum(x, dim=0) / x.size(0)
+    if fock_space:
+        if (num_photons is None) or (state_keys is None):
+            raise ValueError(
+                "When fock_space is True, the number of photons and the state keys must be provided"
+            )
+        rho = embbed_density_into_complete_fock_space(
+            rho, n_modes=num_subsystem, n_photons=num_photons, state_keys=state_keys
+        )
+    subsystems = list(i for i in range(num_subsystem))
+    correlation = 0
+    for i in subsystems:
+        if i == subsystems[0]:
+            to_trace = subsystems[1:]
+        elif i == subsystems[-1]:
+            to_trace = subsystems[:-1]
+        else:
+            to_trace = subsystems[:i]
+            b = subsystems[i + 1 :]
+            to_trace.extend(b)
+        traced_density = partial_trace_from_density(
+            deepcopy(rho), to_trace, dim_per_state=dim_per_state
+        )
+        correlation += quantum_entropy(traced_density)
+
+    return correlation - quantum_entropy(rho)
 
 
 def effective_kernel_rank(x: torch.Tensor) -> float:
