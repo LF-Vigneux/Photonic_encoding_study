@@ -1,3 +1,7 @@
+"""
+Not implemented techniques are identified by #####TODO
+"""
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -377,17 +381,53 @@ def effective_kernel_rank(x: torch.Tensor) -> float:
     return (torch.sum(eigvals) ** 2) / torch.sum(eigvals_square)
 
 
+##### TODO
 def nonclassicality(x: torch.Tensor) -> float:
+    # TODO what are Clifford stabilizers in photonics
     pass
 
 
+##### TODO
 def quantum_fisher_information(x: torch.Tensor) -> float:
     # TODO what are the parameters
     pass
 
 
-def topological_quantum_complexity(x: torch.Tensor) -> float:
-    pass
+##### TODO
+def topological_quantum_complexity(
+    x: torch.Tensor,
+    max_dim: int = 2,
+    weights: list[float] | None = None,
+    gamma_1: float = 0.33,
+    gamma_2: float = 0.33,
+    gamma_3: float = 0.33,
+) -> float:
+    ### S_topo
+    s_topo = None
+
+    #### Euler_carac
+    euler_carac = 0
+
+    #### Pers
+    # TODO Verify my choice with author, use the kernel distance to calculate the persistent homology
+    if weights is None:
+        weights = [1.0] * (max_dim + 1)
+    if len(weights) != max_dim + 1:
+        raise ValueError(f"weights must have length max_dim+1={max_dim + 1}")
+
+    kernel_matrix = get_kernel_matrix(x)
+
+    diagrams = ripser(kernel_matrix, maxdim=max_dim, distance_matrix=True)["dgms"]
+
+    pers = 0.0
+    for k, dgm in enumerate(diagrams):
+        # Exclude infinite death values (unpaired features)
+        # Removes features that are not dead
+        finite_mask = np.isfinite(dgm[:, 1])
+        lifetimes = dgm[finite_mask, 1] - dgm[finite_mask, 0]
+        pers += weights[k] * float(np.sum(lifetimes))
+
+    return (gamma_1 * s_topo) + (gamma_2 * euler_carac) + (gamma_3 * pers)
 
 
 # general utils
