@@ -223,16 +223,35 @@ def kernel_spectrum_flatness(
     return (torch.sum(eigvals) ** 2) / torch.sum(eigvals_square)
 
 
-def expressibility_vs_locality_ratio(
-    x: torch.Tensor, embedder: ml.QuantumLayer | NeuralEmbeddingMerLinModel
+def locality_vs_expressibility_ratio(
+    x: torch.Tensor,
+    embedder: ml.QuantumLayer | NeuralEmbeddingMerLinModel,
+    n_samples: int = 1000,
+    n_bins: int = 50,
 ) -> float:
-    pass
+    """
+    The x must already be pretreated or be pretreated in the embedder
+    """
+
+    # A more expressive embedding is more complex, so invert the score
+    expressibility_score = kl_div(x, embedder, n_samples=n_samples, n_bins=n_bins)
+
+    # TODO Check with the author, locality proxy, the entanglement entropy
+    avg_entropy = entanglement_entropy(x, embedder)
+
+    # Chose the inverse ratio, if entropy big, non local --> more complex. If kl_div small, embedding more expressive so more difficult?
+    return avg_entropy / (expressibility_score + 1e-10)
 
 
 def topological_invariants_of_embedding(
-    x: torch.Tensor, embedder: ml.QuantumLayer | NeuralEmbeddingMerLinModel
+    x: torch.Tensor,
+    embedder: ml.QuantumLayer | NeuralEmbeddingMerLinModel,
+    max_dim: int = 2,
+    weights: list[float] | None = None,
 ) -> float:
-    pass
+    # TODO Verify my choice with author, just flatten the datapoints and study the persistent homology
+
+    return topological_complexity(embedder(x), max_dim=max_dim, weights=weights)
 
 
 # Quantum
@@ -410,6 +429,49 @@ def get_quantum_fisher_matrices(
         matricies.append(fim)
 
     return matricies
+
+
+# CO-WRITTEN with LLM to understand what is computed
+def kl_div(
+    x: torch.Tensor,
+    embedder: ml.QuantumLayer | NeuralEmbeddingMerLinModel,
+    n_samples: int = 1000,
+    n_bins: int = 50,
+):
+    x_min = x.min(dim=0).values
+    x_max = x.max(dim=0).values
+
+    # Sample random inputs uniformly over the observed input range
+    rand_inputs = torch.rand(n_samples, x.size(1)) * (x_max - x_min) + x_min
+
+    # Get the fidelities with the Kernel matrix
+    if isinstance(embedder, NeuralEmbeddingMerLinModel):
+        kernel_object = NeuralEmbeddingMerLinKernel(
+            embedder.classical_encoder, embedder.quantum_embedding_layer
+        )
+        D = embedder.quantum_embedding_layer.output_size
+    else:
+        kernel_object = NeuralEmbeddingMerLinKernel(TransparentModel(), embedder)
+        D = embedder.output_size
+
+    kernel_matrix = kernel_object.compute_kernel_matrix(rand_inputs)
+    idx = torch.triu_indices(n_samples, n_samples, offset=1)
+    fidelities = kernel_matrix[idx[0], idx[1]].detach().float().numpy()
+
+    # Get discrete probability distribution over n_bins
+    hist, bin_edges = np.histogram(fidelities, bins=n_bins, range=(0.0, 1.0))
+    bin_centers = 0.5 * (bin_edges[:-1] + bin_edges[1:])
+    bin_width = bin_edges[1] - bin_edges[0]
+    p = hist / (hist.sum() + 1e-12)
+
+    # Calculating the probabilities of each bin for the Haar distributed states
+    haar_pdf = (D - 1) * (1 - bin_centers) ** (D - 2)
+    q = haar_pdf * bin_width
+    q = q / (q.sum() + 1e-12)
+
+    # make sure that no negative probability is being used
+    mask = (p > 0) & (q > 0)
+    return float(np.sum(p[mask] * np.log(p[mask] / q[mask])))
 
 
 ######################################

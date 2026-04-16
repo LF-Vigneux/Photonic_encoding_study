@@ -31,7 +31,7 @@ from dataset_complexity.utils import (
     embbed_density_into_complete_fock_space,
     effective_kernel_rank,
     entanglement_entropy,
-    expressibility_vs_locality_ratio,
+    locality_vs_expressibility_ratio,
     get_kernel_matrix,
     hilbert_space_support_dim,
     kernel_spectrum_flatness,
@@ -45,6 +45,7 @@ from dataset_complexity.utils import (
     topological_complexity,
     topological_invariants_of_embedding,
     topological_quantum_complexity,
+    kl_div,
 )
 
 
@@ -214,12 +215,99 @@ def test_kernel_spectrum_flatness_matches_participation_ratio(monkeypatch):
     assert value == pytest.approx(2.0)
 
 
-@pytest.mark.xfail(reason="Metric is not implemented yet.")
-def test_expressibility_vs_locality_ratio_more_expressive_embedding_should_score_higher():
-    local_score = expressibility_vs_locality_ratio(torch.zeros(2, 1), None)
-    expressive_score = expressibility_vs_locality_ratio(torch.ones(2, 1), None)
+def test_locality_vs_expressibility_ratio_more_expressive_embedding_should_score_higher(
+    monkeypatch,
+):
+    # More expressive → smaller KL divergence from Haar → higher avg_entropy / kl_div
+    embedder = DummyDualRailEmbedder(torch.eye(2, dtype=torch.complex64))
+    x = torch.rand(4, 2)
 
-    assert expressive_score > local_score
+    monkeypatch.setattr(
+        "dataset_complexity.utils.entanglement_entropy", lambda *a, **kw: 1.0
+    )
+
+    monkeypatch.setattr("dataset_complexity.utils.kl_div", lambda *a, **kw: 0.1)
+    expressive_score = locality_vs_expressibility_ratio(x, embedder)
+
+    monkeypatch.setattr("dataset_complexity.utils.kl_div", lambda *a, **kw: 10.0)
+    non_expressive_score = locality_vs_expressibility_ratio(x, embedder)
+
+    assert expressive_score > non_expressive_score
+
+
+def test_kl_div_is_nonnegative(monkeypatch):
+    n = 20
+    kernel = torch.eye(n)
+
+    class DummyKernel:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def compute_kernel_matrix(self, x):
+            return kernel
+
+    monkeypatch.setattr(
+        "dataset_complexity.utils.NeuralEmbeddingMerLinKernel", DummyKernel
+    )
+
+    embedder = DummyDualRailEmbedder(torch.eye(2, dtype=torch.complex64), m=2)
+    embedder.output_size = 2
+    x = torch.rand(5, 2)
+
+    assert kl_div(x, embedder, n_samples=n, n_bins=10) >= 0.0
+
+
+def test_kl_div_identical_states_yields_large_divergence(monkeypatch):
+    n = 30
+    kernel = torch.ones(n, n)
+
+    class DummyKernel:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def compute_kernel_matrix(self, x):
+            return kernel
+
+    monkeypatch.setattr(
+        "dataset_complexity.utils.NeuralEmbeddingMerLinKernel", DummyKernel
+    )
+
+    embedder = DummyDualRailEmbedder(torch.eye(2, dtype=torch.complex64), m=2)
+    embedder.output_size = 4
+    x = torch.rand(5, 2)
+
+    assert kl_div(x, embedder, n_samples=n, n_bins=10) > 1.0
+
+
+def test_kl_div_haar_like_fidelities_yields_small_divergence(monkeypatch):
+    D = 4
+    rng = np.random.default_rng(42)
+    n = 150
+    n_pairs = n * (n - 1) // 2
+    fidelity_samples = rng.beta(1, D - 1, size=n_pairs).astype(np.float32)
+    kernel = torch.eye(n, dtype=torch.float32)
+    k = 0
+    for i in range(n):
+        for j in range(i + 1, n):
+            kernel[i, j] = kernel[j, i] = float(fidelity_samples[k])
+            k += 1
+
+    class DummyKernel:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def compute_kernel_matrix(self, x):
+            return kernel
+
+    monkeypatch.setattr(
+        "dataset_complexity.utils.NeuralEmbeddingMerLinKernel", DummyKernel
+    )
+
+    embedder = DummyDualRailEmbedder(torch.eye(2, dtype=torch.complex64), m=2)
+    embedder.output_size = D
+    x = torch.rand(5, 2)
+
+    assert kl_div(x, embedder, n_samples=n, n_bins=20) < 0.5
 
 
 @pytest.mark.xfail(reason="Metric is not implemented yet.")
