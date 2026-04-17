@@ -95,7 +95,37 @@ def quantum_complexity(
     n_photons: int | None = None,
     hyper_parameters: list[float] = [1, 1, 1, 1, 1, 1],
 ) -> float:
-    pass
-
-
-# TODO COMPLETE
+    return (
+        hyper_parameters[0]
+        * average_bipartite_entanglement_entropy(
+            X,
+            computation_space=computation_space,
+            state_keys=state_keys,
+            n_modes=n_modes,
+            n_photons=n_photons,
+        )
+    ) + (
+        hyper_parameters[1]
+        * multipartite_total_correlation(
+            X,
+            num_subsystem=(
+                n_modes // 2
+                if computation_space == ml.ComputationSpace.DUAL_RAIL
+                else n_modes
+            ),
+            dim_per_state=(
+                2
+                if computation_space == ml.ComputationSpace.DUAL_RAIL
+                else n_photons + 1
+            ),
+            fock_space=(
+                False if computation_space == ml.ComputationSpace.DUAL_RAIL else True
+            ),
+            num_photons=n_photons,
+            state_keys=state_keys,
+        )
+        + (hyper_parameters[2] * effective_kernel_rank(X))
+        + (hyper_parameters[3] * nonclassicality(X))
+        + (hyper_parameters[4] * quantum_fisher_information(X))
+        + (hyper_parameters[5] * topological_quantum_complexity(X))
+    )
