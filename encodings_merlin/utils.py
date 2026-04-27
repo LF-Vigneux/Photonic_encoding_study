@@ -1,6 +1,7 @@
 import torch
 import numpy as np
 import perceval as pcvl
+import torch.nn as nn
 
 
 MZI = (
@@ -61,6 +62,42 @@ def vector_to_matrix_evo(
             output_matrix[i, j] = x_to_apply[tag]
 
     return output_matrix
+
+
+def compute_kernel_matrix_without_nqe(
+    self, X_data: torch.Tensor, encoding_strategy: nn.Module, batch_size: int = 256
+):
+    """Compute the symmetric kernel matrix for a dataset.
+
+    Parameters
+    ----------
+    X_data : torch.Tensor
+        Input dataset for which to evaluate all pairwise kernel values.
+    batch_size : int, optional
+        Number of upper-triangular pairs evaluated per forward pass
+        (default: ``256``).
+
+    Returns
+    -------
+    torch.Tensor
+        Symmetric kernel matrix of shape ``(n_samples, n_samples)``.
+    """
+    self.kernel_function.eval()
+    n = X_data.size(0)
+    idx_i, idx_j = torch.triu_indices(n, n)
+    pairs_a = X_data[idx_i]
+    pairs_b = X_data[idx_j]
+
+    values_list = []
+    for a, b in zip(pairs_a, pairs_b):
+        values_list.append(torch.vdot(encoding_strategy(a), encoding_strategy(b)))
+
+    values = torch.cat(values_list)
+
+    output = torch.empty(n, n)
+    output[idx_i, idx_j] = values
+    output[idx_j, idx_i] = values
+    return output
 
 
 # class OneHotEncoder(nn.Module):
