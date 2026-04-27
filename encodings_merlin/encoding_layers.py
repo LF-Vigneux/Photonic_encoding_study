@@ -5,8 +5,15 @@ import math
 import torch
 import torch.nn as nn
 import math
+import sys
+from pathlib import Path
 
-from .utils import MZI, find_upper_even_square, vector_to_matrix_evo
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(REPO_ROOT))
+sys.path.insert(0, str(PROJECT_ROOT))
+
+from encodings_merlin.utils import MZI, find_upper_even_square, vector_to_matrix_evo
 
 
 def dense_angle_encoding_circuit(
