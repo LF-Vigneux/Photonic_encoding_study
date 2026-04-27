@@ -1,13 +1,11 @@
+import sys
 from copy import deepcopy
+from pathlib import Path
 
 import merlin as ml
 import torch
 import torch.nn as nn
-
-
-from pathlib import Path
-import sys
-
+from itertools import combinations
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -73,6 +71,7 @@ class NeuralEmbeddingMerLinModel(nn.Module):
         for param in self.quantum_embedding_layer.parameters():
             param.requires_grad = False
         self.quantum_classifier = quantum_classifier
+        self.num_classes = num_classes
         self.output_grouper = ml.LexGrouping(
             self.quantum_classifier.output_size, num_classes
         )
@@ -232,21 +231,27 @@ class NeuralEmbeddingMerLinModel(nn.Module):
         loss_list = []
 
         if return_data:
-            # Separating the test value classes
-            X1_test = torch.stack(
-                [x_test[i] for i in range(len(x_test)) if y_test[i] == 1]
-            )
-            X0_test = torch.stack(
-                [x_test[i] for i in range(len(x_test)) if y_test[i] != 1]
-            )
-
-            # Separating the train value classes
-            X1_train = torch.stack(
-                [x_train[i] for i in range(len(x_train)) if y_train[i] == 1]
-            )
-            X0_train = torch.stack(
-                [x_train[i] for i in range(len(x_train)) if y_train[i] != 1]
-            )
+            X_test_splits = []
+            X_train_splits = []
+            for class_index in range(self.num_classes):
+                X_test_splits.append(
+                    torch.stack(
+                        [
+                            x_test[i]
+                            for i in range(len(x_test))
+                            if y_test[i] == class_index
+                        ]
+                    )
+                )
+                X_train_splits.append(
+                    torch.stack(
+                        [
+                            x_train[i]
+                            for i in range(len(x_train))
+                            if y_train[i] == class_index
+                        ]
+                    )
+                )
 
         for epoch in range(num_epochs):
             # Training loop
@@ -272,42 +277,71 @@ class NeuralEmbeddingMerLinModel(nn.Module):
             # Distance evaluation
             if return_data:
                 with torch.no_grad():
-                    # Training distances
-                    classical_data = self.classical_encoder(X0_train)
-                    states = assign_params(self.quantum_embedding_layer, classical_data)
-                    rhos0_train = state_vector_to_density_matrix(states)
-                    classical_data = self.classical_encoder(X1_train)
-                    states = assign_params(self.quantum_embedding_layer, classical_data)
-                    rhos1_train = state_vector_to_density_matrix(states)
+                    rhos_train = []
+                    rhos_test = []
 
-                    rho0 = torch.sum(rhos0_train, dim=0) / len(X0_train)
-                    rho1 = torch.sum(rhos1_train, dim=0) / len(X1_train)
-                    train_distance.append(
-                        calculate_distance(rho0, rho1, distance=distance)
+                    for class_index in range(self.num_classes):
+                        # Training states
+                        classical_data = self.classical_encoder(
+                            X_train_splits[class_index]
+                        )
+                        states = assign_params(
+                            self.quantum_embedding_layer, classical_data
+                        )
+                        total_rhos = state_vector_to_density_matrix(states)
+                        rhos_train.append(
+                            torch.sum(total_rhos, dim=0)
+                            / len(X_train_splits[class_index])
+                        )
+
+                        # Test states
+                        classical_data = self.classical_encoder(
+                            X_test_splits[class_index]
+                        )
+                        states = assign_params(
+                            self.quantum_embedding_layer, classical_data
+                        )
+                        total_rhos = state_vector_to_density_matrix(states)
+                        rhos_test.append(
+                            torch.sum(total_rhos, dim=0)
+                            / len(X_test_splits[class_index])
+                        )
+
+                    # Choose 2 by num classes
+                    possible_combinations = combinations(
+                        list(i for i in range(self.num_classes)), 2
                     )
-
-                    # Test distances
-                    classical_data = self.classical_encoder(X0_test)
-                    states = assign_params(self.quantum_embedding_layer, classical_data)
-                    rhos0_test = state_vector_to_density_matrix(states)
-                    classical_data = self.classical_encoder(X1_test)
-                    states = assign_params(self.quantum_embedding_layer, classical_data)
-                    rhos1_test = state_vector_to_density_matrix(states)
-
-                    rho0 = torch.sum(rhos0_test, dim=0) / len(X0_test)
-                    rho1 = torch.sum(rhos1_test, dim=0) / len(X1_test)
-                    test_distance.append(
-                        calculate_distance(rho0, rho1, distance=distance)
-                    )
+                    test_distances = []
+                    train_distances = []
+                    for comb in possible_combinations:
+                        test_distances.append(
+                            calculate_distance(
+                                rhos_test[comb[0]],
+                                rhos_test[comb[1]],
+                                distance=distance,
+                            )
+                        )
+                        train_distances.append(
+                            calculate_distance(
+                                rhos_train[comb[0]],
+                                rhos_train[comb[1]],
+                                distance=distance,
+                            )
+                        )
+                    train_distances /= len(train_distances)
+                    test_distances /= len(test_distances)
 
         if return_data:
-            return (
-                loss_list,
-                train_distance,
-                test_distance,
-                loss_lower_bound(rhos0_train, rhos1_train),
-                loss_lower_bound(rhos0_test, rhos1_test),
-            )
+            if self.num_classes == 2:
+                return (
+                    loss_list,
+                    train_distance,
+                    test_distance,
+                    loss_lower_bound(rhos_test[0], rhos_test[1]),
+                    loss_lower_bound(rhos_train[0], rhos_train[1]),
+                )
+            else:
+                return (loss_list, train_distance, test_distance, None, None)
 
     def train_classifier(
         self,
@@ -355,7 +389,7 @@ class NeuralEmbeddingMerLinModel(nn.Module):
             returns the loss history together with train and test accuracies.
         """
         optimizer = opt(self.quantum_classifier.parameters(), lr=lr)
-        criterion = LinearLoss()
+        criterion = LinearLoss() if self.num_classes == 2 else nn.CrossEntropyLoss()
 
         train_accs = []
         test_accs = []
@@ -584,21 +618,27 @@ class NeuralEmbeddingMerLinKernel(nn.Module):
         loss_list = []
 
         if return_data:
-            # Separating the test value classes
-            X1_test = torch.stack(
-                [x_test[i] for i in range(len(x_test)) if y_test[i] == 1]
-            )
-            X0_test = torch.stack(
-                [x_test[i] for i in range(len(x_test)) if y_test[i] != 1]
-            )
-
-            # Separating the train value classes
-            X1_train = torch.stack(
-                [x_train[i] for i in range(len(x_train)) if y_train[i] == 1]
-            )
-            X0_train = torch.stack(
-                [x_train[i] for i in range(len(x_train)) if y_train[i] != 1]
-            )
+            X_test_splits = []
+            X_train_splits = []
+            for class_index in range(self.num_classes):
+                X_test_splits.append(
+                    torch.stack(
+                        [
+                            x_test[i]
+                            for i in range(len(x_test))
+                            if y_test[i] == class_index
+                        ]
+                    )
+                )
+                X_train_splits.append(
+                    torch.stack(
+                        [
+                            x_train[i]
+                            for i in range(len(x_train))
+                            if y_train[i] == class_index
+                        ]
+                    )
+                )
 
         for epoch in range(num_epochs):
             # Training loop
@@ -624,42 +664,71 @@ class NeuralEmbeddingMerLinKernel(nn.Module):
             # Distance evaluation
             if return_data:
                 with torch.no_grad():
-                    # Training distances
-                    classical_data = self.classical_encoder(X0_train)
-                    states = assign_params(self.quantum_embedding_layer, classical_data)
-                    rhos0_train = state_vector_to_density_matrix(states)
-                    classical_data = self.classical_encoder(X1_train)
-                    states = assign_params(self.quantum_embedding_layer, classical_data)
-                    rhos1_train = state_vector_to_density_matrix(states)
+                    rhos_train = []
+                    rhos_test = []
 
-                    rho0 = torch.sum(rhos0_train, dim=0) / len(X0_train)
-                    rho1 = torch.sum(rhos1_train, dim=0) / len(X1_train)
-                    train_distance.append(
-                        calculate_distance(rho0, rho1, distance=distance)
+                    for class_index in range(self.num_classes):
+                        # Training states
+                        classical_data = self.classical_encoder(
+                            X_train_splits[class_index]
+                        )
+                        states = assign_params(
+                            self.quantum_embedding_layer, classical_data
+                        )
+                        total_rhos = state_vector_to_density_matrix(states)
+                        rhos_train.append(
+                            torch.sum(total_rhos, dim=0)
+                            / len(X_train_splits[class_index])
+                        )
+
+                        # Test states
+                        classical_data = self.classical_encoder(
+                            X_test_splits[class_index]
+                        )
+                        states = assign_params(
+                            self.quantum_embedding_layer, classical_data
+                        )
+                        total_rhos = state_vector_to_density_matrix(states)
+                        rhos_test.append(
+                            torch.sum(total_rhos, dim=0)
+                            / len(X_test_splits[class_index])
+                        )
+
+                    # Choose 2 by num classes
+                    possible_combinations = combinations(
+                        list(i for i in range(self.num_classes)), 2
                     )
-
-                    # Test distances
-                    classical_data = self.classical_encoder(X0_test)
-                    states = assign_params(self.quantum_embedding_layer, classical_data)
-                    rhos0_test = state_vector_to_density_matrix(states)
-                    classical_data = self.classical_encoder(X1_test)
-                    states = assign_params(self.quantum_embedding_layer, classical_data)
-                    rhos1_test = state_vector_to_density_matrix(states)
-
-                    rho0 = torch.sum(rhos0_test, dim=0) / len(X0_test)
-                    rho1 = torch.sum(rhos1_test, dim=0) / len(X1_test)
-                    test_distance.append(
-                        calculate_distance(rho0, rho1, distance=distance)
-                    )
+                    test_distances = []
+                    train_distances = []
+                    for comb in possible_combinations:
+                        test_distances.append(
+                            calculate_distance(
+                                rhos_test[comb[0]],
+                                rhos_test[comb[1]],
+                                distance=distance,
+                            )
+                        )
+                        train_distances.append(
+                            calculate_distance(
+                                rhos_train[comb[0]],
+                                rhos_train[comb[1]],
+                                distance=distance,
+                            )
+                        )
+                    train_distances /= len(train_distances)
+                    test_distances /= len(test_distances)
 
         if return_data:
-            return (
-                loss_list,
-                train_distance,
-                test_distance,
-                loss_lower_bound(rhos0_train, rhos1_train),
-                loss_lower_bound(rhos0_test, rhos1_test),
-            )
+            if self.num_classes == 2:
+                return (
+                    loss_list,
+                    train_distance,
+                    test_distance,
+                    loss_lower_bound(rhos_test[0], rhos_test[1]),
+                    loss_lower_bound(rhos_train[0], rhos_train[1]),
+                )
+            else:
+                return (loss_list, train_distance, test_distance, None, None)
 
     def compute_kernel_matrix(self, X_data: torch.Tensor, batch_size: int = 256):
         """Compute the symmetric kernel matrix for a dataset.
@@ -702,7 +771,7 @@ class NeuralEmbeddingMerLinKernel(nn.Module):
 ########################################################################################################
 
 
-def create_basic_merlin_model() -> NeuralEmbeddingMerLinModel:
+def create_merlin_models_paper() -> NeuralEmbeddingMerLinModel:
     """Create the default MerLin hybrid model used for basic experiments.
 
     The returned model couples a single entangling-layer photonic embedder, a

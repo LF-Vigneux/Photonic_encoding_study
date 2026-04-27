@@ -2,15 +2,14 @@
 Note: An LLM was used to create some tests.
 """
 
+import sys
 from copy import deepcopy
+from pathlib import Path
+
 import merlin as ml
 import numpy as np
 import pytest
 import torch
-
-from pathlib import Path
-import sys
-
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 REPO_ROOT = Path(__file__).resolve().parents[2]

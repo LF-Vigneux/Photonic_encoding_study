@@ -2,31 +2,29 @@
 Note: An LLM was used to create some tests.
 """
 
+import sys
+from pathlib import Path
+
 import merlin as ml
 import pytest
 import torch
 import torch.nn as nn
-
-from pathlib import Path
-import sys
-
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT))
 sys.path.insert(0, str(PROJECT_ROOT))
 
-
 from nn_embedding.lib.merlin_based_model import (  # noqa: E402
     NeuralEmbeddingMerLinKernel,
     NeuralEmbeddingMerLinModel,
-    create_basic_merlin_model,
+    create_merlin_models_paper,
 )
 
 
 @pytest.fixture
 def merlin_model() -> NeuralEmbeddingMerLinModel:
-    return create_basic_merlin_model()
+    return create_merlin_models_paper()
 
 
 @pytest.fixture
@@ -51,7 +49,7 @@ def merlin_kernel() -> NeuralEmbeddingMerLinKernel:
     return NeuralEmbeddingMerLinKernel(classical_model, embedder)
 
 
-def test_create_basic_merlin_model(merlin_model):
+def test_create_merlin_models_paper(merlin_model):
     model = merlin_model
 
     assert isinstance(model, NeuralEmbeddingMerLinModel)

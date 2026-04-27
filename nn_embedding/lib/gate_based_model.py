@@ -1,17 +1,16 @@
+import sys
+from pathlib import Path
+
 import pennylane as qml
 import torch
 import torch.nn as nn
 from merlin import LexGrouping
-
-from pathlib import Path
-import sys
-
+from itertools import combinations
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT))
 sys.path.insert(0, str(PROJECT_ROOT))
-
 
 from nn_embedding.utils.gate_based_embedding import (  # noqa: E402
     QCNN,
@@ -213,21 +212,27 @@ class NeuralEmbeddingGateBasedModel(nn.Module):
         loss_list = []
 
         if return_data:
-            # Separating the test value classes
-            X1_test = torch.stack(
-                [x_test[i] for i in range(len(x_test)) if y_test[i] == 1]
-            )
-            X0_test = torch.stack(
-                [x_test[i] for i in range(len(x_test)) if y_test[i] != 1]
-            )
-
-            # Separating the train value classes
-            X1_train = torch.stack(
-                [x_train[i] for i in range(len(x_train)) if y_train[i] == 1]
-            )
-            X0_train = torch.stack(
-                [x_train[i] for i in range(len(x_train)) if y_train[i] != 1]
-            )
+            X_test_splits = []
+            X_train_splits = []
+            for class_index in range(self.num_classes):
+                X_test_splits.append(
+                    torch.stack(
+                        [
+                            x_test[i]
+                            for i in range(len(x_test))
+                            if y_test[i] == class_index
+                        ]
+                    )
+                )
+                X_train_splits.append(
+                    torch.stack(
+                        [
+                            x_train[i]
+                            for i in range(len(x_train))
+                            if y_train[i] == class_index
+                        ]
+                    )
+                )
 
         for epoch in range(num_epochs):
             # Training loop
@@ -253,56 +258,75 @@ class NeuralEmbeddingGateBasedModel(nn.Module):
             # Distance evaluation
             if return_data:
                 with torch.no_grad():
-                    # Training distances
-                    rhos0_train = torch.stack(
-                        tuple(
-                            self.state_embedding_circuit(sample)
-                            for sample in self.classical_encoder(X0_train)
-                        ),
-                        dim=0,
-                    )
-                    rhos1_train = torch.stack(
-                        tuple(
-                            self.state_embedding_circuit(sample)
-                            for sample in self.classical_encoder(X1_train)
-                        ),
-                        dim=0,
-                    )
-                    rho0 = torch.sum(rhos0_train, dim=0) / len(X0_train)
-                    rho1 = torch.sum(rhos1_train, dim=0) / len(X1_train)
-                    train_distance.append(
-                        calculate_distance(rho0, rho1, distance=distance)
-                    )
+                    rhos_train = []
+                    rhos_test = []
 
-                    # Test distances
-                    rhos0_test = torch.stack(
-                        tuple(
-                            self.state_embedding_circuit(sample)
-                            for sample in self.classical_encoder(X0_test)
-                        ),
-                        dim=0,
+                    for class_index in range(self.num_classes):
+                        # Training states
+                        total_rhos = torch.stack(
+                            tuple(
+                                self.state_embedding_circuit(sample)
+                                for sample in self.classical_encoder(
+                                    X_train_splits[class_index]
+                                )
+                            ),
+                            dim=0,
+                        )
+                        rhos_train.append(
+                            torch.sum(total_rhos, dim=0)
+                            / len(X_train_splits[class_index])
+                        )
+
+                        # Test states
+                        total_rhos = torch.stack(
+                            tuple(
+                                self.state_embedding_circuit(sample)
+                                for sample in self.classical_encoder(
+                                    X_test_splits[class_index]
+                                )
+                            ),
+                            dim=0,
+                        )
+                        rhos_test.append(
+                            torch.sum(total_rhos, dim=0)
+                            / len(X_test_splits[class_index])
+                        )
+
+                    # Choose 2 by num classes
+                    possible_combinations = combinations(
+                        list(i for i in range(self.num_classes)), 2
                     )
-                    rhos1_test = torch.stack(
-                        tuple(
-                            self.state_embedding_circuit(sample)
-                            for sample in self.classical_encoder(X1_test)
-                        ),
-                        dim=0,
-                    )
-                    rho0 = torch.sum(rhos0_test, dim=0) / len(X0_test)
-                    rho1 = torch.sum(rhos1_test, dim=0) / len(X1_test)
-                    test_distance.append(
-                        calculate_distance(rho0, rho1, distance=distance)
-                    )
+                    test_distances = []
+                    train_distances = []
+                    for comb in possible_combinations:
+                        test_distances.append(
+                            calculate_distance(
+                                rhos_test[comb[0]],
+                                rhos_test[comb[1]],
+                                distance=distance,
+                            )
+                        )
+                        train_distances.append(
+                            calculate_distance(
+                                rhos_train[comb[0]],
+                                rhos_train[comb[1]],
+                                distance=distance,
+                            )
+                        )
+                    train_distances /= len(train_distances)
+                    test_distances /= len(test_distances)
 
         if return_data:
-            return (
-                loss_list,
-                train_distance,
-                test_distance,
-                loss_lower_bound(rhos0_train, rhos1_train),
-                loss_lower_bound(rhos0_test, rhos1_test),
-            )
+            if self.num_classes == 2:
+                return (
+                    loss_list,
+                    train_distance,
+                    test_distance,
+                    loss_lower_bound(rhos_test[0], rhos_test[1]),
+                    loss_lower_bound(rhos_train[0], rhos_train[1]),
+                )
+            else:
+                return (loss_list, train_distance, test_distance, None, None)
 
     def train_classifier(
         self,
@@ -350,7 +374,7 @@ class NeuralEmbeddingGateBasedModel(nn.Module):
             returns the loss history together with train and test accuracies.
         """
         optimizer = opt(self.complete_circuit_layer.parameters(), lr=lr)
-        criterion = LinearLoss()
+        criterion = LinearLoss() if self.num_classes == 2 else nn.CrossEntropyLoss()
 
         train_accs = []
         test_accs = []
@@ -547,21 +571,27 @@ class NeuralEmbeddingGateBasedKernel(nn.Module):
         loss_list = []
 
         if return_data:
-            # Separating the test value classes
-            X1_test = torch.stack(
-                [x_test[i] for i in range(len(x_test)) if y_test[i] == 1]
-            )
-            X0_test = torch.stack(
-                [x_test[i] for i in range(len(x_test)) if y_test[i] != 1]
-            )
-
-            # Separating the train value classes
-            X1_train = torch.stack(
-                [x_train[i] for i in range(len(x_train)) if y_train[i] == 1]
-            )
-            X0_train = torch.stack(
-                [x_train[i] for i in range(len(x_train)) if y_train[i] != 1]
-            )
+            X_test_splits = []
+            X_train_splits = []
+            for class_index in range(self.num_classes):
+                X_test_splits.append(
+                    torch.stack(
+                        [
+                            x_test[i]
+                            for i in range(len(x_test))
+                            if y_test[i] == class_index
+                        ]
+                    )
+                )
+                X_train_splits.append(
+                    torch.stack(
+                        [
+                            x_train[i]
+                            for i in range(len(x_train))
+                            if y_train[i] == class_index
+                        ]
+                    )
+                )
 
         for epoch in range(num_epochs):
             # Training loop
@@ -587,56 +617,75 @@ class NeuralEmbeddingGateBasedKernel(nn.Module):
             # Distance evaluation
             if return_data:
                 with torch.no_grad():
-                    # Training distances
-                    rhos0_train = torch.stack(
-                        tuple(
-                            self.state_embedding_circuit(sample)
-                            for sample in self.classical_encoder(X0_train)
-                        ),
-                        dim=0,
-                    )
-                    rhos1_train = torch.stack(
-                        tuple(
-                            self.state_embedding_circuit(sample)
-                            for sample in self.classical_encoder(X1_train)
-                        ),
-                        dim=0,
-                    )
-                    rho0 = torch.sum(rhos0_train, dim=0) / len(X0_train)
-                    rho1 = torch.sum(rhos1_train, dim=0) / len(X1_train)
-                    train_distance.append(
-                        calculate_distance(rho0, rho1, distance=distance)
-                    )
+                    rhos_train = []
+                    rhos_test = []
 
-                    # Test distances
-                    rhos0_test = torch.stack(
-                        tuple(
-                            self.state_embedding_circuit(sample)
-                            for sample in self.classical_encoder(X0_test)
-                        ),
-                        dim=0,
+                    for class_index in range(self.num_classes):
+                        # Training states
+                        total_rhos = torch.stack(
+                            tuple(
+                                self.state_embedding_circuit(sample)
+                                for sample in self.classical_encoder(
+                                    X_train_splits[class_index]
+                                )
+                            ),
+                            dim=0,
+                        )
+                        rhos_train.append(
+                            torch.sum(total_rhos, dim=0)
+                            / len(X_train_splits[class_index])
+                        )
+
+                        # Test states
+                        total_rhos = torch.stack(
+                            tuple(
+                                self.state_embedding_circuit(sample)
+                                for sample in self.classical_encoder(
+                                    X_test_splits[class_index]
+                                )
+                            ),
+                            dim=0,
+                        )
+                        rhos_test.append(
+                            torch.sum(total_rhos, dim=0)
+                            / len(X_test_splits[class_index])
+                        )
+
+                    # Choose 2 by num classes
+                    possible_combinations = combinations(
+                        list(i for i in range(self.num_classes)), 2
                     )
-                    rhos1_test = torch.stack(
-                        tuple(
-                            self.state_embedding_circuit(sample)
-                            for sample in self.classical_encoder(X1_test)
-                        ),
-                        dim=0,
-                    )
-                    rho0 = torch.sum(rhos0_test, dim=0) / len(X0_test)
-                    rho1 = torch.sum(rhos1_test, dim=0) / len(X1_test)
-                    test_distance.append(
-                        calculate_distance(rho0, rho1, distance=distance)
-                    )
+                    test_distances = []
+                    train_distances = []
+                    for comb in possible_combinations:
+                        test_distances.append(
+                            calculate_distance(
+                                rhos_test[comb[0]],
+                                rhos_test[comb[1]],
+                                distance=distance,
+                            )
+                        )
+                        train_distances.append(
+                            calculate_distance(
+                                rhos_train[comb[0]],
+                                rhos_train[comb[1]],
+                                distance=distance,
+                            )
+                        )
+                    train_distances /= len(train_distances)
+                    test_distances /= len(test_distances)
 
         if return_data:
-            return (
-                loss_list,
-                train_distance,
-                test_distance,
-                loss_lower_bound(rhos0_train, rhos1_train),
-                loss_lower_bound(rhos0_test, rhos1_test),
-            )
+            if self.num_classes == 2:
+                return (
+                    loss_list,
+                    train_distance,
+                    test_distance,
+                    loss_lower_bound(rhos_test[0], rhos_test[1]),
+                    loss_lower_bound(rhos_train[0], rhos_train[1]),
+                )
+            else:
+                return (loss_list, train_distance, test_distance, None, None)
 
     def compute_kernel_matrix(self, X_data: torch.Tensor, batch_size: int = 256):
         """Compute the symmetric kernel matrix for a dataset.
@@ -713,7 +762,7 @@ def create_paper_models() -> tuple[
         classical_model=classical_model,
         quantum_embedding_layer=EmbeddingCallable().QuantumEmbedding1,
         quantum_classifier=QCNN,
-        quantum_classifier_params_shape=(45),
+        quantum_classifier_params_shape=(45,),
     )
 
     ###Model 2
@@ -726,7 +775,7 @@ def create_paper_models() -> tuple[
         classical_model=classical_model,
         quantum_embedding_layer=EmbeddingCallable().QuantumEmbedding2,
         quantum_classifier=QCNN,
-        quantum_classifier_params_shape=(45),
+        quantum_classifier_params_shape=(45,),
     )
 
     ###Model 3
@@ -745,7 +794,7 @@ def create_paper_models() -> tuple[
         classical_model=classical_model,
         quantum_embedding_layer=EmbeddingCallable().QuantumEmbedding2,
         quantum_classifier=QCNN,
-        quantum_classifier_params_shape=(45),
+        quantum_classifier_params_shape=(45,),
     )
 
     return model_1, model_2, model_3

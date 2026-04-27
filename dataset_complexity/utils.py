@@ -27,11 +27,7 @@ from nn_embedding.lib.merlin_based_model import (
     NeuralEmbeddingMerLinKernel,
     NeuralEmbeddingMerLinModel,
 )
-from nn_embedding.utils.utils import (
-    TransparentModel,
-    assign_params,
-    state_vector_to_density_matrix,
-)
+from nn_embedding.utils.merlin_model_utils import assign_params  # noqa: E402
 
 
 # Classical

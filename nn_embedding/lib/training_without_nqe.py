@@ -1,16 +1,14 @@
+import sys
+from pathlib import Path
+
 import merlin as ml
 import pennylane as qml
 import torch
-
-from pathlib import Path
-import sys
-
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT))
 sys.path.insert(0, str(PROJECT_ROOT))
-
 
 from nn_embedding.utils.merlin_model_utils import (  # noqa: E402
     assign_params,
@@ -21,7 +19,7 @@ from nn_embedding.utils.utils import (  # noqa: E402
     create_basic_gate_based_model,
     create_basic_merlin_model,
     create_trainable_embedding_gate_based_model,
-    create_trainable_embedding_merlin_model,
+    create_with_input_embedding_merlin_model,
     loss_lower_bound,
     pick_random_data,
     state_vector_to_density_matrix,
@@ -295,7 +293,7 @@ def train_merlin_based(
         train/test empirical lower bounds.
     """
     if trainable_embedding:
-        model = create_trainable_embedding_merlin_model(
+        model = create_with_input_embedding_merlin_model(
             quantum_embedding_layer, quantum_classifier, num_classes
         )
     else:
@@ -306,7 +304,14 @@ def train_merlin_based(
         )
 
     ### Optimizing the model
-    optimizer = opt(quantum_classifier.parameters(), lr=lr)
+    optimizer = opt(
+        (
+            model.parameters()
+            if trainable_embedding
+            else model.quantum_classifier.parameters()
+        ),
+        lr=lr,
+    )
     criterion = LinearLoss()
 
     train_accs = []

@@ -9,14 +9,11 @@ import numpy as np
 import torch
 from sklearn.datasets import make_classification
 
-from pathlib import Path
-import sys
-
-
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT))
 sys.path.insert(0, str(PROJECT_ROOT))
+
 
 from nn_embedding.lib.gate_based_model import (  # noqa: E402
     NeuralEmbeddingGateBasedKernel,
@@ -885,7 +882,7 @@ def reproduce_figure_4(
     num_epochs_training_embedding: int = 100,
     lr: float = 0.01,
     distance: str = "Trace",
-    samples_per_datatset: int = 400,
+    samples_per_dataset: int = 400,
     num_datasets: int = 10,
     num_repetitions_per_dataset: int = 20,
     epsilon: float = 0.01,
@@ -972,8 +969,8 @@ def reproduce_figure_4(
                 )
                 print("Training embedding")
                 model.train_embedding(
-                    x_train=X[samples_per_datatset:],
-                    y_train=Y[samples_per_datatset:],
+                    x_train=X[samples_per_dataset:],
+                    y_train=Y[samples_per_dataset:],
                     distance=distance,
                     batch_size=batch_size,
                     num_epochs=num_epochs_training_embedding,
@@ -1069,7 +1066,7 @@ def reproduce_figure_4(
                     "num_epochs_training_embedding": num_epochs_training_embedding,
                     "lr": lr,
                     "distance": distance,
-                    "samples_per_datatset": samples_per_datatset,
+                    "samples_per_dataset": samples_per_dataset,
                     "num_datasets": num_datasets,
                     "num_repetitions_per_dataset": num_repetitions_per_dataset,
                     "epsilon": epsilon,

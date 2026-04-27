@@ -2,13 +2,12 @@
 Note: An LLM was used to create some tests.
 """
 
+import sys
+from pathlib import Path
+
 import pytest
 import torch
 import torch.nn as nn
-
-from pathlib import Path
-import sys
-
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 REPO_ROOT = Path(__file__).resolve().parents[2]

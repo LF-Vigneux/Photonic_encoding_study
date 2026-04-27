@@ -1,12 +1,10 @@
-from pathlib import Path
 import sys
-
+from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT))
 sys.path.insert(0, str(PROJECT_ROOT))
-
 
 from nn_embedding.lib.figure_reproductions import (  # noqa: E402
     reproduce_figure_2,
@@ -90,7 +88,7 @@ def train_and_evaluate(cfg, run_dir: Path) -> None:
             num_epochs_training_embedding=cfg.get("num_epochs_training_embedding", 100),
             lr=cfg.get("lr", 0.01),
             distance=cfg.get("distance", "Trace"),
-            samples_per_datatset=cfg.get("samples_per_datatset", 400),
+            samples_per_dataset=cfg.get("samples_per_dataset", 400),
             num_datasets=cfg.get("num_datasets", 10),
             num_repetitions_per_dataset=cfg.get("num_repetitions_per_dataset", 20),
             epsilon=cfg.get("epsilon", 0.01),
@@ -181,7 +179,7 @@ def main():
             num_epochs_training_embedding=args.num_epochs_training_embedding,
             lr=args.lr,
             distance=args.distance,
-            samples_per_datatset=args.samples_per_datatset,
+            samples_per_dataset=args.samples_per_dataset,
             num_datasets=args.num_datasets,
             num_repetitions_per_dataset=args.num_repetitions_per_dataset,
             epsilon=args.epsilon,
