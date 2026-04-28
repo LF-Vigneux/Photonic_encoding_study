@@ -74,6 +74,7 @@ def dataset_complexity_induced_comparison(
         max_dim_topology=max_dim_topology_classical,
         weights_topology=weights_topology_classical,
     )
+    print(f"Complexity of {output["classical"]}")
 
     #######################################################
     ### Induced complexity
@@ -112,6 +113,7 @@ def dataset_complexity_induced_comparison(
         max_dim_topology=max_dim_topology_induced,
         weights_topology=weights_topology_induced,
     )
+    print(f"Complexity of {output["induced"]["angle"]}")
 
     ###########################
     ### Dense Angle complexity
@@ -138,6 +140,7 @@ def dataset_complexity_induced_comparison(
         max_dim_topology=max_dim_topology_induced,
         weights_topology=weights_topology_induced,
     )
+    print(f"Complexity of {output["induced"]["dense_angle"]}")
 
     ###########################
     ### Fourier complexity
@@ -164,6 +167,7 @@ def dataset_complexity_induced_comparison(
         max_dim_topology=max_dim_topology_induced,
         weights_topology=weights_topology_induced,
     )
+    print(f"Complexity of {output["induced"]["fourier"]}")
 
     ###########################
     ### Amplitude complexity
@@ -189,6 +193,7 @@ def dataset_complexity_induced_comparison(
         max_dim_topology=max_dim_topology_induced,
         weights_topology=weights_topology_induced,
     )
+    print(f"Complexity of {output["induced"]["amplitude"]}")
 
     ###########################
     ### Dense amplitude complexity
@@ -214,6 +219,7 @@ def dataset_complexity_induced_comparison(
         max_dim_topology=max_dim_topology_induced,
         weights_topology=weights_topology_induced,
     )
+    print(f"Complexity of {output["induced"]["dense_amplitude"]}")
 
     ###########################
     ### Evolution complexity
@@ -240,7 +246,7 @@ def dataset_complexity_induced_comparison(
             weights = X_copy.new_tensor([0.2989, 0.5870, 0.1140]).view(1, 3, 1, 1)
             merged_X = (X * weights).sum(dim=1)
 
-    output["induced"]["dense_amplitude"] = induced_quantum_complexity(
+    output["induced"]["evolution"] = induced_quantum_complexity(
         merged_X,
         encoder,
         hyper_parameters=hyper_parameters_induced,
@@ -250,6 +256,7 @@ def dataset_complexity_induced_comparison(
         max_dim_topology=max_dim_topology_induced,
         weights_topology=weights_topology_induced,
     )
+    print(f"Complexity of {output["induced"]["evolution"]}")
 
     ###########################
     ### NQE
@@ -310,6 +317,7 @@ def dataset_complexity_induced_comparison(
         max_dim_topology=max_dim_topology_induced,
         weights_topology=weights_topology_induced,
     )
+    print(f"Complexity of {output["induced"]["nqe"]}")
     print("Saving")
     payload = {
         "results": output,

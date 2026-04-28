@@ -60,7 +60,7 @@ def main() -> None:
     config = load_config(config_path)
     run_dir = build_run_dir(config)
 
-    from lib.runner import train_and_evaluate  # noqa: E402
+    from runner import train_and_evaluate  # noqa: E402
 
     print(f"Using config: {config_path}")
     print(f"Writing outputs to: {run_dir}")
