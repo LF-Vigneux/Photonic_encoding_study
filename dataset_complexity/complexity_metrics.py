@@ -51,7 +51,7 @@ def classical_complexity(
     )
 
 
-def induced_quantum_complxity(
+def induced_quantum_complexity(
     X: torch.Tensor,
     encoding: nn.Module,
     hyper_parameters: list[float] = [1, 1, 1, 1, 1, 1],

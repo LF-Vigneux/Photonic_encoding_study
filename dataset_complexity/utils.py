@@ -25,9 +25,10 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 from nn_embedding.lib.merlin_based_model import (
     NeuralEmbeddingMerLinKernel,
-    NeuralEmbeddingMerLinModel,
 )
 from nn_embedding.utils.merlin_model_utils import assign_params  # noqa: E402
+from nn_embedding.utils.utils import state_vector_to_density_matrix, TransparentModel
+from encodings_merlin.utils import compute_kernel_matrix_without_nqe
 
 
 # Classical
@@ -116,13 +117,28 @@ def topological_complexity(
 
 def hilbert_space_support_dim(
     x: torch.Tensor,
-    embedder: ml.QuantumLayer | NeuralEmbeddingMerLinModel,
+    embedder: nn.Module | NeuralEmbeddingMerLinKernel,
     eps: float = 1e-8,
 ) -> int:
     """
     Per the kernel effective dim of p.8 eq 12
     """
-    psis = embedder(x)
+    if isinstance(embedder, NeuralEmbeddingMerLinKernel):
+
+        class Encoder(nn.Module):
+            def __init__(self):
+                self.classical_model = embedder.classical_model
+
+            def forward(self, x: torch.Tensor):
+                params = self.classical_model(x)
+                with torch.no_grad():
+                    output = assign_params(embedder.quantum_embedding_layer, params)
+                return output
+
+        encoder = Encoder()
+    else:
+        encoder = embedder
+    psis = encoder(x)
     rhos = state_vector_to_density_matrix(psis)
     rho = torch.sum(rhos, dim=0) / x.size(0)
     eigvals = torch.linalg.eigvalsh(rho)
@@ -133,10 +149,10 @@ def hilbert_space_support_dim(
 
 
 def quantum_fisher_information_spread(
-    x: torch.Tensor, embedder: ml.QuantumLayer | NeuralEmbeddingMerLinModel
+    x: torch.Tensor, embedder: nn.Module | NeuralEmbeddingMerLinKernel
 ) -> float:
     # Assumed QFI is the same as QFI spread
-    if isinstance(embedder, NeuralEmbeddingMerLinModel):
+    if isinstance(embedder, NeuralEmbeddingMerLinKernel):
 
         class Encoder(nn.Module):
             def __init__(self):
@@ -157,10 +173,10 @@ def quantum_fisher_information_spread(
 
 
 def entanglement_entropy(
-    x: torch.Tensor, embedder: ml.QuantumLayer | NeuralEmbeddingMerLinModel
+    x: torch.Tensor, embedder: nn.Module | NeuralEmbeddingMerLinKernel
 ) -> float:
 
-    if isinstance(embedder, NeuralEmbeddingMerLinModel):
+    if isinstance(embedder, NeuralEmbeddingMerLinKernel):
         layer_object = embedder.quantum_embedding_layer
     else:
         layer_object = embedder
@@ -209,17 +225,13 @@ def entanglement_entropy(
 
 
 def kernel_spectrum_flatness(
-    x: torch.Tensor, embedder: ml.QuantumLayer | NeuralEmbeddingMerLinModel
+    x: torch.Tensor, embedder: nn.Module | NeuralEmbeddingMerLinKernel
 ) -> float:
-    if isinstance(embedder, NeuralEmbeddingMerLinModel):
-        kernel_object = NeuralEmbeddingMerLinKernel(
-            embedder.classical_encoder, embedder.quantum_embedding_layer
-        )
+    if isinstance(embedder, NeuralEmbeddingMerLinKernel):
+        kernel_matrix = embedder.compute_kernel_matrix(x)
     else:
-        # TODO Will be ok once I change the method for input parameters instead of trainable ones
-        kernel_object = NeuralEmbeddingMerLinKernel(TransparentModel(), embedder)
+        kernel_matrix = compute_kernel_matrix_without_nqe(x, embedder)
 
-    kernel_matrix = kernel_object.compute_kernel_matrix(x)
     eigvals = torch.linalg.eigvalsh(kernel_matrix)
     eigvals_square = eigvals**2
     return (torch.sum(eigvals) ** 2) / torch.sum(eigvals_square)
@@ -227,7 +239,7 @@ def kernel_spectrum_flatness(
 
 def locality_vs_expressibility(
     x: torch.Tensor,
-    embedder: ml.QuantumLayer | NeuralEmbeddingMerLinModel,
+    embedder: nn.Module | NeuralEmbeddingMerLinKernel,
     n_samples: int = 1000,
     n_bins: int = 50,
 ) -> float:
@@ -242,7 +254,7 @@ def locality_vs_expressibility(
     avg_entropy = entanglement_entropy(x, embedder)
 
     # Find the dimension N
-    if isinstance(embedder, NeuralEmbeddingMerLinModel):
+    if isinstance(embedder, NeuralEmbeddingMerLinKernel):
         if (
             embedder.quantum_embedding_layer.computation_space
             is ml.ComputationSpace.DUAL_RAIL
@@ -263,7 +275,7 @@ def locality_vs_expressibility(
 
 def topological_invariants_of_embedding(
     x: torch.Tensor,
-    embedder: ml.QuantumLayer | NeuralEmbeddingMerLinModel,
+    embedder: nn.Module | NeuralEmbeddingMerLinKernel,
     max_dim: int = 2,
     weights: list[float] | None = None,
 ) -> float:
@@ -273,15 +285,10 @@ def topological_invariants_of_embedding(
     if len(weights) != max_dim + 1:
         raise ValueError(f"weights must have length max_dim+1={max_dim + 1}")
 
-    if isinstance(embedder, NeuralEmbeddingMerLinModel):
-        kernel_object = NeuralEmbeddingMerLinKernel(
-            embedder.classical_encoder, embedder.quantum_embedding_layer
-        )
+    if isinstance(embedder, NeuralEmbeddingMerLinKernel):
+        kernel_matrix = embedder.compute_kernel_matrix(x)
     else:
-        # TODO Will be ok once I change the method for input parameters instead of trainable ones
-        kernel_object = NeuralEmbeddingMerLinKernel(TransparentModel(), embedder)
-
-    kernel_matrix = kernel_object.compute_kernel_matrix(x)
+        kernel_matrix = compute_kernel_matrix_without_nqe(x, embedder)
 
     diagrams = ripser(kernel_matrix, maxdim=max_dim, distance_matrix=True)["dgms"]
 
@@ -544,7 +551,7 @@ def get_quantum_fisher_matrices(
 # CO-WRITTEN with LLM to understand what is computed
 def kl_div(
     x: torch.Tensor,
-    embedder: ml.QuantumLayer | NeuralEmbeddingMerLinModel,
+    embedder: ml.QuantumLayer | NeuralEmbeddingMerLinKernel,
     n_samples: int = 1000,
     n_bins: int = 50,
 ):
@@ -555,16 +562,13 @@ def kl_div(
     rand_inputs = torch.rand(n_samples, x.size(1)) * (x_max - x_min) + x_min
 
     # Get the fidelities with the Kernel matrix
-    if isinstance(embedder, NeuralEmbeddingMerLinModel):
-        kernel_object = NeuralEmbeddingMerLinKernel(
-            embedder.classical_encoder, embedder.quantum_embedding_layer
-        )
+    if isinstance(embedder, NeuralEmbeddingMerLinKernel):
+        kernel_matrix = embedder.compute_kernel_matrix(rand_inputs)
         D = embedder.quantum_embedding_layer.output_size
     else:
-        kernel_object = NeuralEmbeddingMerLinKernel(TransparentModel(), embedder)
+        kernel_matrix = compute_kernel_matrix_without_nqe(x, embedder)
         D = embedder.output_size
 
-    kernel_matrix = kernel_object.compute_kernel_matrix(rand_inputs)
     idx = torch.triu_indices(n_samples, n_samples, offset=1)
     fidelities = kernel_matrix[idx[0], idx[1]].detach().float().numpy()
 

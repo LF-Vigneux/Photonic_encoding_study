@@ -1,0 +1,22 @@
+{
+    "description": "Run the INDUCED_DATASET_COMPLEXITY experiment",
+    "outdir": "results",
+    "exp_to_run": "INDUCED_DATASET_COMPLEXITY",
+    "dataset_name": "mnist",
+    "classes": [0, 1],
+    "feature_reduction": 8,
+    "n_modes": null,
+    "n_photons": null,
+    "computation_space": "UNBUNCHED",
+    "num_qubits_per_feature_fourier": 1,
+    "hyper_parameters_classical": [1, 1, 1, 1],
+    "max_order_correlation_classical": null,
+    "max_dim_topology_classical": 2,
+    "weights_topology_classical": null,
+    "hyper_parameters_induced": [1, 1, 1, 1, 1, 1],
+    "epsilon_hilbert_support_dim_induced": 1e-8,
+    "n_samples_loc_vs_express_induced": 1000,
+    "n_bins_loc_vs_express_induced": 50,
+    "max_dim_topology_induced": 2,
+    "weights_topology_induced": null
+}

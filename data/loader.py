@@ -176,7 +176,7 @@ def _limit_samples_per_class(
 
 def data_load_and_process(
     dataset,
-    feature_reduction="resize256",
+    feature_reduction: int | None = None,
     classes=(0, 1),
     samples_per_class: int | None = None,
     shuffle: bool = True,
@@ -214,6 +214,10 @@ def data_load_and_process(
         test_filter_tf = np.where(mask_test)
         x_train, y_train = x_train[train_filter_tf], y_train[train_filter_tf]
         x_test, y_test = x_test[test_filter_tf], y_test[test_filter_tf]
+
+        label_map = {c: i for i, c in enumerate(classes)}
+        y_train = np.array([label_map[c] for c in y_train], dtype=np.int64)
+        y_test = np.array([label_map[c] for c in y_test], dtype=np.int64)
 
     x_train, y_train = _limit_samples_per_class(x_train, y_train, samples_per_class)
     x_test, y_test = _limit_samples_per_class(

@@ -132,6 +132,52 @@ def train_and_evaluate(cfg, run_dir: Path) -> None:
             run_dir=run_dir,
             generate_graph=generate_graph,
         )
+    elif exp_to_run == "INDUCED_DATASET_COMPLEXITY":
+        print("Running the DATASET_COMPLEXITY experiment")
+        from run_dataset_complexity import (
+            dataset_complexity_induced_comparison,
+        )  # noqa: E402
+
+        classes_raw = cfg.get("classes", None)
+        if isinstance(classes_raw, list):
+            classes_raw = tuple(classes_raw)
+
+        hyper_cls_raw = cfg.get("hyper_parameters_classical", [1, 1, 1, 1])
+        hyper_ind_raw = cfg.get("hyper_parameters_induced", [1, 1, 1, 1, 1, 1])
+        weights_cls_raw = cfg.get("weights_topology_classical", None)
+        weights_ind_raw = cfg.get("weights_topology_induced", None)
+
+        cs_name = cfg.get("computation_space", "UNBUNCHED")
+        import merlin as _ml
+
+        computation_space = _ml.ComputationSpace[cs_name]
+
+        dataset_complexity_induced_comparison(
+            dataset_name=cfg.get("dataset_name", "mnist"),
+            classes=classes_raw,
+            feature_reduction=cfg.get("feature_reduction", None),
+            n_modes=cfg.get("n_modes", None),
+            n_photons=cfg.get("n_photons", None),
+            computation_space=computation_space,
+            num_qubits_per_feature_fourier=cfg.get("num_qubits_per_feature_fourier", 1),
+            hyper_parameters_classical=hyper_cls_raw,
+            max_order_correlation_classical=cfg.get(
+                "max_order_correlation_classical", None
+            ),
+            max_dim_topology_classical=cfg.get("max_dim_topology_classical", 2),
+            weights_topology_classical=weights_cls_raw,
+            hyper_parameters_induced=hyper_ind_raw,
+            epsilon_hilbert_support_dim_induced=cfg.get(
+                "epsilon_hilbert_support_dim_induced", 1e-8
+            ),
+            n_samples_loc_vs_express_induced=cfg.get(
+                "n_samples_loc_vs_express_induced", 1000
+            ),
+            n_bins_loc_vs_express_induced=cfg.get("n_bins_loc_vs_express_induced", 50),
+            max_dim_topology_induced=cfg.get("max_dim_topology_induced", 2),
+            weights_topology_induced=weights_ind_raw,
+            run_dir=run_dir,
+        )
     else:
         raise NameError(f"No experiment with the name '{exp_to_run}'")
 
