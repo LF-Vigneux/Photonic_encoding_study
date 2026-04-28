@@ -24,6 +24,8 @@ def plot_complexity_comparison(
     results: dict,
     *,
     dataset_name: str = "",
+    classes: tuple | list | None = None,
+    feature_reduction: int | None = None,
     figsize: tuple[float, float] = (10.0, 5.0),
     run_dir: Path | None = None,
     filename: str = "complexity_comparison.pdf",
@@ -73,7 +75,10 @@ def plot_complexity_comparison(
     ax.set_ylabel("Complexity score", fontsize=11)
     title = "Dataset complexity per encoding"
     if dataset_name:
-        title += f" — {dataset_name}"
+        classes_str = "full" if classes is None else "("+", ".join(str(c) for c in classes)+")"
+        title += f" — {dataset_name}  |  classes: {classes_str}"
+        if feature_reduction is not None:
+            title += f"  |  PCA→{feature_reduction}"
     ax.set_title(title, fontsize=12)
 
     # Add value labels on top of each bar

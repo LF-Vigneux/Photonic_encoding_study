@@ -37,6 +37,7 @@ def classical_complexity(
     max_order_correlation: int | None = None,
     max_dim_topology: int = 2,
     weights_topology: list[float] | None = None,
+    max_samples_topology: int | None = 1000,
 ) -> float:
     return (
         (hyper_parameters[0] * distributional_entropy(X))
@@ -45,7 +46,10 @@ def classical_complexity(
         + (
             hyper_parameters[3]
             * topological_complexity(
-                X, max_dim=max_dim_topology, weights=weights_topology
+                X,
+                max_dim=max_dim_topology,
+                weights=weights_topology,
+                max_samples=max_samples_topology,
             )
         )
     )
@@ -60,6 +64,7 @@ def induced_quantum_complexity(
     n_bins_loc_vs_express: int = 50,
     max_dim_topology: int = 2,
     weights_topology: list[float] | None = None,
+    max_samples_topology: int | None = 1000,
 ) -> float:
     return (
         (
@@ -81,7 +86,11 @@ def induced_quantum_complexity(
         + (
             hyper_parameters[5]
             * topological_invariants_of_embedding(
-                X, encoding, max_dim=max_dim_topology, weights=weights_topology
+                X,
+                encoding,
+                max_dim=max_dim_topology,
+                weights=weights_topology,
+                max_samples=max_samples_topology,
             )
         )
     )

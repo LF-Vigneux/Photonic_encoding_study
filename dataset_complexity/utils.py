@@ -91,6 +91,7 @@ def topological_complexity(
     X: torch.Tensor,
     max_dim: int = 2,
     weights: list[float] | None = None,
+    max_samples: int | None = 1000,
 ) -> float:
     if weights is None:
         weights = [1.0] * (max_dim + 1)
@@ -98,6 +99,10 @@ def topological_complexity(
         raise ValueError(f"weights must have length max_dim+1={max_dim + 1}")
 
     points = X.detach().numpy()
+    if max_samples is not None and len(points) > max_samples:
+        rng = np.random.default_rng(42)
+        idx = rng.choice(len(points), size=max_samples, replace=False)
+        points = points[idx]
     diagrams = ripser(points, maxdim=max_dim)["dgms"]
 
     total = 0.0
@@ -278,12 +283,18 @@ def topological_invariants_of_embedding(
     embedder: nn.Module | NeuralEmbeddingMerLinKernel,
     max_dim: int = 2,
     weights: list[float] | None = None,
+    max_samples: int | None = 1000,
 ) -> float:
     # TODO Verify my choice with author, use the kernel distance to calculate the persistent homology
     if weights is None:
         weights = [1.0] * (max_dim + 1)
     if len(weights) != max_dim + 1:
         raise ValueError(f"weights must have length max_dim+1={max_dim + 1}")
+
+    if max_samples is not None and x.size(0) > max_samples:
+        rng = np.random.default_rng(42)
+        idx = rng.choice(x.size(0), size=max_samples, replace=False)
+        x = x[idx]
 
     if isinstance(embedder, NeuralEmbeddingMerLinKernel):
         kernel_matrix = embedder.compute_kernel_matrix(x)

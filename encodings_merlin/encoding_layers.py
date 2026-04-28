@@ -21,37 +21,36 @@ from encodings_merlin.utils import MZI, vector_to_matrix_evo
 ########################################################
 def angle_encoding_layer(
     num_features: int,
-    param_prefix: str = "phi",
     num_modes: int | None = None,
     num_photons: int = 1,
     computation_space=ml.ComputationSpace.UNBUNCHED,
     input_size_0: bool = True,
 ) -> ml.QuantumLayer:
-    width = len(str(num_features - 1))
-    params = [
-        pcvl.Parameter(f"{param_prefix}{i:0{width}d}") for i in range(num_features)
-    ]
-    circuit = pcvl.Circuit(num_features, num_modes)
+    if num_modes is None:
+        num_modes = num_features + 1
+    else:
+        num_modes = max(num_modes, num_features + 1)
 
-    for i, param in enumerate(params):
-        circuit.add(i, pcvl.PS(phi=param))
+    circuit = ml.CircuitBuilder(n_modes=num_modes)
+    circuit.add_entangling_layer(trainable=False)
 
     if input_size_0:
+        for i in range(num_features):
+            circuit.add_rotations(modes=i, trainable=True)
         return ml.QuantumLayer(
             input_size=0,
-            circuit=circuit,
+            builder=circuit,
             computation_space=computation_space,
             measurement_strategy=ml.MeasurementStrategy.AMPLITUDES,
-            trainable_parameters=params,
             n_photons=num_photons,
         )
     else:
+        circuit.add_angle_encoding(modes=list(i for i in range(num_features)))
         return ml.QuantumLayer(
             input_size=num_features,
-            circuit=circuit,
+            builder=circuit,
             computation_space=computation_space,
             measurement_strategy=ml.MeasurementStrategy.AMPLITUDES,
-            input_parameters=params,
             n_photons=num_photons,
         )
 

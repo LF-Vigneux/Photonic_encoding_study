@@ -46,12 +46,14 @@ def dataset_complexity_induced_comparison(
     max_order_correlation_classical: int | None = None,
     max_dim_topology_classical: int = 2,
     weights_topology_classical: list[float] | None = None,
+    max_samples_topology_classical: int | None = 1000,
     hyper_parameters_induced: list[float] = [1, 1, 1, 1, 1, 1],
     epsilon_hilbert_support_dim_induced: float = 1e-8,
     n_samples_loc_vs_express_induced: int = 1000,
     n_bins_loc_vs_express_induced: int = 50,
     max_dim_topology_induced: int = 2,
     weights_topology_induced: list[float] | None = None,
+    max_samples_topology_induced: int | None = 1000,
     run_dir: Path = None,
 ) -> dict:
     output = {"classical": None, "induced": {}}
@@ -60,7 +62,7 @@ def dataset_complexity_induced_comparison(
         dataset=dataset_name, classes=classes, feature_reduction=feature_reduction
     )
     X = torch.cat((x_train, x_test), 0)
-    n_features = np.prod(X.shape[1:])
+    n_features = int(np.prod(X.shape[1:]))
 
     #######################################################
     ### Classical complexity
@@ -73,6 +75,7 @@ def dataset_complexity_induced_comparison(
         max_order_correlation=max_order_correlation_classical,
         max_dim_topology=max_dim_topology_classical,
         weights_topology=weights_topology_classical,
+        max_samples_topology=max_samples_topology_classical,
     )
     print(f"Complexity of {output["classical"]}")
 
@@ -95,7 +98,7 @@ def dataset_complexity_induced_comparison(
     encoder = angle_encoding_layer(
         num_features=n_features,
         num_modes=n_modes,
-        n_photons=num_photons_encoder,
+        num_photons=num_photons_encoder,
         computation_space=computation_space,
     )
 
@@ -112,8 +115,9 @@ def dataset_complexity_induced_comparison(
         n_bins_loc_vs_express=n_bins_loc_vs_express_induced,
         max_dim_topology=max_dim_topology_induced,
         weights_topology=weights_topology_induced,
+        max_samples_topology=max_samples_topology_induced,
     )
-    print(f"Complexity of {output["induced"]["angle"]}")
+    print(f"Complexity of {output['induced']['angle']}")
 
     ###########################
     ### Dense Angle complexity
@@ -139,8 +143,9 @@ def dataset_complexity_induced_comparison(
         n_bins_loc_vs_express=n_bins_loc_vs_express_induced,
         max_dim_topology=max_dim_topology_induced,
         weights_topology=weights_topology_induced,
+        max_samples_topology=max_samples_topology_induced,
     )
-    print(f"Complexity of {output["induced"]["dense_angle"]}")
+    print(f"Complexity of {output['induced']['dense_angle']}")
 
     ###########################
     ### Fourier complexity
@@ -166,8 +171,9 @@ def dataset_complexity_induced_comparison(
         n_bins_loc_vs_express=n_bins_loc_vs_express_induced,
         max_dim_topology=max_dim_topology_induced,
         weights_topology=weights_topology_induced,
+        max_samples_topology=max_samples_topology_induced,
     )
-    print(f"Complexity of {output["induced"]["fourier"]}")
+    print(f"Complexity of {output['induced']['fourier']}")
 
     ###########################
     ### Amplitude complexity
@@ -192,8 +198,9 @@ def dataset_complexity_induced_comparison(
         n_bins_loc_vs_express=n_bins_loc_vs_express_induced,
         max_dim_topology=max_dim_topology_induced,
         weights_topology=weights_topology_induced,
+        max_samples_topology=max_samples_topology_induced,
     )
-    print(f"Complexity of {output["induced"]["amplitude"]}")
+    print(f"Complexity of {output['induced']['amplitude']}")
 
     ###########################
     ### Dense amplitude complexity
@@ -218,8 +225,9 @@ def dataset_complexity_induced_comparison(
         n_bins_loc_vs_express=n_bins_loc_vs_express_induced,
         max_dim_topology=max_dim_topology_induced,
         weights_topology=weights_topology_induced,
+        max_samples_topology=max_samples_topology_induced,
     )
-    print(f"Complexity of {output["induced"]["dense_amplitude"]}")
+    print(f"Complexity of {output['induced']['dense_amplitude']}")
 
     ###########################
     ### Evolution complexity
@@ -255,8 +263,9 @@ def dataset_complexity_induced_comparison(
         n_bins_loc_vs_express=n_bins_loc_vs_express_induced,
         max_dim_topology=max_dim_topology_induced,
         weights_topology=weights_topology_induced,
+        max_samples_topology=max_samples_topology_induced,
     )
-    print(f"Complexity of {output["induced"]["evolution"]}")
+    print(f"Complexity of {output['induced']['evolution']}")
 
     ###########################
     ### NQE
@@ -316,8 +325,9 @@ def dataset_complexity_induced_comparison(
         n_bins_loc_vs_express=n_bins_loc_vs_express_induced,
         max_dim_topology=max_dim_topology_induced,
         weights_topology=weights_topology_induced,
+        max_samples_topology=max_samples_topology_induced,
     )
-    print(f"Complexity of {output["induced"]["nqe"]}")
+    print(f"Complexity of {output['induced']['nqe']}")
     print("Saving")
     payload = {
         "results": output,
@@ -339,6 +349,7 @@ def dataset_complexity_induced_comparison(
             "n_bins_loc_vs_express_induced": n_bins_loc_vs_express_induced,
             "max_dim_topology_induced": max_dim_topology_induced,
             "weights_topology_induced": weights_topology_induced,
+            "max_samples_topology_induced": max_samples_topology_induced,
         },
     }
 
@@ -363,6 +374,8 @@ def dataset_complexity_induced_comparison(
     plot_complexity_comparison(
         results=output,
         dataset_name=dataset_name,
+        classes=classes,
+        feature_reduction=feature_reduction,
         run_dir=results_dir,
         filename=f"dataset_complexity_{dataset_name}_plot.pdf",
     )
