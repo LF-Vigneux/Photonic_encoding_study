@@ -430,7 +430,6 @@ class TimeEvolutionEncoder(nn.Module):
         base_circuit = ml.CircuitBuilder(n_modes=self.num_modes)
         base_circuit.add_entangling_layer(trainable=True)
         self.base_perceval = base_circuit.to_pcvl_circuit()
-        self.num_modes = self.base_perceval.m
 
         if self.computation_space is ml.ComputationSpace.UNBUNCHED:
             if input_are_images:

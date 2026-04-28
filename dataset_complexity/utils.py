@@ -132,7 +132,8 @@ def hilbert_space_support_dim(
 
         class Encoder(nn.Module):
             def __init__(self):
-                self.classical_model = embedder.classical_model
+                super().__init__()
+                self.classical_model = embedder.classical_encoder
 
             def forward(self, x: torch.Tensor):
                 params = self.classical_model(x)
@@ -161,7 +162,8 @@ def quantum_fisher_information_spread(
 
         class Encoder(nn.Module):
             def __init__(self):
-                self.classical_model = embedder.classical_model
+                super().__init__()
+                self.classical_model = embedder.classical_encoder
 
             def forward(self, x: torch.Tensor):
                 params = self.classical_model(x)
@@ -182,20 +184,51 @@ def entanglement_entropy(
 ) -> float:
 
     if isinstance(embedder, NeuralEmbeddingMerLinKernel):
-        layer_object = embedder.quantum_embedding_layer
-    else:
-        layer_object = embedder
+        is_dual_rail = (
+            embedder.quantum_embedding_layer.computation_space
+            is ml.ComputationSpace.DUAL_RAIL
+        )
+        num_modes = embedder.quantum_embedding_layer.circuit.m
+        num_photons = embedder.quantum_embedding_layer.n_photons
+        state_keys = embedder.quantum_embedding_layer.output_keys
 
-    # The same as average_bipartite_entanglement_entropy, I think
-    state_keys = layer_object.output_keys
+        class Encoder(nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.classical_model = embedder.classical_encoder
+
+            def forward(self, x: torch.Tensor):
+                params = self.classical_model(x)
+                with torch.no_grad():
+                    output = assign_params(embedder.quantum_embedding_layer, params)
+                return output
+
+        encoder = Encoder()
+
+    else:
+        comp_space_to_str = {
+            ml.ComputationSpace.DUAL_RAIL: "dual_rail",
+            ml.ComputationSpace.FOCK: "fock",
+            ml.ComputationSpace.UNBUNCHED: "unbunched",
+        }
+        is_dual_rail = embedder.computation_space is ml.ComputationSpace.DUAL_RAIL
+        num_modes = embedder.num_modes
+        num_photons = embedder.num_photons
+        state_keys = ml.Combinadics(
+            scheme=comp_space_to_str[embedder.computation_space],
+            n=num_photons,
+            m=num_modes,
+        ).enumerate_states()
+
+        encoder = embedder
 
     # Get data for the partial trace
-    if layer_object.computation_space is ml.ComputationSpace.DUAL_RAIL:
+    if is_dual_rail:
         dim_per_state = 2
-        num_states = layer_object.circuit.m // 2
+        num_states = num_modes // 2
     else:
-        dim_per_state = layer_object.n_photons + 1
-        num_states = layer_object.circuit.m
+        dim_per_state = num_photons + 1
+        num_states = num_modes
     bipartitions = _get_all_bipartitions(num_states)
     num_bipartitions = len(bipartitions)
 
@@ -203,15 +236,15 @@ def entanglement_entropy(
 
     for point in x:
         # Getting the density matrix in the right encoding
-        if layer_object.computation_space is ml.ComputationSpace.DUAL_RAIL:
-            psi = embedder(point)
+        if is_dual_rail:
+            psi = encoder(point)
             rho = state_vector_to_density_matrix(psi)
 
         else:
             psi = embbed_density_into_complete_fock_space(
-                embedder(point),
-                layer_object.circuit.m,
-                n_photons=layer_object.n_photons,
+                encoder(point),
+                num_modes,
+                n_photons=num_photons,
                 state_keys=state_keys,
             )
             rho = state_vector_to_density_matrix(psi)
