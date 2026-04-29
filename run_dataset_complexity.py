@@ -54,6 +54,7 @@ def dataset_complexity_induced_comparison(
     max_dim_topology_induced: int = 2,
     weights_topology_induced: list[float] | None = None,
     max_samples_topology_induced: int | None = 1000,
+    max_samples_induced: int | None = 5000,
     run_dir: Path = None,
 ) -> dict:
     output = {"classical": None, "induced": {}}
@@ -116,6 +117,7 @@ def dataset_complexity_induced_comparison(
         max_dim_topology=max_dim_topology_induced,
         weights_topology=weights_topology_induced,
         max_samples_topology=max_samples_topology_induced,
+        max_samples=max_samples_induced,
     )
     print(f"Complexity of {output['induced']['angle']}")
 
@@ -144,6 +146,7 @@ def dataset_complexity_induced_comparison(
         max_dim_topology=max_dim_topology_induced,
         weights_topology=weights_topology_induced,
         max_samples_topology=max_samples_topology_induced,
+        max_samples=max_samples_induced,
     )
     print(f"Complexity of {output['induced']['dense_angle']}")
 
@@ -172,6 +175,7 @@ def dataset_complexity_induced_comparison(
         max_dim_topology=max_dim_topology_induced,
         weights_topology=weights_topology_induced,
         max_samples_topology=max_samples_topology_induced,
+        max_samples=max_samples_induced,
     )
     print(f"Complexity of {output['induced']['fourier']}")
 
@@ -199,6 +203,7 @@ def dataset_complexity_induced_comparison(
         max_dim_topology=max_dim_topology_induced,
         weights_topology=weights_topology_induced,
         max_samples_topology=max_samples_topology_induced,
+        max_samples=max_samples_induced,
     )
     print(f"Complexity of {output['induced']['amplitude']}")
 
@@ -226,6 +231,7 @@ def dataset_complexity_induced_comparison(
         max_dim_topology=max_dim_topology_induced,
         weights_topology=weights_topology_induced,
         max_samples_topology=max_samples_topology_induced,
+        max_samples=max_samples_induced,
     )
     print(f"Complexity of {output['induced']['dense_amplitude']}")
 
@@ -264,6 +270,7 @@ def dataset_complexity_induced_comparison(
         max_dim_topology=max_dim_topology_induced,
         weights_topology=weights_topology_induced,
         max_samples_topology=max_samples_topology_induced,
+        max_samples=max_samples_induced,
     )
     print(f"Complexity of {output['induced']['evolution']}")
 
@@ -326,6 +333,7 @@ def dataset_complexity_induced_comparison(
         max_dim_topology=max_dim_topology_induced,
         weights_topology=weights_topology_induced,
         max_samples_topology=max_samples_topology_induced,
+        max_samples=max_samples_induced,
     )
     print(f"Complexity of {output['induced']['nqe']}")
     print("Saving")
@@ -350,6 +358,7 @@ def dataset_complexity_induced_comparison(
             "max_dim_topology_induced": max_dim_topology_induced,
             "weights_topology_induced": weights_topology_induced,
             "max_samples_topology_induced": max_samples_topology_induced,
+            "max_samples_induced": max_samples_induced,
         },
     }
 

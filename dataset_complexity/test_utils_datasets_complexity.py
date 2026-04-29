@@ -55,11 +55,15 @@ class DummyCircuit:
 
 
 class DummyDualRailEmbedder:
-    def __init__(self, states: torch.Tensor, m: int = 4):
+    def __init__(self, states: torch.Tensor, m: int = 4, num_photons: int = None):
         self.states = states
         self.output_keys = [(1, 0), (0, 1)]
         self.computation_space = ml.ComputationSpace.DUAL_RAIL
         self.circuit = DummyCircuit(m)
+        self.num_modes = m
+        # Allow override for dual-rail tests (n = m // 2)
+        self.num_photons = num_photons if num_photons is not None else 1
+        self.output_size = states.shape[1] if states.ndim > 1 else states.shape[0]
 
     def __call__(self, x: torch.Tensor) -> torch.Tensor:
         if x.ndim == 0:
@@ -180,38 +184,43 @@ def test_quantum_fisher_information_spread_averages_traces(monkeypatch):
 
 
 def test_entanglement_entropy_is_zero_for_product_states(product_state):
-    embedder = DummyDualRailEmbedder(product_state.unsqueeze(0).repeat(2, 1))
+    embedder = DummyDualRailEmbedder(
+        product_state.unsqueeze(0).repeat(2, 1), m=4, num_photons=2
+    )
     x = torch.tensor([0, 1], dtype=torch.float32)
 
     assert entanglement_entropy(x, embedder) == pytest.approx(0.0, abs=1e-6)
 
 
 def test_entanglement_entropy_is_log_two_for_bell_states(bell_state):
-    embedder = DummyDualRailEmbedder(bell_state.unsqueeze(0).repeat(2, 1))
+    embedder = DummyDualRailEmbedder(
+        bell_state.unsqueeze(0).repeat(2, 1), m=4, num_photons=2
+    )
     x = torch.tensor([0, 1], dtype=torch.float32)
 
     assert entanglement_entropy(x, embedder) == pytest.approx(np.log(2), rel=1e-5)
 
 
 def test_kernel_spectrum_flatness_matches_participation_ratio(monkeypatch):
-    kernel = torch.tensor([[1.0, 0.0], [0.0, 1.0]])
+    # Dummy embedder as nn.Module that maps input index to orthogonal quantum state
+    class DummyEmbedder(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.states = torch.eye(2, dtype=torch.complex64)
 
-    class DummyKernel:
-        def __init__(self, *args, **kwargs):
-            pass
+        def forward(self, x):
+            # x is a single feature vector (1D tensor)
+            idx = int(x[0])  # Assume first element is the index
+            return self.states[idx]
 
         def compute_kernel_matrix(self, x):
-            return kernel
+            # x is (N, d), call forward per row
+            psi = torch.stack([self.forward(xi) for xi in x], dim=0)
+            return torch.abs(psi @ psi.conj().T) ** 2
 
-    monkeypatch.setattr(
-        "dataset_complexity.utils.NeuralEmbeddingMerLinKernel", DummyKernel
-    )
-
-    value = kernel_spectrum_flatness(
-        torch.tensor([[0.0, 1.0], [0.0, 1.0]]),
-        DummyDualRailEmbedder(torch.eye(2, dtype=torch.complex64)),
-    )
-
+    embedder = DummyEmbedder()
+    x = torch.tensor([[0, 0], [1, 1]], dtype=torch.long)
+    value = kernel_spectrum_flatness(x, embedder)
     assert value == pytest.approx(2.0)
 
 
@@ -253,45 +262,60 @@ def test_locality_vs_expressibility_mismatch_metric(
 
 def test_kl_div_is_nonnegative(monkeypatch):
     n = 20
-    kernel = torch.eye(n)
+    x = torch.stack([torch.arange(n), torch.arange(n)], dim=1)
 
-    class DummyKernel:
-        def __init__(self, *args, **kwargs):
-            pass
+    class DummyEmbedder(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.states = torch.eye(n, dtype=torch.complex64)
+            self.output_size = n
+
+        def forward(self, x):
+            idx = int(x[0])
+            return self.states[idx]
 
         def compute_kernel_matrix(self, x):
-            return kernel
+            psi = torch.stack([self.forward(xi) for xi in x], dim=0)
+            return torch.abs(psi @ psi.conj().T) ** 2
 
-    monkeypatch.setattr(
-        "dataset_complexity.utils.NeuralEmbeddingMerLinKernel", DummyKernel
-    )
+        @property
+        def quantum_embedding_layer(self):
+            class QEL:
+                output_size = n
 
-    embedder = DummyDualRailEmbedder(torch.eye(2, dtype=torch.complex64), m=2)
-    embedder.output_size = 2
-    x = torch.rand(5, 2)
+            return QEL()
 
+    embedder = DummyEmbedder()
     assert kl_div(x, embedder, n_samples=n, n_bins=10) >= 0.0
 
 
 def test_kl_div_identical_states_yields_large_divergence(monkeypatch):
     n = 30
-    kernel = torch.ones(n, n)
+    x = torch.stack([torch.arange(n), torch.arange(n)], dim=1)
 
-    class DummyKernel:
-        def __init__(self, *args, **kwargs):
-            pass
+    class DummyEmbedder(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            # All states are identical
+            self.states = torch.ones((n, 1), dtype=torch.complex64)
+            self.output_size = n
+
+        def forward(self, x):
+            idx = int(x[0])
+            return self.states[idx]
 
         def compute_kernel_matrix(self, x):
-            return kernel
+            psi = torch.stack([self.forward(xi) for xi in x], dim=0)
+            return torch.abs(psi @ psi.conj().T) ** 2
 
-    monkeypatch.setattr(
-        "dataset_complexity.utils.NeuralEmbeddingMerLinKernel", DummyKernel
-    )
+        @property
+        def quantum_embedding_layer(self):
+            class QEL:
+                output_size = n
 
-    embedder = DummyDualRailEmbedder(torch.eye(2, dtype=torch.complex64), m=2)
-    embedder.output_size = 4
-    x = torch.rand(5, 2)
+            return QEL()
 
+    embedder = DummyEmbedder()
     assert kl_div(x, embedder, n_samples=n, n_bins=10) > 1.0
 
 
@@ -308,21 +332,29 @@ def test_kl_div_haar_like_fidelities_yields_small_divergence(monkeypatch):
             kernel[i, j] = kernel[j, i] = float(fidelity_samples[k])
             k += 1
 
-    class DummyKernel:
-        def __init__(self, *args, **kwargs):
-            pass
+    class DummyEmbedder(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.states = torch.eye(n, dtype=torch.complex64)
+            self.output_size = n
+
+        def forward(self, x):
+            idx = int(x[0])
+            return self.states[idx]
 
         def compute_kernel_matrix(self, x):
+            # Use the precomputed kernel for this test
             return kernel
 
-    monkeypatch.setattr(
-        "dataset_complexity.utils.NeuralEmbeddingMerLinKernel", DummyKernel
-    )
+        @property
+        def quantum_embedding_layer(self):
+            class QEL:
+                output_size = D
 
-    embedder = DummyDualRailEmbedder(torch.eye(2, dtype=torch.complex64), m=2)
-    embedder.output_size = D
-    x = torch.rand(5, 2)
+            return QEL()
 
+    embedder = DummyEmbedder()
+    x = torch.stack([torch.arange(n), torch.arange(n)], dim=1)
     assert kl_div(x, embedder, n_samples=n, n_bins=20) < 0.5
 
 
@@ -343,28 +375,30 @@ def test_topological_invariants_of_embedding_nontrivial_loop_should_not_vanish()
 def test_average_bipartite_entanglement_entropy_is_zero_for_product_density(
     product_state,
 ):
-    densities = _density_from_state(product_state).unsqueeze(0).repeat(2, 1, 1)
-
+    # For dual-rail, use 4x4 density matrices (2 qubits, n_modes=4)
+    density = torch.zeros((4, 4), dtype=torch.complex64)
+    density[0, 0] = 1.0  # |00><00|
+    densities = density.unsqueeze(0).repeat(2, 1, 1)
     value = average_bipartite_entanglement_entropy(
         densities,
         ml.ComputationSpace.DUAL_RAIL,
-        state_keys=[(1, 0), (0, 1)],
+        state_keys=[(1, 0, 1, 0), (1, 0, 0, 1), (0, 1, 1, 0), (0, 1, 0, 1)],
         n_modes=4,
     )
-
     assert value == pytest.approx(0.0, abs=1e-6)
 
 
 def test_average_bipartite_entanglement_entropy_is_log_two_for_bell_density(bell_state):
-    densities = _density_from_state(bell_state).unsqueeze(0).repeat(2, 1, 1)
-
+    # For dual-rail, use 4x4 Bell state density matrix (2 qubits, n_modes=4)
+    bell = torch.tensor([1, 0, 0, 1], dtype=torch.complex64) / np.sqrt(2)
+    density = torch.outer(bell, bell.conj())
+    densities = density.unsqueeze(0).repeat(2, 1, 1)
     value = average_bipartite_entanglement_entropy(
         densities,
         ml.ComputationSpace.DUAL_RAIL,
-        state_keys=[(1, 0), (0, 1)],
+        state_keys=[(1, 0, 1, 0), (1, 0, 0, 1), (0, 1, 1, 0), (0, 1, 0, 1)],
         n_modes=4,
     )
-
     assert value == pytest.approx(np.log(2), rel=1e-5)
 
 
@@ -490,9 +524,137 @@ def test_all_photon_mode_configurations_returns_cartesian_product():
 
 def test_get_all_bipartitions_returns_unique_nontrivial_splits():
     bipartitions = _get_all_bipartitions(3)
-
-    assert {tuple(partition) for partition in bipartitions} == {
-        (1, 2),
-        (0, 1),
-        (0, 2),
+    # Convert sets to sorted tuples for hashability and sort both sides for robust comparison
+    bipartition_tuples = {
+        tuple(sorted(tuple(sorted(x)) for x in partition)) for partition in bipartitions
     }
+    expected = {
+        ((0,), (1, 2)),
+        ((1,), (0, 2)),
+        ((2,), (0, 1)),
+    }
+
+    # Sort both sides for robust comparison
+    def sort_partition(t):
+        return tuple(sorted(t, key=lambda x: (len(x), x)))
+
+    actual_sorted = {sort_partition(t) for t in bipartition_tuples}
+    expected_sorted = {sort_partition(t) for t in expected}
+    assert actual_sorted == expected_sorted
+
+
+# --- Additional tests for utils.py ---
+
+from dataset_complexity.utils import _fock_state_to_full_index
+
+
+def test_fock_state_to_full_index_basic():
+    # For n_photons=1, m=2, states: (0,0),(0,1),(1,0),(1,1)
+    assert _fock_state_to_full_index((0, 0), 1) == 0
+    assert _fock_state_to_full_index((0, 1), 1) == 1
+    assert _fock_state_to_full_index((1, 0), 1) == 2
+    assert _fock_state_to_full_index((1, 1), 1) == 3
+
+
+def test_fock_state_to_full_index_large():
+    # For n_photons=2, m=3, states: (0,0,0)...(2,2,2)
+    idx = _fock_state_to_full_index((2, 1, 0), 2)
+    # Should match manual calculation: 2*(2+1)^2 + 1*(2+1) + 0 = 2*9 + 1*3 + 0 = 18+3=21
+    assert idx == 21
+
+
+def test_embbed_density_into_complete_fock_space_correct_embedding():
+    # 2 modes, 1 photon, state_keys = [(1,0),(0,1)]
+    rho = torch.tensor([[0.7, 0.2], [0.2, 0.3]])
+    n_modes = 2
+    n_photons = 1
+    state_keys = [(1, 0), (0, 1)]
+    embedded = embbed_density_into_complete_fock_space(
+        rho, n_modes, n_photons, state_keys
+    )
+    # Should embed into 4x4, with entries at (2,2),(2,1),(1,2),(1,1)
+    expected = torch.zeros((4, 4))
+    expected[2, 2] = 0.7
+    expected[2, 1] = 0.2
+    expected[1, 2] = 0.2
+    expected[1, 1] = 0.3
+    assert torch.allclose(embedded, expected)
+
+
+def test_entanglement_entropy_random_pure_state_edge_case():
+    # Random pure state for 2 qubits (dual rail)
+    state = torch.randn(4) + 1j * torch.randn(4)
+    state = state / torch.norm(state)
+    embedder = DummyDualRailEmbedder(
+        state.unsqueeze(0).repeat(2, 1), m=4, num_photons=2
+    )
+    x = torch.tensor([0, 1], dtype=torch.float32)
+    entropy = entanglement_entropy(x, embedder)
+    assert entropy >= 0.0
+    assert np.isfinite(entropy)
+
+
+# --- Additional tests for entanglement_entropy in FOCK (non-dual-rail) mode ---
+class DummyFockEmbedder:
+    def __init__(
+        self, states: torch.Tensor, m: int, n: int, state_keys: list[tuple[int]]
+    ):
+        self.states = states
+        self.computation_space = ml.ComputationSpace.FOCK
+        self.num_modes = m
+        self.num_photons = n
+        self.output_keys = state_keys
+        self.circuit = DummyCircuit(m)
+
+    def __call__(self, x: torch.Tensor) -> torch.Tensor:
+        if x.ndim == 0:
+            return self.states[int(x.item())]
+        flat_indices = x.reshape(-1).to(dtype=torch.long)
+        return self.states[flat_indices]
+
+
+def _fock_basis_states(m, n):
+    # All photon configurations for m modes, n photons
+    from itertools import product
+
+    return [s for s in product(range(n + 1), repeat=m) if sum(s) == n]
+
+
+def test_entanglement_entropy_fock_product_state():
+    # 2 modes, 2 photons, product state (all photons in mode 0)
+    m, n = 2, 2
+    state_keys = _fock_basis_states(m, n)
+    # |2,0> in occupation basis
+    psi = torch.zeros(len(state_keys), dtype=torch.complex64)
+    psi[state_keys.index((2, 0))] = 1.0
+    embedder = DummyFockEmbedder(psi.unsqueeze(0).repeat(2, 1), m, n, state_keys)
+    x = torch.tensor([0, 1], dtype=torch.float32)
+    entropy = entanglement_entropy(x, embedder)
+    assert entropy == pytest.approx(0.0, abs=1e-6)
+
+
+def test_entanglement_entropy_fock_maximally_entangled_state():
+    # 2 modes, 2 photons, maximally entangled state: (|2,0> + |0,2>)/sqrt(2)
+    m, n = 2, 2
+    state_keys = _fock_basis_states(m, n)
+    psi = torch.zeros(len(state_keys), dtype=torch.complex64)
+    psi[state_keys.index((2, 0))] = 1 / np.sqrt(2)
+    psi[state_keys.index((0, 2))] = 1 / np.sqrt(2)
+    embedder = DummyFockEmbedder(psi.unsqueeze(0).repeat(2, 1), m, n, state_keys)
+    x = torch.tensor([0, 1], dtype=torch.float32)
+    entropy = entanglement_entropy(x, embedder)
+    # For a 2-level system, entropy should be log(2)
+    assert entropy == pytest.approx(np.log(2), rel=1e-5)
+
+
+def test_entanglement_entropy_fock_random_pure_state():
+    # 3 modes, 2 photons, random pure state
+    m, n = 3, 2
+    state_keys = _fock_basis_states(m, n)
+    psi = torch.randn(len(state_keys)) + 1j * torch.randn(len(state_keys))
+    psi = psi / torch.norm(psi)
+    embedder = DummyFockEmbedder(psi.unsqueeze(0).repeat(2, 1), m, n, state_keys)
+    x = torch.tensor([0, 1], dtype=torch.float32)
+    entropy = entanglement_entropy(x, embedder)
+    assert entropy >= 0.0
+    assert np.isfinite(entropy)

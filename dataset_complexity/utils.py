@@ -240,23 +240,51 @@ def entanglement_entropy(
             psi = encoder(point)
             rho = state_vector_to_density_matrix(psi)
 
-        else:
-            psi = embbed_density_into_complete_fock_space(
-                encoder(point),
-                num_modes,
-                n_photons=num_photons,
-                state_keys=state_keys,
-            )
-            rho = state_vector_to_density_matrix(psi)
-
-        # Computing the entropy per bipartition
-        point_entropy = 0
-        for bipartition in bipartitions:
-            point_entropy += quantum_entropy(
-                partial_trace_from_density(
-                    rho, states_to_trace=bipartition, dim_per_state=dim_per_state
+            point_entropy = 0
+            # Computing the entropy per bipartition
+            for bipartition in bipartitions:
+                bip_to_use = (
+                    bipartition[0]
+                    if len(bipartition[0]) > len(bipartition[1])
+                    else bipartition[1]
                 )
-            )
+                point_entropy += quantum_entropy(
+                    partial_trace_from_density(
+                        rho, states_to_trace=bip_to_use, dim_per_state=dim_per_state
+                    )
+                )
+
+        else:
+            # Using the Schimdt decomposition, optimzing the entanglement calculation knowing that pure states are created
+            psi = encoder(point)
+
+            point_entropy = 0
+            # Computing the entropy per bipartition
+            for bipartition in bipartitions:
+                M_to_SVD = create_correlation_matrix_bipartition(
+                    psi, bipartition, n_photons=num_photons, state_keys=state_keys
+                )
+                M_shape = np.shape(M_to_SVD)
+
+                num_singular_values = int(min(M_shape[0], M_shape[1]))
+
+                schmidt_values_squared = sp.sparse.linalg.svds(
+                    M_to_SVD,
+                    k=1 if num_singular_values == 1 else num_singular_values - 1,
+                    return_singular_vectors=False,
+                    solver="propack",
+                )
+                if num_singular_values > 1:
+                    schmidt_values_squared = np.append(
+                        schmidt_values_squared,
+                        1 + 1e-12 - np.sum(schmidt_values_squared**2),
+                    )
+                print(schmidt_values_squared)
+                point_entropy += -np.sum(
+                    schmidt_values_squared**2
+                    * np.log(schmidt_values_squared**2 + 1e-12)
+                )
+
         total_entropy += point_entropy / num_bipartitions
 
     return total_entropy / x.size(0)
@@ -351,6 +379,7 @@ def topological_invariants_of_embedding(
 ############################################################################################################
 
 
+# TODO Optimize just like the induced
 def average_bipartite_entanglement_entropy(
     x: torch.Tensor,
     computation_space: ml.ComputationSpace,
@@ -379,7 +408,6 @@ def average_bipartite_entanglement_entropy(
         # Getting the density matrix in the right encoding
         if computation_space is ml.ComputationSpace.DUAL_RAIL:
             rho = point
-
         else:
             rho = embbed_density_into_complete_fock_space(
                 point,
@@ -391,11 +419,18 @@ def average_bipartite_entanglement_entropy(
         # Computing the entropy per bipartition
         point_entropy = 0
         for bipartition in bipartitions:
-            point_entropy += quantum_entropy(
-                partial_trace_from_density(
-                    rho, states_to_trace=bipartition, dim_per_state=dim_per_state
-                )
+            bip_to_use = (
+                bipartition[0]
+                if len(bipartition[0]) > len(bipartition[1])
+                else bipartition[1]
             )
+            reduced = partial_trace_from_density(
+                rho, states_to_trace=bip_to_use, dim_per_state=dim_per_state
+            )
+            # Ensure shape is tuple of ints
+            shape = tuple(int(s) for s in reduced.shape)
+            reduced = reduced.reshape(shape)
+            point_entropy += quantum_entropy(reduced)
         total_entropy += point_entropy / num_bipartitions
 
     return total_entropy / x.size(0)
@@ -440,6 +475,7 @@ def multipartite_total_correlation(
 def effective_kernel_rank(x: torch.Tensor) -> float:
     kernel_matrix = get_kernel_matrix(x)
     eigvals = torch.linalg.eigvalsh(kernel_matrix)
+    eigvals = eigvals.flatten()  # Ensure 1D
     eigvals_square = eigvals**2
     return (torch.sum(eigvals) ** 2) / torch.sum(eigvals_square)
 
@@ -536,13 +572,35 @@ def embbed_density_into_complete_fock_space(
 
     # Embbed the density matrix in the more physically accurate
     larger_density = torch.zeros((space_size, space_size))
-    for i in enumerate(len(state_keys)):
-        for j in enumerate(len(state_keys)):
+    for i in range(len(state_keys)):
+        for j in range(len(state_keys)):
             larger_matrix_i = basis_states.index(state_keys[i])
             larger_matrix_j = basis_states.index(state_keys[j])
             larger_density[larger_matrix_i, larger_matrix_j] = rho[i, j]
 
-    return rho
+    return larger_density
+
+
+def create_correlation_matrix_bipartition(
+    state: torch.Tensor,
+    bipartitions: tuple[list[int]],
+    n_photons: int,
+    state_keys: list[tuple[int, ...]],
+) -> sp.sparse.csr_matrix:
+
+    rows = [
+        _fock_state_to_full_index(tuple(sk[i] for i in bipartitions[0]), n_photons)
+        for sk in state_keys
+    ]
+    cols = [
+        _fock_state_to_full_index(tuple(sk[i] for i in bipartitions[1]), n_photons)
+        for sk in state_keys
+    ]
+
+    d_A = (n_photons + 1) ** len(bipartitions[0])
+    d_B = (n_photons + 1) ** len(bipartitions[1])
+
+    return sp.sparse.csr_matrix((state, (rows, cols)), shape=(d_A, d_B))
 
 
 def partial_trace_from_density(
@@ -613,8 +671,9 @@ def kl_div(
         kernel_matrix = compute_kernel_matrix_without_nqe(x, embedder)
         D = embedder.output_size
 
+    # Ensure kernel_matrix is 2D and extract upper triangle as 1D
     idx = torch.triu_indices(n_samples, n_samples, offset=1)
-    fidelities = kernel_matrix[idx[0], idx[1]].detach().float().numpy()
+    fidelities = kernel_matrix[idx[0], idx[1]].detach().float().numpy().flatten()
 
     # Get discrete probability distribution over n_bins
     hist, bin_edges = np.histogram(fidelities, bins=n_bins, range=(0.0, 1.0))
@@ -643,7 +702,17 @@ def _all_photon_mode_configurations(m: int, n: int):
     return list(product(range(n + 1), repeat=m))
 
 
-def _get_all_bipartitions(m: int) -> list[list[int]]:
+def _fock_state_to_full_index(state: tuple[int, ...], n_photons: int) -> int:
+    """Convert a mode-occupation tuple to its lexicographic index in
+    product(range(n_photons+1), repeat=m) without materialising that list.
+    Treats occupations as digits in base (n_photons+1)."""
+    idx = 0
+    for occ in state:
+        idx = idx * (n_photons + 1) + occ
+    return idx
+
+
+def _get_all_bipartitions(m: int) -> list[tuple[list[int]]]:
     states = set(range(m))
     others = list(range(1, m))
 
@@ -656,11 +725,5 @@ def _get_all_bipartitions(m: int) -> list[list[int]]:
 
             if not B:
                 continue
-
-            # keep only the larger subset
-            if len(A) >= len(B):
-                result.append(sorted(A))
-            else:
-                result.append(sorted(B))
-
+            result.append(tuple([A, B]))
     return result

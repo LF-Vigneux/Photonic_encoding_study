@@ -166,6 +166,9 @@ def train_and_evaluate(cfg, run_dir: Path) -> None:
             ),
             max_dim_topology_classical=cfg.get("max_dim_topology_classical", 2),
             weights_topology_classical=weights_cls_raw,
+            max_samples_topology_classical=cfg.get(
+                "max_samples_topology_classical", 1000
+            ),
             hyper_parameters_induced=hyper_ind_raw,
             epsilon_hilbert_support_dim_induced=cfg.get(
                 "epsilon_hilbert_support_dim_induced", 1e-8
@@ -176,6 +179,8 @@ def train_and_evaluate(cfg, run_dir: Path) -> None:
             n_bins_loc_vs_express_induced=cfg.get("n_bins_loc_vs_express_induced", 50),
             max_dim_topology_induced=cfg.get("max_dim_topology_induced", 2),
             weights_topology_induced=weights_ind_raw,
+            max_samples_topology_induced=cfg.get("max_samples_topology_induced", 1000),
+            max_samples_induced=cfg.get("max_samples_induced", 5000),
             run_dir=run_dir,
         )
     else:

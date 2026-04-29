@@ -20,5 +20,6 @@
     "n_bins_loc_vs_express_induced": 50,
     "max_dim_topology_induced": 2,
     "weights_topology_induced": null,
-    "max_samples_topology_induced": 1000
+    "max_samples_topology_induced": 1000,
+    "max_samples_induced": 1000
 }

@@ -65,7 +65,12 @@ def induced_quantum_complexity(
     max_dim_topology: int = 2,
     weights_topology: list[float] | None = None,
     max_samples_topology: int | None = 1000,
+    max_samples: int | None = 5000,
 ) -> float:
+    if max_samples is not None and X.size(0) > max_samples:
+        rng = np.random.default_rng(42)
+        idx = rng.choice(X.size(0), size=max_samples, replace=False)
+        X = X[idx]
     return (
         (
             hyper_parameters[0]
