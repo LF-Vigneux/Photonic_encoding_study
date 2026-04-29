@@ -43,7 +43,6 @@ def distributional_entropy(X: torch.Tensor) -> float:
     entropy = 0
     for prob in probs:
         entropy += prob * np.log(prob)
-        print(prob * np.log(prob))
     return (-1) * entropy
 
 
@@ -287,7 +286,6 @@ def entanglement_entropy(
                     )
                 # Use squared singular values for entropy calculation
                 entropy_values = schmidt_values_squared**2
-                print(schmidt_values_squared)
                 point_entropy += -np.sum(
                     entropy_values * np.log(entropy_values + 1e-12)
                 )
@@ -607,7 +605,7 @@ def create_correlation_matrix_bipartition(
     d_A = (n_photons + 1) ** len(bipartitions[0])
     d_B = (n_photons + 1) ** len(bipartitions[1])
 
-    return sp.sparse.csr_matrix((state, (rows, cols)), shape=(d_A, d_B))
+    return sp.sparse.csr_matrix((state.flatten(), (rows, cols)), shape=(d_A, d_B))
 
 
 def partial_trace_from_density(
