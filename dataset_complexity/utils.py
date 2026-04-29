@@ -268,21 +268,28 @@ def entanglement_entropy(
 
                 num_singular_values = int(min(M_shape[0], M_shape[1]))
 
-                schmidt_values_squared = sp.sparse.linalg.svds(
-                    M_to_SVD,
-                    k=1 if num_singular_values == 1 else num_singular_values - 1,
-                    return_singular_vectors=False,
-                    solver="propack",
-                )
-                if num_singular_values > 1:
-                    schmidt_values_squared = np.append(
-                        schmidt_values_squared,
-                        1 + 1e-12 - np.sum(schmidt_values_squared**2),
+                try:
+                    schmidt_values_squared = sp.sparse.linalg.svds(
+                        M_to_SVD,
+                        k=num_singular_values,
+                        return_singular_vectors=False,
+                        solver="propack",
                     )
+                except Exception as e:
+                    # Fallback to dense SVD if sparse SVD fails
+                    schmidt_values_squared = np.linalg.svd(
+                        (
+                            M_to_SVD.toarray()
+                            if sp.sparse.issparse(M_to_SVD)
+                            else M_to_SVD
+                        ),
+                        compute_uv=False,
+                    )
+                # Use squared singular values for entropy calculation
+                entropy_values = schmidt_values_squared**2
                 print(schmidt_values_squared)
                 point_entropy += -np.sum(
-                    schmidt_values_squared**2
-                    * np.log(schmidt_values_squared**2 + 1e-12)
+                    entropy_values * np.log(entropy_values + 1e-12)
                 )
 
         total_entropy += point_entropy / num_bipartitions
