@@ -65,6 +65,11 @@ def dense_angle_encoding_layer(
     params = [
         pcvl.Parameter(f"{param_prefix}{i:0{width}d}") for i in range(num_features)
     ]
+    params_name = [param.name for param in params]
+    if num_modes is None:
+        num_modes = 2 * int(np.ceil(num_features / 2))
+    else:
+        num_modes = max(num_modes, 2 * int(np.ceil(num_features / 2)))
     circuit = pcvl.Circuit(m=max(int(np.ceil(num_features / 2)) * 2, num_modes))
 
     mode_index = 0
@@ -87,7 +92,7 @@ def dense_angle_encoding_layer(
             circuit=circuit,
             computation_space=ml.ComputationSpace.DUAL_RAIL,
             measurement_strategy=ml.MeasurementStrategy.AMPLITUDES,
-            trainable_parameters=params,
+            trainable_parameters=params_name,
             n_photons=int(np.ceil(num_features / 2)),
         )
     else:
@@ -96,7 +101,7 @@ def dense_angle_encoding_layer(
             circuit=circuit,
             computation_space=ml.ComputationSpace.DUAL_RAIL,
             measurement_strategy=ml.MeasurementStrategy.AMPLITUDES,
-            input_parameters=params,
+            input_parameters=params_name,
             n_photons=int(np.ceil(num_features / 2)),
         )
 
@@ -113,6 +118,7 @@ def fourier_basis_layer(
         pcvl.Parameter(f"phi{i:0{width}d}")
         for i in range(num_features * num_qubits_per_feature)
     ]
+    params_name = [param.name for param in params]
     param_index = 0
     mode_index = 0
     for _ in range(num_features):
@@ -129,7 +135,7 @@ def fourier_basis_layer(
             circuit=main_circuit,
             computation_space=ml.ComputationSpace.DUAL_RAIL,
             measurement_strategy=ml.MeasurementStrategy.AMPLITUDES,
-            trainable_parameters=params,
+            trainable_parameters=params_name,
             n_photons=num_features * num_qubits_per_feature,
         )
     else:
@@ -138,7 +144,7 @@ def fourier_basis_layer(
             circuit=main_circuit,
             computation_space=ml.ComputationSpace.DUAL_RAIL,
             measurement_strategy=ml.MeasurementStrategy.AMPLITUDES,
-            input_parameters=params,
+            input_parameters=params_name,
             n_photons=num_features * num_qubits_per_feature,
         )
 
@@ -167,7 +173,10 @@ def amplitude_encoding(
         state = np.zeros(2**num_modes, dtype=np.complex128)
     else:
         raise ValueError("Invalid computation space")
-    state[: len(features)] = features
+    features_np = (
+        features.detach().numpy() if isinstance(features, torch.Tensor) else features
+    )
+    state[: len(features_np)] = features_np
     state /= np.linalg.norm(state)
     if indexes_perm is not None:
         state = state[indexes_perm]
@@ -193,7 +202,10 @@ def dense_encoding_of_features(
         raise ValueError("Invalid computation space")
 
     feature_shuffler = np.zeros(len(state) * 2)
-    feature_shuffler[: len(features)] = features
+    features_np = (
+        features.detach().numpy() if isinstance(features, torch.Tensor) else features
+    )
+    feature_shuffler[: len(features_np)] = features_np
 
     if indexes_perm is not None:
         feature_shuffler = feature_shuffler[indexes_perm]
@@ -269,7 +281,8 @@ class AmplitudeEncoder(nn.Module):
         self.encoder = ml.LexGrouping(self.output_size, self.output_size)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        if x.dim() == 1:
+        was_1d = x.dim() == 1
+        if was_1d:
             x = x.unsqueeze(0)
         if x.dim() > 2:
             x = x.reshape(x.shape[0], np.prod(x.shape[1:]))
@@ -312,6 +325,8 @@ class AmplitudeEncoder(nn.Module):
                 )
                 output_tensors[i, :, :] = torch.outer(state, state.conj())
 
+        if was_1d:
+            output_tensors = output_tensors.squeeze(0)
         return output_tensors
 
     def __repr__(self):
@@ -354,7 +369,8 @@ class DenseAmplitudeEncoder(nn.Module):
         self.encoder = ml.LexGrouping(self.output_size, self.output_size)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        if x.dim() == 1:
+        was_1d = x.dim() == 1
+        if was_1d:
             x = x.unsqueeze(0)
         if x.dim() > 2:
             x = x.reshape(x.shape[0], np.prod(x.shape[1:]))
@@ -397,6 +413,8 @@ class DenseAmplitudeEncoder(nn.Module):
                 )
                 output_tensors[i, :, :] = torch.outer(state, state.conj())
 
+        if was_1d:
+            output_tensors = output_tensors.squeeze(0)
         return output_tensors
 
     def __repr__(self):

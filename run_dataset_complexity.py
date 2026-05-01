@@ -125,11 +125,9 @@ def dataset_complexity_induced_comparison(
     ### Dense Angle complexity
     ###########################
     print(f"Doing the dense angle encoding complexity 3/8")
-    encoder = (
-        dense_angle_encoding_layer(
-            num_features=n_features,
-            num_modes=n_modes,
-        ),
+    encoder = dense_angle_encoding_layer(
+        num_features=n_features,
+        num_modes=n_modes,
     )
 
     model = NeuralEmbeddingMerLinKernel(
@@ -154,11 +152,9 @@ def dataset_complexity_induced_comparison(
     ### Fourier complexity
     ###########################
     print(f"Doing the Fourier encoding complexity 4/8")
-    encoder = (
-        fourier_basis_layer(
-            num_features=n_features,
-            num_qubits_per_feature=num_qubits_per_feature_fourier,
-        ),
+    encoder = fourier_basis_layer(
+        num_features=n_features,
+        num_qubits_per_feature=num_qubits_per_feature_fourier,
     )
 
     model = NeuralEmbeddingMerLinKernel(

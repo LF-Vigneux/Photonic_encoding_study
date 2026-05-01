@@ -94,7 +94,7 @@ def compute_kernel_matrix_without_nqe(
         values_list.append(torch.vdot(encoding_strategy(a), encoding_strategy(b)).real)
     values = torch.stack(values_list)
 
-    output = torch.empty(n, n)
+    output = torch.empty(n, n, dtype=values.dtype)
     output[idx_i, idx_j] = values
     output[idx_j, idx_i] = values
     return output

@@ -20,7 +20,6 @@ from copy import deepcopy
 from pathlib import Path
 import sys
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT))
@@ -348,10 +347,18 @@ def locality_vs_expressibility(
                 embedder.quantum_embedding_layer.n_photons + 1
             ) ** embedder.quantum_embedding_layer.circuit.m
     else:
+        n_photons = (
+            embedder.n_photons
+            if hasattr(embedder, "n_photons")
+            else embedder.num_photons
+        )
+        n_modes = (
+            embedder.circuit.m if hasattr(embedder, "circuit") else embedder.num_modes
+        )
         if embedder.computation_space is ml.ComputationSpace.DUAL_RAIL:
-            N = 2 ** (embedder.circuit.m // 2)
+            N = 2 ** (n_modes // 2)
         else:
-            N = (embedder.n_photons + 1) ** embedder.circuit.m
+            N = (n_photons + 1) ** n_modes
 
     for _ in tqdm(range(1), desc="[locality_vs_expressibility] final computation"):
         pass
