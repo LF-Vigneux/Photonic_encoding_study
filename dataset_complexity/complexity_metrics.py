@@ -71,34 +71,37 @@ def induced_quantum_complexity(
         rng = np.random.default_rng(42)
         idx = rng.choice(X.size(0), size=max_samples, replace=False)
         X = X[idx]
-    return (
-        (
-            hyper_parameters[0]
-            * hilbert_space_support_dim(X, encoding, eps=epsilon_hilbert_support_dim)
-        )
-        + (hyper_parameters[1] * quantum_fisher_information_spread(X, encoding))
-        + (hyper_parameters[2] * entanglement_entropy(X, encoding))
-        + (hyper_parameters[3] * kernel_spectrum_flatness(X, encoding))
-        + (
-            hyper_parameters[4]
-            * locality_vs_expressibility(
-                X,
-                encoding,
-                n_samples=n_samples_loc_vs_express,
-                n_bins=n_bins_loc_vs_express,
-            )
-        )
-        + (
-            hyper_parameters[5]
-            * topological_invariants_of_embedding(
-                X,
-                encoding,
-                max_dim=max_dim_topology,
-                weights=weights_topology,
-                max_samples=max_samples_topology,
-            )
-        )
+
+    print("[induced_quantum_complexity] Computing hilbert_space_support_dim...")
+    hsd = hyper_parameters[0] * hilbert_space_support_dim(
+        X, encoding, eps=epsilon_hilbert_support_dim
     )
+    print("[induced_quantum_complexity] Computing quantum_fisher_information_spread...")
+    qfi = hyper_parameters[1] * quantum_fisher_information_spread(X, encoding)
+    print("[induced_quantum_complexity] Computing entanglement_entropy...")
+    ee = hyper_parameters[2] * entanglement_entropy(X, encoding)
+    print("[induced_quantum_complexity] Computing kernel_spectrum_flatness...")
+    ksf = hyper_parameters[3] * kernel_spectrum_flatness(X, encoding)
+    print("[induced_quantum_complexity] Computing locality_vs_expressibility...")
+    lve = hyper_parameters[4] * locality_vs_expressibility(
+        X,
+        encoding,
+        n_samples=n_samples_loc_vs_express,
+        n_bins=n_bins_loc_vs_express,
+        ee=ee,
+    )
+    print(
+        "[induced_quantum_complexity] Computing topological_invariants_of_embedding..."
+    )
+    tie = hyper_parameters[5] * topological_invariants_of_embedding(
+        X,
+        encoding,
+        max_dim=max_dim_topology,
+        weights=weights_topology,
+        max_samples=max_samples_topology,
+    )
+    print("[induced_quantum_complexity] All metrics computed.")
+    return hsd + qfi + ee + ksf + lve + tie
 
 
 def quantum_complexity(
@@ -109,37 +112,38 @@ def quantum_complexity(
     n_photons: int | None = None,
     hyper_parameters: list[float] = [1, 1, 1, 1, 1, 1],
 ) -> float:
-    return (
-        hyper_parameters[0]
-        * average_bipartite_entanglement_entropy(
-            X,
-            computation_space=computation_space,
-            state_keys=state_keys,
-            n_modes=n_modes,
-            n_photons=n_photons,
-        )
-    ) + (
-        hyper_parameters[1]
-        * multipartite_total_correlation(
-            X,
-            num_subsystem=(
-                n_modes // 2
-                if computation_space == ml.ComputationSpace.DUAL_RAIL
-                else n_modes
-            ),
-            dim_per_state=(
-                2
-                if computation_space == ml.ComputationSpace.DUAL_RAIL
-                else n_photons + 1
-            ),
-            fock_space=(
-                False if computation_space == ml.ComputationSpace.DUAL_RAIL else True
-            ),
-            num_photons=n_photons,
-            state_keys=state_keys,
-        )
-        + (hyper_parameters[2] * effective_kernel_rank(X))
-        + (hyper_parameters[3] * nonclassicality(X))
-        + (hyper_parameters[4] * quantum_fisher_information(X))
-        + (hyper_parameters[5] * topological_quantum_complexity(X))
+    print("[quantum_complexity] Computing average_bipartite_entanglement_entropy...")
+    abee = hyper_parameters[0] * average_bipartite_entanglement_entropy(
+        X,
+        computation_space=computation_space,
+        state_keys=state_keys,
+        n_modes=n_modes,
+        n_photons=n_photons,
     )
+    print("[quantum_complexity] Computing multipartite_total_correlation...")
+    mtc = hyper_parameters[1] * multipartite_total_correlation(
+        X,
+        num_subsystem=(
+            n_modes // 2
+            if computation_space == ml.ComputationSpace.DUAL_RAIL
+            else n_modes
+        ),
+        dim_per_state=(
+            2 if computation_space == ml.ComputationSpace.DUAL_RAIL else n_photons + 1
+        ),
+        fock_space=(
+            False if computation_space == ml.ComputationSpace.DUAL_RAIL else True
+        ),
+        num_photons=n_photons,
+        state_keys=state_keys,
+    )
+    print("[quantum_complexity] Computing effective_kernel_rank...")
+    ekr = hyper_parameters[2] * effective_kernel_rank(X)
+    print("[quantum_complexity] Computing nonclassicality...")
+    nc = hyper_parameters[3] * nonclassicality(X)
+    print("[quantum_complexity] Computing quantum_fisher_information...")
+    qfi = hyper_parameters[4] * quantum_fisher_information(X)
+    print("[quantum_complexity] Computing topological_quantum_complexity...")
+    tqc = hyper_parameters[5] * topological_quantum_complexity(X)
+    print("[quantum_complexity] All metrics computed.")
+    return abee + mtc + ekr + nc + qfi + tqc

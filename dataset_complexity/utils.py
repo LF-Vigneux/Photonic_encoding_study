@@ -1,8 +1,12 @@
 """
 Not implemented techniques are identified by #####TODO
+
+
+REMOVE TQDM TO REMOVE THE PROGRESS BAR
 """
 
 import numpy as np
+from tqdm import tqdm
 import torch
 import torch.nn as nn
 import merlin as ml
@@ -148,7 +152,7 @@ def hilbert_space_support_dim(
     rho = torch.sum(rhos, dim=0) / x.size(0)
     eigvals = torch.linalg.eigvalsh(rho)
     effective_dim = 0
-    for val in eigvals:
+    for val in tqdm(eigvals, desc="[hilbert_space_support_dim] eigvals"):
         effective_dim += val / (val + eps)
     return effective_dim
 
@@ -173,7 +177,7 @@ def quantum_fisher_information_spread(
         encoder = Encoder()
     else:
         encoder = embedder
-
+    print("Getting the quantum fisher matrice")
     matricies = get_quantum_fisher_matrices(encoder, x)
     return sum(torch.trace(mat) for mat in matricies) / x.size(0)
 
@@ -233,15 +237,16 @@ def entanglement_entropy(
 
     total_entropy = 0
 
-    for point in x:
+    for point in tqdm(x, desc="[entanglement_entropy] points"):
         # Getting the density matrix in the right encoding
         if is_dual_rail:
             psi = encoder(point)
             rho = state_vector_to_density_matrix(psi)
 
             point_entropy = 0
-            # Computing the entropy per bipartition
-            for bipartition in bipartitions:
+            for bipartition in tqdm(
+                bipartitions, desc="[entanglement_entropy] bipartitions", leave=False
+            ):
                 bip_to_use = (
                     bipartition[0]
                     if len(bipartition[0]) > len(bipartition[1])
@@ -254,12 +259,12 @@ def entanglement_entropy(
                 )
 
         else:
-            # Using the Schimdt decomposition, optimzing the entanglement calculation knowing that pure states are created
             psi = encoder(point)
 
             point_entropy = 0
-            # Computing the entropy per bipartition
-            for bipartition in bipartitions:
+            for bipartition in tqdm(
+                bipartitions, desc="[entanglement_entropy] bipartitions", leave=False
+            ):
                 M_to_SVD = create_correlation_matrix_bipartition(
                     psi, bipartition, n_photons=num_photons, state_keys=state_keys
                 )
@@ -275,7 +280,6 @@ def entanglement_entropy(
                         solver="propack",
                     )
                 except Exception as e:
-                    # Fallback to dense SVD if sparse SVD fails
                     schmidt_values_squared = np.linalg.svd(
                         (
                             M_to_SVD.toarray()
@@ -284,7 +288,6 @@ def entanglement_entropy(
                         ),
                         compute_uv=False,
                     )
-                # Use squared singular values for entropy calculation
                 entropy_values = schmidt_values_squared**2
                 point_entropy += -np.sum(
                     entropy_values * np.log(entropy_values + 1e-12)
@@ -305,7 +308,10 @@ def kernel_spectrum_flatness(
 
     eigvals = torch.linalg.eigvalsh(kernel_matrix)
     eigvals_square = eigvals**2
-    return (torch.sum(eigvals) ** 2) / torch.sum(eigvals_square)
+    result = (torch.sum(eigvals) ** 2) / torch.sum(eigvals_square)
+    for _ in tqdm(range(1), desc="[kernel_spectrum_flatness] eigvals"):
+        pass
+    return result
 
 
 def locality_vs_expressibility(
@@ -313,16 +319,22 @@ def locality_vs_expressibility(
     embedder: nn.Module | NeuralEmbeddingMerLinKernel,
     n_samples: int = 1000,
     n_bins: int = 50,
+    ee: float | None = None,
 ) -> float:
     """
     The x must already be pretreated or be pretreated in the embedder
     """
 
     # A more expressive embedding is more complex, so invert the score
+    print("[locality_vs_expressibility] Computing kl_div...")
     expressibility_score = kl_div(x, embedder, n_samples=n_samples, n_bins=n_bins)
 
-    # TODO Check with the author, locality proxy, the entanglement entropy
-    avg_entropy = entanglement_entropy(x, embedder)
+    # TODO Check with the author if the locality is as expected
+    print("[locality_vs_expressibility] Computing entanglement_entropy...")
+    if ee is None:
+        avg_entropy = entanglement_entropy(x, embedder)
+    else:
+        avg_entropy = ee
 
     # Find the dimension N
     if isinstance(embedder, NeuralEmbeddingMerLinKernel):
@@ -341,6 +353,8 @@ def locality_vs_expressibility(
         else:
             N = (embedder.n_photons + 1) ** embedder.circuit.m
 
+    for _ in tqdm(range(1), desc="[locality_vs_expressibility] final computation"):
+        pass
     return (np.exp(-expressibility_score) - (2 * avg_entropy / np.log(N))) ** 2
 
 
@@ -363,16 +377,19 @@ def topological_invariants_of_embedding(
         x = x[idx]
 
     if isinstance(embedder, NeuralEmbeddingMerLinKernel):
-        kernel_matrix = embedder.compute_kernel_matrix(x)
+        kernel_matrix = embedder.compute_kernel_matrix(x).detach().cpu().numpy()
     else:
-        kernel_matrix = compute_kernel_matrix_without_nqe(x, embedder)
+        kernel_matrix = (
+            compute_kernel_matrix_without_nqe(x, embedder).detach().cpu().numpy()
+        )
 
+    print("[topological_invariants_of_embedding] Computing persistent diagrams...")
     diagrams = ripser(kernel_matrix, maxdim=max_dim, distance_matrix=True)["dgms"]
 
     total = 0.0
-    for k, dgm in enumerate(diagrams):
-        # Exclude infinite death values (unpaired features)
-        # Removes features that are not dead
+    for k, dgm in enumerate(
+        tqdm(diagrams, desc="[topological_invariants_of_embedding] diagrams")
+    ):
         finite_mask = np.isfinite(dgm[:, 1])
         lifetimes = dgm[finite_mask, 1] - dgm[finite_mask, 0]
         total += weights[k] * float(np.sum(lifetimes))
