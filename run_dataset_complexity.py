@@ -235,6 +235,7 @@ def dataset_complexity_induced_comparison(
     ### Evolution complexity
     ###########################
     print(f"Doing the evolution encoding complexity 7/8")
+    merged_X = X
     if len(X.shape) == 2:
         encoder = TimeEvolutionEncoder(
             image_size=n_features,
