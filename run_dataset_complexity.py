@@ -55,6 +55,7 @@ def dataset_complexity_induced_comparison(
     weights_topology_induced: list[float] | None = None,
     max_samples_topology_induced: int | None = 1000,
     max_samples_induced: int | None = 5000,
+    evaluate_evolution: bool = False,
     run_dir: Path = None,
 ) -> dict:
     output = {"classical": None, "induced": {}}
@@ -65,20 +66,79 @@ def dataset_complexity_induced_comparison(
     X = torch.cat((x_train, x_test), 0)
     n_features = int(np.prod(X.shape[1:]))
 
+    # ── Persistence setup ─────────────────────────────────────────────────────
+    results_dir = (
+        run_dir if run_dir is not None else _FILE_DIR / "results" / "dataset_complexity"
+    )
+    results_dir.mkdir(parents=True, exist_ok=True)
+    output_path = results_dir / f"dataset_complexity_{dataset_name}_results.json"
+
+    config_payload = {
+        "dataset_name": dataset_name,
+        "classes": list(classes) if classes is not None else None,
+        "feature_reduction": feature_reduction,
+        "n_modes": n_modes,
+        "n_photons": n_photons,
+        "computation_space": computation_space.name,
+        "num_qubits_per_feature_fourier": num_qubits_per_feature_fourier,
+        "hyper_parameters_classical": hyper_parameters_classical,
+        "max_order_correlation_classical": max_order_correlation_classical,
+        "max_dim_topology_classical": max_dim_topology_classical,
+        "weights_topology_classical": weights_topology_classical,
+        "hyper_parameters_induced": hyper_parameters_induced,
+        "epsilon_hilbert_support_dim_induced": epsilon_hilbert_support_dim_induced,
+        "n_samples_loc_vs_express_induced": n_samples_loc_vs_express_induced,
+        "n_bins_loc_vs_express_induced": n_bins_loc_vs_express_induced,
+        "max_dim_topology_induced": max_dim_topology_induced,
+        "weights_topology_induced": weights_topology_induced,
+        "max_samples_topology_induced": max_samples_topology_induced,
+        "max_samples_induced": max_samples_induced,
+    }
+
+    def _json_default(obj):
+        if isinstance(obj, np.generic):
+            return obj.item()
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        if isinstance(obj, torch.Tensor):
+            return obj.tolist()
+        return str(obj)
+
+    def _save():
+        payload = {"results": output, "config": config_payload}
+        output_path.write_text(json.dumps(payload, indent=2, default=_json_default))
+
+    # Load any previously computed results
+    if output_path.exists():
+        try:
+            existing = json.loads(output_path.read_text())
+            existing_results = existing.get("results", {})
+            if existing_results.get("classical") is not None:
+                output["classical"] = existing_results["classical"]
+            for key, val in existing_results.get("induced", {}).items():
+                output["induced"][key] = val
+            print(f"Loaded existing results from {output_path}")
+        except Exception:
+            pass
+    # ──────────────────────────────────────────────────────────────────────────
+
     #######################################################
     ### Classical complexity
     #######################################################
 
     print(f"Doing the classical complexity 1/8")
-    output["classical"] = classical_complexity(
-        X,
-        hyper_parameters=hyper_parameters_classical,
-        max_order_correlation=max_order_correlation_classical,
-        max_dim_topology=max_dim_topology_classical,
-        weights_topology=weights_topology_classical,
-        max_samples_topology=max_samples_topology_classical,
-    )
-    print(f"Complexity of {output["classical"]}")
+    if output["classical"] is None:
+        output["classical"] = classical_complexity(
+            X,
+            hyper_parameters=hyper_parameters_classical,
+            max_order_correlation=max_order_correlation_classical,
+            max_dim_topology=max_dim_topology_classical,
+            weights_topology=weights_topology_classical,
+            max_samples_topology=max_samples_topology_classical,
+        )
+        _save()
+    print(f"Complexity of {output['classical']}")
+    print()
 
     #######################################################
     ### Induced complexity
@@ -96,84 +156,90 @@ def dataset_complexity_induced_comparison(
     else:
         num_photons_encoder = n_photons
 
-    encoder = angle_encoding_layer(
-        num_features=n_features,
-        num_modes=n_modes,
-        num_photons=num_photons_encoder,
-        computation_space=computation_space,
-    )
-
-    model = NeuralEmbeddingMerLinKernel(
-        classical_model=TransparentModel(),
-        quantum_embedding_layer=encoder,
-    )
-    output["induced"]["angle"] = induced_quantum_complexity(
-        X,
-        model,
-        hyper_parameters=hyper_parameters_induced,
-        epsilon_hilbert_support_dim=epsilon_hilbert_support_dim_induced,
-        n_samples_loc_vs_express=n_samples_loc_vs_express_induced,
-        n_bins_loc_vs_express=n_bins_loc_vs_express_induced,
-        max_dim_topology=max_dim_topology_induced,
-        weights_topology=weights_topology_induced,
-        max_samples_topology=max_samples_topology_induced,
-        max_samples=max_samples_induced,
-    )
+    if output["induced"].get("angle") is None:
+        encoder = angle_encoding_layer(
+            num_features=n_features,
+            num_modes=n_modes,
+            num_photons=num_photons_encoder,
+            computation_space=computation_space,
+        )
+        model = NeuralEmbeddingMerLinKernel(
+            classical_model=TransparentModel(),
+            quantum_embedding_layer=encoder,
+        )
+        output["induced"]["angle"] = induced_quantum_complexity(
+            X,
+            model,
+            hyper_parameters=hyper_parameters_induced,
+            epsilon_hilbert_support_dim=epsilon_hilbert_support_dim_induced,
+            n_samples_loc_vs_express=n_samples_loc_vs_express_induced,
+            n_bins_loc_vs_express=n_bins_loc_vs_express_induced,
+            max_dim_topology=max_dim_topology_induced,
+            weights_topology=weights_topology_induced,
+            max_samples_topology=max_samples_topology_induced,
+            max_samples=max_samples_induced,
+        )
+        _save()
     print(f"Complexity of {output['induced']['angle']}")
+    print()
 
     ###########################
     ### Dense Angle complexity
     ###########################
     print(f"Doing the dense angle encoding complexity 3/8")
-    encoder = dense_angle_encoding_layer(
-        num_features=n_features,
-        num_modes=n_modes,
-    )
-
-    model = NeuralEmbeddingMerLinKernel(
-        classical_model=TransparentModel(),
-        quantum_embedding_layer=encoder,
-    )
-    output["induced"]["dense_angle"] = induced_quantum_complexity(
-        X,
-        model,
-        hyper_parameters=hyper_parameters_induced,
-        epsilon_hilbert_support_dim=epsilon_hilbert_support_dim_induced,
-        n_samples_loc_vs_express=n_samples_loc_vs_express_induced,
-        n_bins_loc_vs_express=n_bins_loc_vs_express_induced,
-        max_dim_topology=max_dim_topology_induced,
-        weights_topology=weights_topology_induced,
-        max_samples_topology=max_samples_topology_induced,
-        max_samples=max_samples_induced,
-    )
+    if output["induced"].get("dense_angle") is None:
+        encoder = dense_angle_encoding_layer(
+            num_features=n_features,
+            num_modes=n_modes,
+        )
+        model = NeuralEmbeddingMerLinKernel(
+            classical_model=TransparentModel(),
+            quantum_embedding_layer=encoder,
+        )
+        output["induced"]["dense_angle"] = induced_quantum_complexity(
+            X,
+            model,
+            hyper_parameters=hyper_parameters_induced,
+            epsilon_hilbert_support_dim=epsilon_hilbert_support_dim_induced,
+            n_samples_loc_vs_express=n_samples_loc_vs_express_induced,
+            n_bins_loc_vs_express=n_bins_loc_vs_express_induced,
+            max_dim_topology=max_dim_topology_induced,
+            weights_topology=weights_topology_induced,
+            max_samples_topology=max_samples_topology_induced,
+            max_samples=max_samples_induced,
+        )
+        _save()
     print(f"Complexity of {output['induced']['dense_angle']}")
+    print()
 
     ###########################
     ### Fourier complexity
     ###########################
     print(f"Doing the Fourier encoding complexity 4/8")
-    encoder = fourier_basis_layer(
-        num_features=n_features,
-        num_qubits_per_feature=num_qubits_per_feature_fourier,
-    )
-
-    model = NeuralEmbeddingMerLinKernel(
-        classical_model=TransparentModel(),
-        quantum_embedding_layer=encoder,
-    )
-    output["induced"]["fourier"] = induced_quantum_complexity(
-        X,
-        model,
-        hyper_parameters=hyper_parameters_induced,
-        epsilon_hilbert_support_dim=epsilon_hilbert_support_dim_induced,
-        n_samples_loc_vs_express=n_samples_loc_vs_express_induced,
-        n_bins_loc_vs_express=n_bins_loc_vs_express_induced,
-        max_dim_topology=max_dim_topology_induced,
-        weights_topology=weights_topology_induced,
-        max_samples_topology=max_samples_topology_induced,
-        max_samples=max_samples_induced,
-    )
+    if output["induced"].get("fourier") is None:
+        encoder = fourier_basis_layer(
+            num_features=n_features,
+            num_qubits_per_feature=num_qubits_per_feature_fourier,
+        )
+        model = NeuralEmbeddingMerLinKernel(
+            classical_model=TransparentModel(),
+            quantum_embedding_layer=encoder,
+        )
+        output["induced"]["fourier"] = induced_quantum_complexity(
+            X,
+            model,
+            hyper_parameters=hyper_parameters_induced,
+            epsilon_hilbert_support_dim=epsilon_hilbert_support_dim_induced,
+            n_samples_loc_vs_express=n_samples_loc_vs_express_induced,
+            n_bins_loc_vs_express=n_bins_loc_vs_express_induced,
+            max_dim_topology=max_dim_topology_induced,
+            weights_topology=weights_topology_induced,
+            max_samples_topology=max_samples_topology_induced,
+            max_samples=max_samples_induced,
+        )
+        _save()
     print(f"Complexity of {output['induced']['fourier']}")
+    print()
 
     ###########################
     ### Amplitude complexity
@@ -184,24 +250,27 @@ def dataset_complexity_induced_comparison(
         if (n_modes is None or n_photons is None)
         else (n_modes, n_photons)
     )
-    encoder = AmplitudeEncoder(
-        num_modes=num_modes_encoder,
-        num_photons=num_photons_encoder,
-        computation_space=computation_space,
-    )
-    output["induced"]["amplitude"] = induced_quantum_complexity(
-        X,
-        encoder,
-        hyper_parameters=hyper_parameters_induced,
-        epsilon_hilbert_support_dim=epsilon_hilbert_support_dim_induced,
-        n_samples_loc_vs_express=n_samples_loc_vs_express_induced,
-        n_bins_loc_vs_express=n_bins_loc_vs_express_induced,
-        max_dim_topology=max_dim_topology_induced,
-        weights_topology=weights_topology_induced,
-        max_samples_topology=max_samples_topology_induced,
-        max_samples=max_samples_induced,
-    )
+    if output["induced"].get("amplitude") is None:
+        encoder = AmplitudeEncoder(
+            num_modes=num_modes_encoder,
+            num_photons=num_photons_encoder,
+            computation_space=computation_space,
+        )
+        output["induced"]["amplitude"] = induced_quantum_complexity(
+            X,
+            encoder,
+            hyper_parameters=hyper_parameters_induced,
+            epsilon_hilbert_support_dim=epsilon_hilbert_support_dim_induced,
+            n_samples_loc_vs_express=n_samples_loc_vs_express_induced,
+            n_bins_loc_vs_express=n_bins_loc_vs_express_induced,
+            max_dim_topology=max_dim_topology_induced,
+            weights_topology=weights_topology_induced,
+            max_samples_topology=max_samples_topology_induced,
+            max_samples=max_samples_induced,
+        )
+        _save()
     print(f"Complexity of {output['induced']['amplitude']}")
+    print()
 
     ###########################
     ### Dense amplitude complexity
@@ -212,71 +281,83 @@ def dataset_complexity_induced_comparison(
         if (n_modes is None or n_photons is None)
         else (n_modes, n_photons)
     )
-    encoder = DenseAmplitudeEncoder(
-        num_modes=num_modes_encoder,
-        num_photons=num_photons_encoder,
-        computation_space=computation_space,
-    )
-    output["induced"]["dense_amplitude"] = induced_quantum_complexity(
-        X,
-        encoder,
-        hyper_parameters=hyper_parameters_induced,
-        epsilon_hilbert_support_dim=epsilon_hilbert_support_dim_induced,
-        n_samples_loc_vs_express=n_samples_loc_vs_express_induced,
-        n_bins_loc_vs_express=n_bins_loc_vs_express_induced,
-        max_dim_topology=max_dim_topology_induced,
-        weights_topology=weights_topology_induced,
-        max_samples_topology=max_samples_topology_induced,
-        max_samples=max_samples_induced,
-    )
+    if output["induced"].get("dense_amplitude") is None:
+        encoder = DenseAmplitudeEncoder(
+            num_modes=num_modes_encoder,
+            num_photons=num_photons_encoder,
+            computation_space=computation_space,
+        )
+        output["induced"]["dense_amplitude"] = induced_quantum_complexity(
+            X,
+            encoder,
+            hyper_parameters=hyper_parameters_induced,
+            epsilon_hilbert_support_dim=epsilon_hilbert_support_dim_induced,
+            n_samples_loc_vs_express=n_samples_loc_vs_express_induced,
+            n_bins_loc_vs_express=n_bins_loc_vs_express_induced,
+            max_dim_topology=max_dim_topology_induced,
+            weights_topology=weights_topology_induced,
+            max_samples_topology=max_samples_topology_induced,
+            max_samples=max_samples_induced,
+        )
+        _save()
     print(f"Complexity of {output['induced']['dense_amplitude']}")
+    print()
 
     ###########################
     ### Evolution complexity
     ###########################
     print(f"Doing the evolution encoding complexity 7/8")
-    merged_X = X
-    if len(X.shape) == 2:
-        encoder = TimeEvolutionEncoder(
-            image_size=n_features,
-            num_photons=n_features if n_photons is None else n_photons,
-            computation_space=computation_space,
-            input_are_images=False,
-        )
+    _existing_evolution = output["induced"].get("evolution")
+    if _existing_evolution is not None:
+        print(f"Complexity of {_existing_evolution} (loaded from file)")
+    elif not evaluate_evolution:
+        print("Skipping evolution encoding (evaluate_evolution=False)")
+        output["induced"]["evolution"] = None
     else:
-        encoder = TimeEvolutionEncoder(
-            image_size=X.size(2),
-            num_photons=n_features if n_photons is None else n_photons,
-            computation_space=computation_space,
-            input_are_images=True,
-        )
-        # Merging RGB if necessary
-        if X.ndim == 4 and X.shape[1] == 3:
-            X_copy = deepcopy(X)
-            # Standard luminance conversion keeps the image square.
-            weights = X_copy.new_tensor([0.2989, 0.5870, 0.1140]).view(1, 3, 1, 1)
-            merged_X = (X * weights).sum(dim=1)
+        merged_X = X
+        if len(X.shape) == 2:
+            encoder = TimeEvolutionEncoder(
+                image_size=n_features,
+                num_photons=n_features if n_photons is None else n_photons,
+                computation_space=computation_space,
+                input_are_images=False,
+            )
+        else:
+            encoder = TimeEvolutionEncoder(
+                image_size=X.size(2),
+                num_photons=n_features if n_photons is None else n_photons,
+                computation_space=computation_space,
+                input_are_images=True,
+            )
+            # Merging RGB if necessary
+            if X.ndim == 4 and X.shape[1] == 3:
+                X_copy = deepcopy(X)
+                # Standard luminance conversion keeps the image square.
+                weights = X_copy.new_tensor([0.2989, 0.5870, 0.1140]).view(1, 3, 1, 1)
+                merged_X = (X * weights).sum(dim=1)
 
-    output["induced"]["evolution"] = induced_quantum_complexity(
-        merged_X,
-        encoder,
-        hyper_parameters=hyper_parameters_induced,
-        epsilon_hilbert_support_dim=epsilon_hilbert_support_dim_induced,
-        n_samples_loc_vs_express=n_samples_loc_vs_express_induced,
-        n_bins_loc_vs_express=n_bins_loc_vs_express_induced,
-        max_dim_topology=max_dim_topology_induced,
-        weights_topology=weights_topology_induced,
-        max_samples_topology=max_samples_topology_induced,
-        max_samples=max_samples_induced,
-    )
-    print(f"Complexity of {output['induced']['evolution']}")
+        output["induced"]["evolution"] = induced_quantum_complexity(
+            merged_X,
+            encoder,
+            hyper_parameters=hyper_parameters_induced,
+            epsilon_hilbert_support_dim=epsilon_hilbert_support_dim_induced,
+            n_samples_loc_vs_express=n_samples_loc_vs_express_induced,
+            n_bins_loc_vs_express=n_bins_loc_vs_express_induced,
+            max_dim_topology=max_dim_topology_induced,
+            weights_topology=weights_topology_induced,
+            max_samples_topology=max_samples_topology_induced,
+            max_samples=max_samples_induced,
+        )
+        _save()
+        print(f"Complexity of {output['induced']['evolution']}")
+    print()
 
     ###########################
     ### NQE
     ###########################
     print(f"Doing the nqe complexity 8/8")
     # Same number of modes as dense amplitude encoder, using the lesser most ressources
-    general_unitary = ml.CircuitBuilder(n_modes=num_modes_encoder)
+    general_unitary = ml.CircuitBuilder(n_modes=n_features // 2)
     # Two deep
     general_unitary.add_entangling_layer()
     general_unitary.add_entangling_layer()
@@ -313,68 +394,29 @@ def dataset_complexity_induced_comparison(
             nn.LazyLinear(sum([i.numel() for i in encoder.parameters()])),
         )
 
-    model = NeuralEmbeddingMerLinKernel(
-        classical_model=classical_model,
-        quantum_embedding_layer=encoder,
-    )
-    model.train_embedding(
-        x_train=x_train, y_train=y_train, batch_size=100, num_epochs=1000
-    )
-    output["induced"]["nqe"] = induced_quantum_complexity(
-        X,
-        model,
-        hyper_parameters=hyper_parameters_induced,
-        epsilon_hilbert_support_dim=epsilon_hilbert_support_dim_induced,
-        n_samples_loc_vs_express=n_samples_loc_vs_express_induced,
-        n_bins_loc_vs_express=n_bins_loc_vs_express_induced,
-        max_dim_topology=max_dim_topology_induced,
-        weights_topology=weights_topology_induced,
-        max_samples_topology=max_samples_topology_induced,
-        max_samples=max_samples_induced,
-    )
+    if output["induced"].get("nqe") is None:
+        model = NeuralEmbeddingMerLinKernel(
+            classical_model=classical_model,
+            quantum_embedding_layer=encoder,
+        )
+        model.train_embedding(
+            x_train=x_train, y_train=y_train, batch_size=100, num_epochs=1000
+        )
+        output["induced"]["nqe"] = induced_quantum_complexity(
+            X,
+            model,
+            hyper_parameters=hyper_parameters_induced,
+            epsilon_hilbert_support_dim=epsilon_hilbert_support_dim_induced,
+            n_samples_loc_vs_express=n_samples_loc_vs_express_induced,
+            n_bins_loc_vs_express=n_bins_loc_vs_express_induced,
+            max_dim_topology=max_dim_topology_induced,
+            weights_topology=weights_topology_induced,
+            max_samples_topology=max_samples_topology_induced,
+            max_samples=max_samples_induced,
+        )
+        _save()
     print(f"Complexity of {output['induced']['nqe']}")
-    print("Saving")
-    payload = {
-        "results": output,
-        "config": {
-            "dataset_name": dataset_name,
-            "classes": list(classes) if classes is not None else None,
-            "feature_reduction": feature_reduction,
-            "n_modes": n_modes,
-            "n_photons": n_photons,
-            "computation_space": computation_space.name,
-            "num_qubits_per_feature_fourier": num_qubits_per_feature_fourier,
-            "hyper_parameters_classical": hyper_parameters_classical,
-            "max_order_correlation_classical": max_order_correlation_classical,
-            "max_dim_topology_classical": max_dim_topology_classical,
-            "weights_topology_classical": weights_topology_classical,
-            "hyper_parameters_induced": hyper_parameters_induced,
-            "epsilon_hilbert_support_dim_induced": epsilon_hilbert_support_dim_induced,
-            "n_samples_loc_vs_express_induced": n_samples_loc_vs_express_induced,
-            "n_bins_loc_vs_express_induced": n_bins_loc_vs_express_induced,
-            "max_dim_topology_induced": max_dim_topology_induced,
-            "weights_topology_induced": weights_topology_induced,
-            "max_samples_topology_induced": max_samples_topology_induced,
-            "max_samples_induced": max_samples_induced,
-        },
-    }
-
-    results_dir = (
-        run_dir if run_dir is not None else _FILE_DIR / "results" / "dataset_complexity"
-    )
-    results_dir.mkdir(parents=True, exist_ok=True)
-    output_path = results_dir / f"dataset_complexity_{dataset_name}_results.json"
-
-    def _json_default(obj):
-        if isinstance(obj, np.generic):
-            return obj.item()
-        if isinstance(obj, np.ndarray):
-            return obj.tolist()
-        if isinstance(obj, torch.Tensor):
-            return obj.tolist()
-        return str(obj)
-
-    output_path.write_text(json.dumps(payload, indent=2, default=_json_default))
+    print()
     print(f"Saved results to {output_path}")
 
     plot_complexity_comparison(
@@ -386,4 +428,4 @@ def dataset_complexity_induced_comparison(
         filename=f"dataset_complexity_{dataset_name}_plot.pdf",
     )
 
-    return payload
+    return {"results": output, "config": config_payload}

@@ -507,7 +507,7 @@ class TimeEvolutionEncoder(nn.Module):
                     computation_space=self.computation_space,
                     trainable_parameters=["el_"],
                 )
-                output_tensors[i, :] = self.encoder(qlayer().flatten())
+                output_tensors[i, :] = self.encoder(qlayer().flatten()).detach()
         else:
             output_tensors = torch.empty(
                 (x.shape[0], self.output_size, self.output_size),
@@ -527,7 +527,7 @@ class TimeEvolutionEncoder(nn.Module):
                     computation_space=self.computation_space,
                     trainable_parameters=["el_"],
                 )
-                state = self.encoder(qlayer().flatten())
+                state = self.encoder(qlayer().flatten()).detach()
 
                 output_tensors[i, :, :] = torch.outer(state, state.conj())
 

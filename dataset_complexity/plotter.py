@@ -52,7 +52,9 @@ def plot_complexity_comparison(
         Absolute path of the saved PDF.
     """
     classical_value = float(results["classical"])
-    induced: dict[str, float] = {k: float(v) for k, v in results["induced"].items()}
+    induced: dict[str, float] = {
+        k: float(v) for k, v in results["induced"].items() if v is not None
+    }
 
     labels = ["classical"] + list(induced.keys())
     values = [classical_value] + list(induced.values())
@@ -75,7 +77,11 @@ def plot_complexity_comparison(
     ax.set_ylabel("Complexity score", fontsize=11)
     title = "Dataset complexity per encoding"
     if dataset_name:
-        classes_str = "full" if classes is None else "("+", ".join(str(c) for c in classes)+")"
+        classes_str = (
+            "full"
+            if classes is None
+            else "(" + ", ".join(str(c) for c in classes) + ")"
+        )
         title += f" — {dataset_name}  |  classes: {classes_str}"
         if feature_reduction is not None:
             title += f"  |  PCA→{feature_reduction}"

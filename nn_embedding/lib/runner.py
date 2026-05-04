@@ -180,6 +180,7 @@ def train_and_evaluate(cfg, run_dir: Path) -> None:
             max_dim_topology_induced=cfg.get("max_dim_topology_induced", 2),
             weights_topology_induced=weights_ind_raw,
             max_samples_topology_induced=cfg.get("max_samples_topology_induced", 1000),
+            evaluate_evolution=cfg.get("evaluate_evolution", False),
             run_dir=run_dir,
         )
     else:

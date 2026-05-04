@@ -654,17 +654,27 @@ def partial_trace_from_density(
 
 
 def get_quantum_fisher_matrices(
-    model: nn.Module, inputs: torch.Tensor
+    model: nn.Module, inputs: torch.Tensor, eps: float = 1e-5
 ) -> list[torch.Tensor]:
-    d = sum(i.numel() for i in model.parameters())
     matricies = []
     for point in inputs:
-        psi = model(point)
-        model
-        fim = torch.empty((d, d))
-        derivatives = torch.autograd.functional.jacobian(
-            model, point, create_graph=False
-        )
+        d = point.numel()
+        with torch.no_grad():
+            psi = model(point).to(torch.complex128).flatten()
+
+        fim = torch.zeros((d, d), dtype=torch.float64)
+
+        # Numerical Jacobian via central finite differences — works for all
+        # encoders regardless of whether their forward pass is differentiable
+        derivatives = torch.zeros((psi.numel(), d), dtype=torch.complex128)
+        for k in range(d):
+            delta = torch.zeros_like(point)
+            delta.flatten()[k] = eps
+            with torch.no_grad():
+                psi_plus = model(point + delta).to(torch.complex128).flatten()
+                psi_minus = model(point - delta).to(torch.complex128).flatten()
+            derivatives[:, k] = (psi_plus - psi_minus) / (2 * eps)
+
         # Per https://arxiv.org/pdf/1907.08037 p.10
         for i in range(d):
             dpsi_i = derivatives[:, i]
