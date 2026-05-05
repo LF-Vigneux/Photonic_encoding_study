@@ -1,13 +1,15 @@
 {
   "results": {
-    "classical": {
-      "distributional_entropy": 9.601030194502194,
-      "correlation_order": 28.79053373928498,
-      "kolmogorov_complexity": 0.8862313937753721,
-      "topological_complexity": 131.24616770260036,
-      "total": 170.52396303016292
-    },
-    "induced": {}
+    "classical": 170.52396303016292,
+    "induced": {
+      "angle": 3.000000306930012,
+      "dense_angle": 15659.395593105217,
+      "fourier": 74.23319175612536,
+      "amplitude": 4794.921579750555,
+      "dense_amplitude": 4789.142280731946,
+      "evolution": null,
+      "nqe": 383423.76434640266
+    }
   },
   "config": {
     "dataset_name": "mnist",

@@ -66,6 +66,11 @@ def dataset_complexity_induced_comparison(
     X = torch.cat((x_train, x_test), 0)
     n_features = int(np.prod(X.shape[1:]))
 
+    def _total(v) -> float:
+        if isinstance(v, dict):
+            return float(v.get("total", sum(val for k, val in v.items() if k != "total")))
+        return float(v)
+
     # ── Persistence setup ─────────────────────────────────────────────────────
     results_dir = (
         run_dir if run_dir is not None else _FILE_DIR / "results" / "dataset_complexity"
@@ -137,7 +142,7 @@ def dataset_complexity_induced_comparison(
             max_samples_topology=max_samples_topology_classical,
         )
         _save()
-    print(f"Complexity of {output['classical']}")
+    print(f"Complexity of {_total(output['classical'])}")
     print()
 
     #######################################################
@@ -180,7 +185,7 @@ def dataset_complexity_induced_comparison(
             max_samples=max_samples_induced,
         )
         _save()
-    print(f"Complexity of {output['induced']['angle']}")
+    print(f"Complexity of {_total(output['induced']['angle'])}")
     print()
 
     ###########################
@@ -209,7 +214,7 @@ def dataset_complexity_induced_comparison(
             max_samples=max_samples_induced,
         )
         _save()
-    print(f"Complexity of {output['induced']['dense_angle']}")
+    print(f"Complexity of {_total(output['induced']['dense_angle'])}")
     print()
 
     ###########################
@@ -238,7 +243,7 @@ def dataset_complexity_induced_comparison(
             max_samples=max_samples_induced,
         )
         _save()
-    print(f"Complexity of {output['induced']['fourier']}")
+    print(f"Complexity of {_total(output['induced']['fourier'])}")
     print()
 
     ###########################
@@ -269,7 +274,7 @@ def dataset_complexity_induced_comparison(
             max_samples=max_samples_induced,
         )
         _save()
-    print(f"Complexity of {output['induced']['amplitude']}")
+    print(f"Complexity of {_total(output['induced']['amplitude'])}")
     print()
 
     ###########################
@@ -300,7 +305,7 @@ def dataset_complexity_induced_comparison(
             max_samples=max_samples_induced,
         )
         _save()
-    print(f"Complexity of {output['induced']['dense_amplitude']}")
+    print(f"Complexity of {_total(output['induced']['dense_amplitude'])}")
     print()
 
     ###########################
@@ -309,7 +314,7 @@ def dataset_complexity_induced_comparison(
     print(f"Doing the evolution encoding complexity 7/8")
     _existing_evolution = output["induced"].get("evolution")
     if _existing_evolution is not None:
-        print(f"Complexity of {_existing_evolution} (loaded from file)")
+        print(f"Complexity of {_total(_existing_evolution)} (loaded from file)")
     elif not evaluate_evolution:
         print("Skipping evolution encoding (evaluate_evolution=False)")
         output["induced"]["evolution"] = None
@@ -349,7 +354,7 @@ def dataset_complexity_induced_comparison(
             max_samples=max_samples_induced,
         )
         _save()
-        print(f"Complexity of {output['induced']['evolution']}")
+        print(f"Complexity of {_total(output['induced']['evolution'])}")
     print()
 
     ###########################
@@ -415,7 +420,7 @@ def dataset_complexity_induced_comparison(
             max_samples=max_samples_induced,
         )
         _save()
-    print(f"Complexity of {output['induced']['nqe']}")
+    print(f"Complexity of {_total(output['induced']['nqe'])}")
     print()
     print(f"Saved results to {output_path}")
 

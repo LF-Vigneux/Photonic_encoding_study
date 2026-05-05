@@ -5,7 +5,6 @@ import torch
 from pathlib import Path
 import sys
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT))
@@ -38,21 +37,23 @@ def classical_complexity(
     max_dim_topology: int = 2,
     weights_topology: list[float] | None = None,
     max_samples_topology: int | None = 1000,
-) -> float:
-    return (
-        (hyper_parameters[0] * distributional_entropy(X))
-        + (hyper_parameters[1] * correlation_order(X, max_order=max_order_correlation))
-        + (hyper_parameters[2] * kolmogorov_complexity(X))
-        + (
-            hyper_parameters[3]
-            * topological_complexity(
-                X,
-                max_dim=max_dim_topology,
-                weights=weights_topology,
-                max_samples=max_samples_topology,
-            )
-        )
+) -> dict:
+    de = hyper_parameters[0] * distributional_entropy(X)
+    co = hyper_parameters[1] * correlation_order(X, max_order=max_order_correlation)
+    kc = hyper_parameters[2] * kolmogorov_complexity(X)
+    tc = hyper_parameters[3] * topological_complexity(
+        X,
+        max_dim=max_dim_topology,
+        weights=weights_topology,
+        max_samples=max_samples_topology,
     )
+    return {
+        "distributional_entropy": de,
+        "correlation_order": co,
+        "kolmogorov_complexity": kc,
+        "topological_complexity": tc,
+        "total": de + co + kc + tc,
+    }
 
 
 def induced_quantum_complexity(
@@ -101,7 +102,15 @@ def induced_quantum_complexity(
         max_samples=max_samples_topology,
     )
     print("[induced_quantum_complexity] All metrics computed.")
-    return hsd + qfi + ee + ksf + lve + tie
+    return {
+        "hilbert_space_support_dim": hsd,
+        "quantum_fisher_information_spread": qfi,
+        "entanglement_entropy": ee,
+        "kernel_spectrum_flatness": ksf,
+        "locality_vs_expressibility": lve,
+        "topological_invariants_of_embedding": tie,
+        "total": hsd + qfi + ee + ksf + lve + tie,
+    }
 
 
 def quantum_complexity(
