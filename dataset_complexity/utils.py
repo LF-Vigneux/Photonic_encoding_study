@@ -85,7 +85,8 @@ def correlation_order(
 def kolmogorov_complexity(X: torch.Tensor) -> float:
     raw_bytes = X.numpy().tobytes()
     compressed_bytes = zlib.compress(raw_bytes, level=9)
-    return len(compressed_bytes) / len(raw_bytes)
+    # Clamp to 1: zlib adds a header so compressed can exceed raw for small/random data
+    return min(len(compressed_bytes), len(raw_bytes)) / len(raw_bytes)
 
 
 # With LLM, TODO verify in detail, but seems to work at first glance
@@ -178,7 +179,9 @@ def quantum_fisher_information_spread(
         encoder = embedder
     print("Getting the quantum fisher matrice")
     # Consume the generator lazily — only one FIM matrix is in memory at a time
-    return sum(torch.trace(mat) for mat in get_quantum_fisher_matrices(encoder, x)) / x.size(0)
+    return sum(
+        torch.trace(mat) for mat in get_quantum_fisher_matrices(encoder, x)
+    ) / x.size(0)
 
 
 def entanglement_entropy(
@@ -391,12 +394,12 @@ def topological_invariants_of_embedding(
         )
 
     print("[topological_invariants_of_embedding] Computing persistent diagrams...")
-    # Release the (potentially large) kernel matrix before ripser allocates its
-    # own internal structures, to keep peak memory usage lower.
-    kernel_matrix_np = kernel_matrix if isinstance(kernel_matrix, np.ndarray) else kernel_matrix
+    # Convert similarity matrix to distance matrix: d[i,j] = 1 - k[i,j]
+    # (fidelity=1 → distance=0 for identical states; fidelity=0 → distance=1 for orthogonal states)
+    distance_matrix = 1.0 - kernel_matrix
     del kernel_matrix
-    diagrams = ripser(kernel_matrix_np, maxdim=max_dim, distance_matrix=True)["dgms"]
-    del kernel_matrix_np
+    diagrams = ripser(distance_matrix, maxdim=max_dim, distance_matrix=True)["dgms"]
+    del distance_matrix
 
     total = 0.0
     for k, dgm in enumerate(
@@ -730,9 +733,15 @@ def kl_div(
     q = haar_pdf * bin_width
     q = q / (q.sum() + 1e-12)
 
-    # make sure that no negative probability is being used
-    mask = (p > 0) & (q > 0)
-    return float(np.sum(p[mask] * np.log(p[mask] / q[mask])))
+    # Floor q to avoid silently ignoring bins where p>0 but q→0
+    # (e.g. high-fidelity bins for Haar with D>2: (D-1)(1-f)^(D-2) → 0 near f=1).
+    # Without this, a non-expressive encoder that concentrates fidelities near 1
+    # gets an artificially low KL divergence because those bins are masked out.
+    # One "virtual count" worth of probability is a natural resolution floor.
+    eps_q = 1.0 / (n_bins * n_samples)
+    q_safe = np.maximum(q, eps_q)
+    mask = p > 0
+    return float(np.sum(p[mask] * np.log(p[mask] / q_safe[mask])))
 
 
 ######################################

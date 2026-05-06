@@ -52,6 +52,16 @@
         "locality_vs_expressibility": 0.10491219804085802,
         "topological_invariants_of_embedding": 4773.206567108631,
         "total": 4789.142280731946
+      },
+      "evolution": null,
+      "nqe": {
+        "hilbert_space_support_dim": 5.999871253967285,
+        "quantum_fisher_information_spread": 95.69694083290395,
+        "entanglement_entropy": 0.7335934042930603,
+        "kernel_spectrum_flatness": 2.0762171745300293,
+        "locality_vs_expressibility": 0.1101916751011745,
+        "topological_invariants_of_embedding": 294180.66991139844,
+        "total": 294285.28672573925
       }
     }
   },

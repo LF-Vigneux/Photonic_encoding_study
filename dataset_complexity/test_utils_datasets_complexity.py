@@ -15,7 +15,6 @@ import torch
 from pathlib import Path
 import sys
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT))
@@ -68,8 +67,11 @@ class DummyDualRailEmbedder:
     def __call__(self, x: torch.Tensor) -> torch.Tensor:
         if x.ndim == 0:
             return self.states[int(x.item())]
-        flat_indices = x.reshape(-1).to(dtype=torch.long)
-        return self.states[flat_indices]
+        # 1-D input = single data point from a per-row loop; use first element as index
+        if x.ndim == 1:
+            return self.states[int(x[0].item())]
+        # 2-D input = full batch; index by first column
+        return self.states[x[:, 0].to(dtype=torch.long)]
 
 
 def _density_from_state(state: torch.Tensor) -> torch.Tensor:
@@ -658,3 +660,333 @@ def test_entanglement_entropy_fock_random_pure_state():
     entropy = entanglement_entropy(x, embedder)
     assert entropy >= 0.0
     assert np.isfinite(entropy)
+
+
+# ── Tests derived from arXiv:2509.16410 metric definitions ───────────────────
+#
+# The paper (Pere, 2025) formalises classical data complexity (Eq. 7) as:
+#   C_data = λ1·S(D) + λ2·I_corr(D) + λ3·K(D) + λ4·C_top(D)
+# and induced quantum complexity (Eq. 11) as a weighted sum of M1-M6.
+# Each block below targets one metric.
+
+
+# ── §2.1.1  Intrinsic / Effective Dimension (Eq. 1) ──────────────────────────
+
+
+def test_hilbert_space_support_dim_single_repeated_state_is_one():
+    """Paper §2.2 / Eq. 12: when all data maps to the *same* quantum state the
+    effective Hilbert-space support dimension should collapse to 1."""
+    state = torch.tensor([1.0, 0.0], dtype=torch.complex64)
+    # Both data points map to the same state.
+    states = state.unsqueeze(0).repeat(4, 1)
+    embedder = DummyDualRailEmbedder(states, m=2)
+    # 2D so the batch branch (x[:, 0]) is used and all 4 states are fetched
+    x = torch.arange(4, dtype=torch.float32).unsqueeze(1)
+    dim = hilbert_space_support_dim(x, embedder)
+    # rho = |0><0|, single eigenvalue 1.  effective_dim = 1/(1+eps) ≈ 1.
+    assert dim == pytest.approx(1.0, abs=1e-4)
+
+
+def test_hilbert_space_support_dim_monotone_with_rank():
+    """Paper §2.2: adding more orthogonal states must strictly increase the
+    effective dimension (monotonicity in Hilbert-space support)."""
+
+    def _dim_for_n_orthogonal(n: int) -> float:
+        states = torch.eye(n, dtype=torch.complex64)
+        embedder = DummyDualRailEmbedder(states, m=n)
+        x = torch.arange(n, dtype=torch.float32).unsqueeze(1)
+        return float(hilbert_space_support_dim(x, embedder))
+
+    d2 = _dim_for_n_orthogonal(2)
+    d3 = _dim_for_n_orthogonal(3)
+    d4 = _dim_for_n_orthogonal(4)
+    assert d2 < d3 < d4
+
+
+# ── §2.1.2  Correlation / Interaction Order (Eq. 2) ─────────────────────────
+
+
+def test_correlation_order_perfectly_anticorrelated_features():
+    """Paper §2.1.2: features x2 = -x1 are perfectly dependent, so multivariate
+    MI is positive and the metric should exceed the independent case."""
+    independent = torch.tensor([[0.0, 0.0], [0.0, 1.0], [1.0, 0.0], [1.0, 1.0]])
+    anticorrelated = torch.tensor([[0.0, 1.0], [1.0, 0.0], [2.0, -1.0], [3.0, -2.0]])
+    assert correlation_order(anticorrelated) > correlation_order(independent)
+
+
+def test_correlation_order_scales_with_interaction_strength():
+    """Paper §2.1.2: stronger higher-order coupling → larger I_corr."""
+    weak = torch.tensor([[0.0, 0.0], [0.5, 0.5], [1.0, 1.0], [1.5, 1.5]])
+    strong = torch.tensor([[0.0, 0.0], [1.0, 1.0], [2.0, 2.0], [3.0, 3.0]])
+    assert correlation_order(strong) >= correlation_order(weak)
+
+
+# ── §2.1.3  Kolmogorov Complexity / Compressibility (Eq. 3) ─────────────────
+
+
+def test_kolmogorov_complexity_is_at_most_one():
+    """Paper §2.1.3: C(D) = compressed / raw ≤ 1 for any lossless compressor."""
+    for tensor in [
+        torch.zeros((16, 4)),
+        torch.ones((16, 4)),
+        torch.arange(64, dtype=torch.float32).reshape(16, 4),
+        torch.randn(16, 4),
+    ]:
+        assert kolmogorov_complexity(tensor) <= 1.0 + 1e-9
+
+
+def test_kolmogorov_complexity_linearly_dependent_rows_are_compressible():
+    """Paper §2.1.3: a dataset whose rows are copies of a single row is
+    maximally compressible compared to a random dataset of the same shape."""
+    constant = torch.ones((32, 8)) * 3.14
+    random = torch.randn(32, 8)
+    assert kolmogorov_complexity(constant) < kolmogorov_complexity(random)
+
+
+# ── §2.1.5  Topological Complexity (Eq. 3 / §2.1.5) ────────────────────────
+
+
+def test_topological_complexity_ring_has_higher_complexity_than_disk():
+    """Paper §2.1.5: a ring (non-trivial β1) should have higher topological
+    complexity than a filled disk (trivial topology)."""
+    theta = torch.linspace(0, 2 * np.pi, 20)[:-1]
+    ring = torch.stack([torch.cos(theta), torch.sin(theta)], dim=1)
+    disk = torch.rand(20, 2) * 0.2  # tight cluster near origin
+    assert topological_complexity(ring) > topological_complexity(disk)
+
+
+def test_topological_complexity_respects_weights():
+    """Paper §2.1.5 / Eq. 3: weights w_k scale the contribution of each
+    homological dimension.  Zeroing w_1 should lower the complexity of a
+    dataset that has a prominent 1-cycle."""
+    theta = torch.linspace(0, 2 * np.pi, 20)[:-1]
+    ring = torch.stack([torch.cos(theta), torch.sin(theta)], dim=1)
+    c_uniform = topological_complexity(ring, weights=[1.0, 1.0, 1.0])
+    c_no_loops = topological_complexity(ring, weights=[1.0, 0.0, 0.0])
+    assert c_uniform >= c_no_loops
+
+
+# ── §2.2.2  Entanglement Entropy (Eq. 5) ────────────────────────────────────
+
+
+def test_entanglement_entropy_bounded_by_log_dimension():
+    """Paper §2.2.2 / Eq. 5: S(ρ_A) ≤ log(dim H_A).  For a 2-qubit system
+    (m=4 dual-rail) the max per-bipartition entropy is log(2), so the average
+    over all bipartitions should not exceed log(2)."""
+    # Maximally entangled Bell state
+    bell = torch.tensor([1, 0, 0, 1], dtype=torch.complex64) / np.sqrt(2)
+    embedder = DummyDualRailEmbedder(bell.unsqueeze(0).repeat(2, 1), m=4, num_photons=2)
+    x = torch.tensor([0, 1], dtype=torch.float32)
+    ee = entanglement_entropy(x, embedder)
+    assert ee <= np.log(2) + 1e-6
+
+
+def test_entanglement_entropy_increases_toward_bell_state():
+    """Paper §2.2.2: entanglement entropy is a monotone of entanglement.
+    A state with partial entanglement should yield entropy between 0 and log(2)."""
+    alpha = np.cos(np.pi / 8)  # cos(22.5°)
+    beta = np.sin(np.pi / 8)
+    partial = torch.tensor([alpha, 0.0, 0.0, beta], dtype=torch.complex64)
+    embedder = DummyDualRailEmbedder(
+        partial.unsqueeze(0).repeat(2, 1), m=4, num_photons=2
+    )
+    x = torch.tensor([0, 1], dtype=torch.float32)
+    ee = entanglement_entropy(x, embedder)
+    assert 0.0 < ee < np.log(2)
+
+
+# ── §2.2.5  Expressibility / KL divergence ───────────────────────────────────
+
+
+def test_kl_div_returns_nonneg_for_orthogonal_states():
+    """Paper §2.2.5: D_KL(P_U || P_Haar) ≥ 0 always (non-negativity of KL
+    divergence).  With orthonormal states the off-diagonal fidelities are all 0
+    — a valid (if extreme) embedding — so the function must return a
+    non-negative finite float."""
+    n = 4
+    states = torch.eye(n, dtype=torch.complex64)
+    embedder = DummyDualRailEmbedder(states, m=n, num_photons=1)
+    x = torch.arange(n, dtype=torch.float32).unsqueeze(1)
+    result = kl_div(x, embedder, n_samples=n, n_bins=4)
+    assert isinstance(result, float)
+    assert result >= 0.0
+
+
+# ── §2.2.3  Kernel spectrum flatness / effective rank (Eq. 12–13) ────────────
+
+
+def test_kernel_spectrum_flatness_flat_spectrum_gives_maximal_rank():
+    """Paper §2.4 / Eq. 12: for K = λI (flat spectrum) the effective rank
+    equals N (all N eigenvalues equal).  r_eff = (N·λ)²/(N·λ²) = N."""
+    n = 4
+    # Build embedder that gives orthonormal states → K = I_n
+    states = torch.eye(n, dtype=torch.complex64)
+
+    class OrthEmbedder(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self._s = states
+
+        def forward(self, x):
+            idx = int(x[0].item())
+            return self._s[idx]
+
+    x = torch.arange(n, dtype=torch.float32).unsqueeze(1)
+    ksf = kernel_spectrum_flatness(x, OrthEmbedder())
+    assert ksf == pytest.approx(float(n), rel=1e-4)
+
+
+def test_kernel_spectrum_flatness_rank_one_kernel_gives_one():
+    """Paper §2.4 / Eq. 12: if all states are identical K = ones·ones^T / n,
+    giving a rank-1 matrix with a single non-zero eigenvalue, r_eff = 1."""
+    n = 4
+    state = torch.tensor([1.0, 0.0], dtype=torch.complex64)
+
+    class SameEmbedder(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+
+        def forward(self, x):
+            return state
+
+    x = torch.arange(n, dtype=torch.float32).unsqueeze(1)
+    ksf = kernel_spectrum_flatness(x, SameEmbedder())
+    assert ksf == pytest.approx(1.0, rel=1e-4)
+
+
+# ── §2.1.4 / §2.4  Spectral connection to sample complexity (Eq. 12) ────────
+
+
+def test_quantum_fisher_information_spread_vanishes_for_constant_encoder():
+    """Paper §2.4: QFI spread measures sensitivity to *input* perturbations.
+    A constant encoder (output independent of input) has zero Jacobian, so
+    all FIM matrices are zero and the spread should be 0."""
+
+    class ConstantEncoder(torch.nn.Module):
+        def forward(self, x):
+            return torch.tensor([1.0, 0.0], dtype=torch.complex128)
+
+    x = torch.randn(8, 3)
+    spread = quantum_fisher_information_spread(x, ConstantEncoder())
+    assert spread == pytest.approx(0.0, abs=1e-8)
+
+
+def test_quantum_fisher_information_spread_positive_for_sensitive_encoder():
+    """Paper §2.4: an encoder whose output rotates with input should yield a
+    positive QFI spread."""
+
+    class RotationEncoder(torch.nn.Module):
+        """Maps scalar x to [cos(x), sin(x)] — a pure-state rotation."""
+
+        def forward(self, x: torch.Tensor) -> torch.Tensor:
+            theta = x.flatten()[0]
+            return torch.stack([torch.cos(theta), torch.sin(theta)]).to(
+                torch.complex128
+            )
+
+    x = torch.linspace(0, np.pi, 10).unsqueeze(1)
+    spread = quantum_fisher_information_spread(x, RotationEncoder())
+    assert spread > 0.0
+
+
+# ── §2.4  Composite classical complexity (Eq. 7) ─────────────────────────────
+
+
+def test_classical_complexity_returns_all_metric_keys():
+    """Paper Eq. 7: the returned dict must contain each named sub-metric plus
+    the weighted total."""
+    from dataset_complexity.complexity_metrics import classical_complexity
+
+    X = torch.randn(20, 4)
+    result = classical_complexity(X)
+    for key in (
+        "distributional_entropy",
+        "correlation_order",
+        "kolmogorov_complexity",
+        "topological_complexity",
+        "total",
+    ):
+        assert key in result, f"Missing key: {key}"
+
+
+def test_classical_complexity_total_equals_weighted_sum():
+    """Paper Eq. 7: total = λ1·S + λ2·I_corr + λ3·K + λ4·C_top."""
+    from dataset_complexity.complexity_metrics import classical_complexity
+
+    weights = [2.0, 0.5, 1.0, 3.0]
+    X = torch.randn(20, 3)
+    result = classical_complexity(X, hyper_parameters=weights)
+    expected = (
+        result["distributional_entropy"]
+        + result["correlation_order"]
+        + result["kolmogorov_complexity"]
+        + result["topological_complexity"]
+    )
+    assert result["total"] == pytest.approx(expected, rel=1e-6)
+
+
+def test_classical_complexity_low_entropy_dataset_has_lower_total():
+    """Paper §2.4: a constant (zero-entropy, zero-correlation) dataset must
+    have strictly lower classical complexity than a random dataset."""
+    from dataset_complexity.complexity_metrics import classical_complexity
+
+    constant = torch.zeros((30, 4))
+    random = torch.randn(30, 4)
+    assert (
+        classical_complexity(constant)["total"] < classical_complexity(random)["total"]
+    )
+
+
+# ── §2.4  Composite induced quantum complexity (Eq. 11) ──────────────────────
+
+
+def test_induced_quantum_complexity_returns_all_metric_keys():
+    """Paper Eq. 11: the dict must contain each M_j sub-metric plus the total."""
+    from dataset_complexity.complexity_metrics import induced_quantum_complexity
+
+    states = torch.eye(4, dtype=torch.complex64)
+    embedder = DummyDualRailEmbedder(states, m=4, num_photons=2)
+    # Shape [4, 1]: rows iterate as 1-D tensors so DummyDualRailEmbedder uses x[0] as index
+    X = torch.arange(4, dtype=torch.float32).unsqueeze(1)
+    result = induced_quantum_complexity(
+        X,
+        embedder,
+        max_samples=4,
+        n_samples_loc_vs_express=4,
+        n_bins_loc_vs_express=4,
+    )
+    for key in (
+        "hilbert_space_support_dim",
+        "quantum_fisher_information_spread",
+        "entanglement_entropy",
+        "kernel_spectrum_flatness",
+        "locality_vs_expressibility",
+        "topological_invariants_of_embedding",
+        "total",
+    ):
+        assert key in result, f"Missing key: {key}"
+
+
+def test_induced_quantum_complexity_total_equals_weighted_sum():
+    """Paper Eq. 11: total = Σ β_j · M_j."""
+    from dataset_complexity.complexity_metrics import induced_quantum_complexity
+
+    states = torch.eye(4, dtype=torch.complex64)
+    embedder = DummyDualRailEmbedder(states, m=4, num_photons=2)
+    X = torch.arange(4, dtype=torch.float32).unsqueeze(1)
+    result = induced_quantum_complexity(
+        X,
+        embedder,
+        max_samples=4,
+        n_samples_loc_vs_express=4,
+        n_bins_loc_vs_express=4,
+    )
+    expected = (
+        result["hilbert_space_support_dim"]
+        + result["quantum_fisher_information_spread"]
+        + result["entanglement_entropy"]
+        + result["kernel_spectrum_flatness"]
+        + result["locality_vs_expressibility"]
+        + result["topological_invariants_of_embedding"]
+    )
+    assert result["total"] == pytest.approx(expected, rel=1e-6)

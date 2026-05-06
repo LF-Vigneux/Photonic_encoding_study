@@ -37,6 +37,7 @@ def angle_encoding_layer(
     if input_size_0:
         for i in range(num_features):
             circuit.add_rotations(modes=i, trainable=True)
+            circuit.add_entangling_layer(trainable=False)
         return ml.QuantumLayer(
             input_size=0,
             builder=circuit,
@@ -46,6 +47,7 @@ def angle_encoding_layer(
         )
     else:
         circuit.add_angle_encoding(modes=list(i for i in range(num_features)))
+        circuit.add_entangling_layer(trainable=False)
         return ml.QuantumLayer(
             input_size=num_features,
             builder=circuit,
