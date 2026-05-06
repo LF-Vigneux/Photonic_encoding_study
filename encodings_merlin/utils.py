@@ -86,14 +86,17 @@ def compute_kernel_matrix_without_nqe(
     """
     n = X_data.size(0)
     idx_i, idx_j = torch.triu_indices(n, n)
-    pairs_a = X_data[idx_i]
-    pairs_b = X_data[idx_j]
 
-    values_list = []
-    for a, b in zip(pairs_a, pairs_b):
-        values_list.append(torch.vdot(encoding_strategy(a), encoding_strategy(b)).real)
-    values = torch.stack(values_list)
+    # Compute pairs on-the-fly (no pre-materialised pairs_a/pairs_b tensors) and
+    # store raw Python floats to avoid accumulating O(N²) scalar tensor objects.
+    values_list: list[float] = []
+    with torch.no_grad():
+        for k in range(idx_i.size(0)):
+            a = encoding_strategy(X_data[idx_i[k]])
+            b = encoding_strategy(X_data[idx_j[k]])
+            values_list.append(torch.vdot(a, b).real.item())
 
+    values = torch.tensor(values_list, dtype=torch.float64)
     output = torch.empty(n, n, dtype=values.dtype)
     output[idx_i, idx_j] = values
     output[idx_j, idx_i] = values

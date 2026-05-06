@@ -177,8 +177,8 @@ def quantum_fisher_information_spread(
     else:
         encoder = embedder
     print("Getting the quantum fisher matrice")
-    matricies = get_quantum_fisher_matrices(encoder, x)
-    return sum(torch.trace(mat) for mat in matricies) / x.size(0)
+    # Consume the generator lazily — only one FIM matrix is in memory at a time
+    return sum(torch.trace(mat) for mat in get_quantum_fisher_matrices(encoder, x)) / x.size(0)
 
 
 def entanglement_entropy(
@@ -391,7 +391,12 @@ def topological_invariants_of_embedding(
         )
 
     print("[topological_invariants_of_embedding] Computing persistent diagrams...")
-    diagrams = ripser(kernel_matrix, maxdim=max_dim, distance_matrix=True)["dgms"]
+    # Release the (potentially large) kernel matrix before ripser allocates its
+    # own internal structures, to keep peak memory usage lower.
+    kernel_matrix_np = kernel_matrix if isinstance(kernel_matrix, np.ndarray) else kernel_matrix
+    del kernel_matrix
+    diagrams = ripser(kernel_matrix_np, maxdim=max_dim, distance_matrix=True)["dgms"]
+    del kernel_matrix_np
 
     total = 0.0
     for k, dgm in enumerate(
@@ -655,14 +660,13 @@ def partial_trace_from_density(
 
 def get_quantum_fisher_matrices(
     model: nn.Module, inputs: torch.Tensor, eps: float = 1e-5
-) -> list[torch.Tensor]:
-    matricies = []
+):
+    """Generator: yields one QFI matrix per input point to avoid accumulating
+    all matrices in memory simultaneously."""
     for point in inputs:
         d = point.numel()
         with torch.no_grad():
             psi = model(point).to(torch.complex128).flatten()
-
-        fim = torch.zeros((d, d), dtype=torch.float64)
 
         # Numerical Jacobian via central finite differences — works for all
         # encoders regardless of whether their forward pass is differentiable
@@ -674,7 +678,9 @@ def get_quantum_fisher_matrices(
                 psi_plus = model(point + delta).to(torch.complex128).flatten()
                 psi_minus = model(point - delta).to(torch.complex128).flatten()
             derivatives[:, k] = (psi_plus - psi_minus) / (2 * eps)
+            del psi_plus, psi_minus
 
+        fim = torch.zeros((d, d), dtype=torch.float64)
         # Per https://arxiv.org/pdf/1907.08037 p.10
         for i in range(d):
             dpsi_i = derivatives[:, i]
@@ -684,9 +690,8 @@ def get_quantum_fisher_matrices(
                     torch.vdot(dpsi_i, dpsi_j)
                     - (torch.vdot(dpsi_i, psi) * torch.vdot(psi, dpsi_j))
                 )
-        matricies.append(fim)
-
-    return matricies
+        del derivatives, psi
+        yield fim
 
 
 # CO-WRITTEN with LLM to understand what is computed

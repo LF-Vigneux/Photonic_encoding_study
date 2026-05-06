@@ -7,7 +7,53 @@
       "topological_complexity": 131.24616770260036,
       "total": 170.52396303016292
     },
-    "induced": {}
+    "induced": {
+      "angle": {
+        "hilbert_space_support_dim": 1.0,
+        "quantum_fisher_information_spread": -1.168150086909847e-06,
+        "entanglement_entropy": -1.0311604370372152e-07,
+        "kernel_spectrum_flatness": 1.0000015497207642,
+        "locality_vs_expressibility": 1.0000000284753783,
+        "topological_invariants_of_embedding": 0.0,
+        "total": 3.000000306930012
+      },
+      "dense_angle": {
+        "hilbert_space_support_dim": 15.138720512390137,
+        "quantum_fisher_information_spread": 5.091457862856829,
+        "entanglement_entropy": 0.040993645787239075,
+        "kernel_spectrum_flatness": 1.2051432132720947,
+        "locality_vs_expressibility": 0.0008744242368265986,
+        "topological_invariants_of_embedding": 15637.918403446674,
+        "total": 15659.395593105217
+      },
+      "fourier": {
+        "hilbert_space_support_dim": 64.63880920410156,
+        "quantum_fisher_information_spread": 8.019311609591888,
+        "entanglement_entropy": 0.5971875786781311,
+        "kernel_spectrum_flatness": 0.9774731993675232,
+        "locality_vs_expressibility": 0.0008014916093088686,
+        "topological_invariants_of_embedding": 9.655952453613281e-06,
+        "total": 74.23359273930086
+      },
+      "amplitude": {
+        "hilbert_space_support_dim": 7.99999378464152,
+        "quantum_fisher_information_spread": 11.543524364716912,
+        "entanglement_entropy": 0.8510883303602615,
+        "kernel_spectrum_flatness": 1.2243820407424966,
+        "locality_vs_expressibility": 0.09602412146218561,
+        "topological_invariants_of_embedding": 4773.206567108631,
+        "total": 4794.921579750555
+      },
+      "dense_amplitude": {
+        "hilbert_space_support_dim": 3.9999987651521143,
+        "quantum_fisher_information_spread": 9.894655950717716,
+        "entanglement_entropy": 0.7117646686616723,
+        "kernel_spectrum_flatness": 1.2243820407424966,
+        "locality_vs_expressibility": 0.10491219804085802,
+        "topological_invariants_of_embedding": 4773.206567108631,
+        "total": 4789.142280731946
+      }
+    }
   },
   "config": {
     "dataset_name": "mnist",

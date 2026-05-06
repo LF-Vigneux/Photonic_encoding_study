@@ -1,4 +1,5 @@
 import json
+import gc
 import numpy as np
 import torch
 import sys
@@ -185,6 +186,8 @@ def dataset_complexity_induced_comparison(
             max_samples=max_samples_induced,
         )
         _save()
+        del encoder, model
+    gc.collect()
     print(f"Complexity of {_total(output['induced']['angle'])}")
     print()
 
@@ -214,6 +217,8 @@ def dataset_complexity_induced_comparison(
             max_samples=max_samples_induced,
         )
         _save()
+        del encoder, model
+    gc.collect()
     print(f"Complexity of {_total(output['induced']['dense_angle'])}")
     print()
 
@@ -243,6 +248,8 @@ def dataset_complexity_induced_comparison(
             max_samples=max_samples_induced,
         )
         _save()
+        del encoder, model
+    gc.collect()
     print(f"Complexity of {_total(output['induced']['fourier'])}")
     print()
 
@@ -274,6 +281,8 @@ def dataset_complexity_induced_comparison(
             max_samples=max_samples_induced,
         )
         _save()
+        del encoder
+    gc.collect()
     print(f"Complexity of {_total(output['induced']['amplitude'])}")
     print()
 
@@ -305,6 +314,8 @@ def dataset_complexity_induced_comparison(
             max_samples=max_samples_induced,
         )
         _save()
+        del encoder
+    gc.collect()
     print(f"Complexity of {_total(output['induced']['dense_amplitude'])}")
     print()
 
@@ -355,6 +366,10 @@ def dataset_complexity_induced_comparison(
         )
         _save()
         print(f"Complexity of {_total(output['induced']['evolution'])}")
+        del encoder
+        if merged_X is not X:
+            del merged_X
+    gc.collect()
     print()
 
     ###########################
@@ -420,6 +435,9 @@ def dataset_complexity_induced_comparison(
             max_samples=max_samples_induced,
         )
         _save()
+        del model
+    del encoder, classical_model
+    gc.collect()
     print(f"Complexity of {_total(output['induced']['nqe'])}")
     print()
     print(f"Saved results to {output_path}")
