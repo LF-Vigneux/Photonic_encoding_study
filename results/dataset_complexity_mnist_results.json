@@ -1,0 +1,48 @@
+{
+  "results": {
+    "classical": {
+      "distributional_entropy": 9.601030194502194,
+      "correlation_order": 28.79053373928498,
+      "kolmogorov_complexity": 0.8862313937753721,
+      "topological_complexity": 131.24616770260036,
+      "total": 170.52396303016292
+    },
+    "induced": {}
+  },
+  "config": {
+    "dataset_name": "mnist",
+    "classes": [
+      0,
+      1
+    ],
+    "feature_reduction": 8,
+    "n_modes": null,
+    "n_photons": null,
+    "computation_space": "UNBUNCHED",
+    "num_qubits_per_feature_fourier": 1,
+    "hyper_parameters_classical": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "max_order_correlation_classical": 4,
+    "max_dim_topology_classical": 2,
+    "weights_topology_classical": null,
+    "hyper_parameters_induced": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "epsilon_hilbert_support_dim_induced": 1e-08,
+    "n_samples_loc_vs_express_induced": 1000,
+    "n_bins_loc_vs_express_induced": 50,
+    "max_dim_topology_induced": 2,
+    "weights_topology_induced": null,
+    "max_samples_topology_induced": 1000,
+    "max_samples_induced": 1000
+  }
+}

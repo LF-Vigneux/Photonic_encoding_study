@@ -108,13 +108,19 @@ def topological_complexity(
         points = points[idx]
     diagrams = ripser(points, maxdim=max_dim)["dgms"]
 
-    total = 0.0
-    for k, dgm in enumerate(diagrams):
-        # Exclude infinite death values (unpaired features)
-        # Removes features that are not dead
+    # Compute all finite lifetimes first so we can normalise by the global max
+    all_lifetimes = []
+    for dgm in diagrams:
         finite_mask = np.isfinite(dgm[:, 1])
-        lifetimes = dgm[finite_mask, 1] - dgm[finite_mask, 0]
-        total += weights[k] * float(np.sum(lifetimes))
+        all_lifetimes.append(dgm[finite_mask, 1] - dgm[finite_mask, 0])
+
+    global_max = max((lt.max() for lt in all_lifetimes if len(lt) > 0), default=1.0)
+    if global_max == 0.0:
+        global_max = 1.0
+
+    total = 0.0
+    for k, lifetimes in enumerate(all_lifetimes):
+        total += weights[k] * float(np.sum(lifetimes / global_max))
 
     return total
 
