@@ -57,6 +57,7 @@ def dataset_complexity_induced_comparison(
     max_samples_topology_induced: int | None = 1000,
     max_samples_induced: int | None = 5000,
     evaluate_evolution: bool = False,
+    randomize_entangling: bool = True,
     run_dir: Path = None,
 ) -> dict:
     output = {"classical": None, "induced": {}}
@@ -69,7 +70,9 @@ def dataset_complexity_induced_comparison(
 
     def _total(v) -> float:
         if isinstance(v, dict):
-            return float(v.get("total", sum(val for k, val in v.items() if k != "total")))
+            return float(
+                v.get("total", sum(val for k, val in v.items() if k != "total"))
+            )
         return float(v)
 
     # ── Persistence setup ─────────────────────────────────────────────────────
@@ -99,6 +102,7 @@ def dataset_complexity_induced_comparison(
         "weights_topology_induced": weights_topology_induced,
         "max_samples_topology_induced": max_samples_topology_induced,
         "max_samples_induced": max_samples_induced,
+        "randomize_entangling": randomize_entangling,
     }
 
     def _json_default(obj):
@@ -168,6 +172,7 @@ def dataset_complexity_induced_comparison(
             num_modes=n_modes,
             num_photons=num_photons_encoder,
             computation_space=computation_space,
+            randomize_entangling=randomize_entangling,
         )
         model = NeuralEmbeddingMerLinKernel(
             classical_model=TransparentModel(),
@@ -337,6 +342,7 @@ def dataset_complexity_induced_comparison(
                 num_photons=n_features if n_photons is None else n_photons,
                 computation_space=computation_space,
                 input_are_images=False,
+                randomize_entangling=randomize_entangling,
             )
         else:
             encoder = TimeEvolutionEncoder(
@@ -344,6 +350,7 @@ def dataset_complexity_induced_comparison(
                 num_photons=n_features if n_photons is None else n_photons,
                 computation_space=computation_space,
                 input_are_images=True,
+                randomize_entangling=randomize_entangling,
             )
             # Merging RGB if necessary
             if X.ndim == 4 and X.shape[1] == 3:

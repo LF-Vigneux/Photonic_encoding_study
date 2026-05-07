@@ -182,6 +182,7 @@ def train_and_evaluate(cfg, run_dir: Path) -> None:
             max_samples_topology_induced=cfg.get("max_samples_topology_induced", 1000),
             max_samples_induced=cfg.get("max_samples_induced", 5000),
             evaluate_evolution=cfg.get("evaluate_evolution", False),
+            randomize_entangling=cfg.get("randomize_entangling", False),
             run_dir=run_dir,
         )
     else:

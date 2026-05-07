@@ -8,7 +8,15 @@
       "total": 170.52396303016292
     },
     "induced": {
-      "angle": null,
+      "angle": {
+        "hilbert_space_support_dim": 1.0,
+        "quantum_fisher_information_spread": -1.0518340266076898e-06,
+        "entanglement_entropy": -8.666516038147165e-08,
+        "kernel_spectrum_flatness": 1.0000015497207642,
+        "locality_vs_expressibility": 4.00478772673653e-10,
+        "topological_invariants_of_embedding": 0.0,
+        "total": 2.000000411622056
+      },
       "dense_angle": {
         "hilbert_space_support_dim": 15.138720512390137,
         "quantum_fisher_information_spread": 5.091457862856829,

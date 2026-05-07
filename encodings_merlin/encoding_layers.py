@@ -25,6 +25,7 @@ def angle_encoding_layer(
     num_photons: int = 1,
     computation_space=ml.ComputationSpace.UNBUNCHED,
     input_size_0: bool = True,
+    randomize_entangling: bool = False,
 ) -> ml.QuantumLayer:
     if num_modes is None:
         num_modes = num_features + 1
@@ -32,28 +33,50 @@ def angle_encoding_layer(
         num_modes = max(num_modes, num_features + 1)
 
     circuit = ml.CircuitBuilder(n_modes=num_modes)
-    circuit.add_entangling_layer(trainable=False)
+    circuit.add_entangling_layer(trainable=randomize_entangling)
 
     if input_size_0:
         for i in range(num_features):
             circuit.add_rotations(modes=i, trainable=True)
-            circuit.add_entangling_layer(trainable=False)
+            circuit.add_entangling_layer(trainable=randomize_entangling)
+
+        trainable_prefixes = [
+            p for p in circuit.trainable_parameter_prefixes if p != "el"
+        ]
+        pcvl_circuit = circuit.to_pcvl_circuit()
+
+        if randomize_entangling:
+            for param in pcvl_circuit.get_parameters():
+                if param.name.startswith("el_"):
+                    param.fix_value(np.random.uniform(0, np.pi))
+
         return ml.QuantumLayer(
             input_size=0,
-            builder=circuit,
+            circuit=pcvl_circuit,
             computation_space=computation_space,
             measurement_strategy=ml.MeasurementStrategy.AMPLITUDES,
             n_photons=num_photons,
+            trainable_parameters=trainable_prefixes,
         )
     else:
         circuit.add_angle_encoding(modes=list(i for i in range(num_features)))
-        circuit.add_entangling_layer(trainable=False)
+        circuit.add_entangling_layer(trainable=randomize_entangling)
+
+        input_prefixes = list(circuit.input_parameter_prefixes)
+        pcvl_circuit = circuit.to_pcvl_circuit()
+
+        if randomize_entangling:
+            for param in pcvl_circuit.get_parameters():
+                if param.name.startswith("el_"):
+                    param.fix_value(np.random.uniform(0, np.pi))
+
         return ml.QuantumLayer(
             input_size=num_features,
-            builder=circuit,
+            circuit=pcvl_circuit,
             computation_space=computation_space,
             measurement_strategy=ml.MeasurementStrategy.AMPLITUDES,
             n_photons=num_photons,
+            input_parameters=input_prefixes,
         )
 
 
@@ -432,6 +455,7 @@ class TimeEvolutionEncoder(nn.Module):
         computation_space: ml.ComputationSpace = ml.ComputationSpace.UNBUNCHED,
         return_sv: bool = True,
         input_are_images: bool = True,
+        randomize_entangling: bool = False,
     ):
         """
         image_size is one size of the image
@@ -448,8 +472,11 @@ class TimeEvolutionEncoder(nn.Module):
         )
 
         base_circuit = ml.CircuitBuilder(n_modes=self.num_modes)
-        base_circuit.add_entangling_layer(trainable=True)
+        base_circuit.add_entangling_layer(trainable=False)
         self.base_perceval = base_circuit.to_pcvl_circuit()
+        if randomize_entangling:
+            for param in self.base_perceval.get_parameters():
+                param.set_value(np.random.uniform(0, np.pi), force=True)
 
         if self.computation_space is ml.ComputationSpace.UNBUNCHED:
             if input_are_images:
