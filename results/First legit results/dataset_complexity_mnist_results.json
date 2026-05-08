@@ -8,7 +8,15 @@
       "total": 170.52396303016292
     },
     "induced": {
-      "angle": null,
+      "angle": {
+        "hilbert_space_support_dim": 95.75018310546875,
+        "quantum_fisher_information_spread": 11.320253277722843,
+        "entanglement_entropy": 1.814456820487976,
+        "kernel_spectrum_flatness": 0.4280049502849579,
+        "locality_vs_expressibility": 0.5447666294294456,
+        "topological_invariants_of_embedding": 8.827634632587433,
+        "total": 118.6852994159814
+      },
       "dense_angle": {
         "hilbert_space_support_dim": 15.138720512390137,
         "quantum_fisher_information_spread": 5.091457862856829,
@@ -91,6 +99,7 @@
     "max_dim_topology_induced": 2,
     "weights_topology_induced": null,
     "max_samples_topology_induced": 1000,
-    "max_samples_induced": 1000
+    "max_samples_induced": 1000,
+    "randomize_entangling": true
   }
 }

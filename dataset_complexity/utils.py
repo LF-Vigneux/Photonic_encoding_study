@@ -106,21 +106,24 @@ def topological_complexity(
         rng = np.random.default_rng(42)
         idx = rng.choice(len(points), size=max_samples, replace=False)
         points = points[idx]
+
+    # Geometric normalisation: scale points so dataset diameter is 1.
+    # This makes persistence lifetimes directly comparable across datasets.
+    if len(points) > 1:
+        max_dist = float(sp.spatial.distance.pdist(points).max())
+        if max_dist > 0.0:
+            points = points / max_dist
+
     diagrams = ripser(points, maxdim=max_dim)["dgms"]
 
-    # Compute all finite lifetimes first so we can normalise by the global max
     all_lifetimes = []
     for dgm in diagrams:
         finite_mask = np.isfinite(dgm[:, 1])
         all_lifetimes.append(dgm[finite_mask, 1] - dgm[finite_mask, 0])
 
-    global_max = max((lt.max() for lt in all_lifetimes if len(lt) > 0), default=1.0)
-    if global_max == 0.0:
-        global_max = 1.0
-
     total = 0.0
     for k, lifetimes in enumerate(all_lifetimes):
-        total += weights[k] * float(np.sum(lifetimes / global_max))
+        total += weights[k] * float(np.sum(lifetimes))
 
     return total
 
