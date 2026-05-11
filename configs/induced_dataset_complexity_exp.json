@@ -2,7 +2,7 @@
     "description": "Run the INDUCED_DATASET_COMPLEXITY experiment",
     "outdir": "results",
     "exp_to_run": "INDUCED_DATASET_COMPLEXITY",
-    "dataset_name": "fashion",
+    "dataset_name": "kmnist",
     "classes": [0, 1],
     "feature_reduction": 8,
     "n_modes": null,
