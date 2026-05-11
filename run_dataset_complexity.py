@@ -32,7 +32,12 @@ from encodings_merlin.encoding_layers import (
 from encodings_merlin.utils import find_mode_photon_config
 from nn_embedding.lib.merlin_based_model import NeuralEmbeddingMerLinKernel
 from nn_embedding.utils.utils import TransparentModel
-from dataset_complexity.plotter import plot_complexity_comparison
+from dataset_complexity.plotter import (
+    plot_complexity_comparison,
+    plot_induced_per_encoding,
+    plot_normalized_summary,
+    plot_complexity_comparison_normalized,
+)
 
 
 def dataset_complexity_induced_comparison(
@@ -456,6 +461,26 @@ def dataset_complexity_induced_comparison(
         feature_reduction=feature_reduction,
         run_dir=results_dir,
         filename=f"dataset_complexity_{dataset_name}_plot.pdf",
+    )
+
+    # Generate per-encoding and normalized summary plots
+    plot_induced_per_encoding(
+        output,
+        dataset_name=dataset_name,
+        run_dir=results_dir,
+    )
+    plot_normalized_summary(
+        output,
+        dataset_name=dataset_name,
+        run_dir=results_dir,
+    )
+    plot_complexity_comparison_normalized(
+        output,
+        dataset_name=dataset_name,
+        classes=classes,
+        feature_reduction=feature_reduction,
+        run_dir=results_dir,
+        filename=f"dataset_complexity_{dataset_name}_normalized_comparison.pdf",
     )
 
     return {"results": output, "config": config_payload}

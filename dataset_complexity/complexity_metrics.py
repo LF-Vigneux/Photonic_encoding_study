@@ -1,5 +1,6 @@
 import numpy as np
 import merlin as ml
+from math import comb
 import torch.nn as nn
 import torch
 from pathlib import Path
@@ -28,6 +29,10 @@ from dataset_complexity.utils import (
     quantum_fisher_information,
     topological_quantum_complexity,
 )
+from nn_embedding.lib.merlin_based_model import (
+    NeuralEmbeddingMerLinKernel,
+)
+from nn_embedding.utils.merlin_model_utils import assign_params  # noqa: E402
 
 
 def classical_complexity(
@@ -47,12 +52,26 @@ def classical_complexity(
         weights=weights_topology,
         max_samples=max_samples_topology,
     )
+    N = np.log2(X.size(0))
+    min_max = [
+        [0, N],
+        [
+            -((2**max_order_correlation) - 2) * np.log(max_order_correlation),
+            ((2**max_order_correlation) - 2) * np.log(max_order_correlation),
+        ],
+        [0, 1],
+        [
+            0,
+            (N - 1) + np.sum(comb(N, k) for k in range(2, max_dim_topology + 2)),
+        ],
+    ]
     return {
         "distributional_entropy": de,
         "correlation_order": co,
         "kolmogorov_complexity": kc,
         "topological_complexity": tc,
         "total": de + co + kc + tc,
+        "min_max": min_max,
     }
 
 
@@ -102,6 +121,40 @@ def induced_quantum_complexity(
         max_samples=max_samples_topology,
     )
     print("[induced_quantum_complexity] All metrics computed.")
+    if isinstance(encoding, NeuralEmbeddingMerLinKernel):
+
+        class Encoder(nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.classical_model = encoding.classical_encoder
+
+            def forward(self, x: torch.Tensor):
+                params = self.classical_model(x)
+                with torch.no_grad():
+                    output = assign_params(encoding.quantum_embedding_layer, params)
+                return output
+
+        encoder = Encoder()
+    else:
+        encoder = encoding
+    hilbert_dim = encoder(X[0]).squeeze().size(0)
+    d = X[0].numel()
+    eps = epsilon_hilbert_support_dim
+    N = X.size(0)
+    min_max = [
+        [1, hilbert_dim],
+        [
+            0,
+            (4 * d) / (eps**2),
+        ],
+        [0, np.log2(hilbert_dim)],
+        [1, N],
+        [0, np.max(1, (2 * np.log2(hilbert_dim)) / (np.log2(N)))],
+        [
+            0,
+            (N - 1) + np.sum(comb(N, k) for k in range(2, max_dim_topology + 2)),
+        ],
+    ]
     return {
         "hilbert_space_support_dim": hsd,
         "quantum_fisher_information_spread": qfi,
@@ -110,6 +163,7 @@ def induced_quantum_complexity(
         "locality_vs_expressibility": lve,
         "topological_invariants_of_embedding": tie,
         "total": hsd + qfi + ee + ksf + lve + tie,
+        "min_max": min_max,
     }
 
 
