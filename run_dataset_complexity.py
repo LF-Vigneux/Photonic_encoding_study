@@ -75,8 +75,14 @@ def dataset_complexity_induced_comparison(
 
     def _total(v) -> float:
         if isinstance(v, dict):
+            if "total" in v and isinstance(v["total"], (int, float, np.number)):
+                return float(v["total"])
             return float(
-                v.get("total", sum(val for k, val in v.items() if k != "total"))
+                sum(
+                    float(val)
+                    for k, val in v.items()
+                    if k != "total" and isinstance(val, (int, float, np.number))
+                )
             )
         return float(v)
 

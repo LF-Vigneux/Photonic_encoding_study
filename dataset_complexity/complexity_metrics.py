@@ -52,9 +52,9 @@ def classical_complexity(
         weights=weights_topology,
         max_samples=max_samples_topology,
     )
-    N = np.log2(X.size(0))
+    N = int(X.size(0))
     min_max = [
-        [0, N],
+        [0, np.log2(N)],
         [
             -((2**max_order_correlation) - 2) * np.log(max_order_correlation),
             ((2**max_order_correlation) - 2) * np.log(max_order_correlation),
@@ -62,7 +62,7 @@ def classical_complexity(
         [0, 1],
         [
             0,
-            (N - 1) + np.sum(comb(N, k) for k in range(2, max_dim_topology + 2)),
+            (N - 1) + np.sum([comb(N, k) for k in range(2, max_dim_topology + 2)]),
         ],
     ]
     return {
@@ -140,7 +140,7 @@ def induced_quantum_complexity(
     hilbert_dim = encoder(X[0]).squeeze().size(0)
     d = X[0].numel()
     eps = epsilon_hilbert_support_dim
-    N = X.size(0)
+    N = int(X.size(0))
     min_max = [
         [1, hilbert_dim],
         [
@@ -149,10 +149,10 @@ def induced_quantum_complexity(
         ],
         [0, np.log2(hilbert_dim)],
         [1, N],
-        [0, np.max(1, (2 * np.log2(hilbert_dim)) / (np.log2(N)))],
+        [0, max(1.0, (2 * np.log2(hilbert_dim)) / (np.log2(N)))],
         [
             0,
-            (N - 1) + np.sum(comb(N, k) for k in range(2, max_dim_topology + 2)),
+            (N - 1) + np.sum([comb(N, k) for k in range(2, max_dim_topology + 2)]),
         ],
     ]
     return {
