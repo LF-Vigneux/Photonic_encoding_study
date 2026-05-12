@@ -22,6 +22,7 @@ from dataset_complexity.utils import (
     kernel_spectrum_flatness,
     locality_vs_expressibility,
     topological_invariants_of_embedding,
+    encoded_states_classes_overlap,
     average_bipartite_entanglement_entropy,
     multipartite_total_correlation,
     effective_kernel_rank,
@@ -77,8 +78,9 @@ def classical_complexity(
 
 def induced_quantum_complexity(
     X: torch.Tensor,
+    Y: torch.Tensor,
     encoding: nn.Module,
-    hyper_parameters: list[float] = [1, 1, 1, 1, 1, 1],
+    hyper_parameters: list[float] = [1, 1, 1, 1, 1, 1, 1],
     epsilon_hilbert_support_dim: float = 1e-8,
     n_samples_loc_vs_express: int = 1000,
     n_bins_loc_vs_express: int = 50,
@@ -86,11 +88,60 @@ def induced_quantum_complexity(
     weights_topology: list[float] | None = None,
     max_samples_topology: int | None = 1000,
     max_samples: int | None = 5000,
-) -> float:
+    distance: str = "Trace",
+) -> dict:
+    """
+    Compute induced quantum complexity metrics for a dataset with quantum encoding.
+
+    Computes 7 metrics characterizing the quantum properties of the encoded dataset:
+    1. hilbert_space_support_dim: Dimension of Hilbert space occupied by encoding
+    2. quantum_fisher_information_spread: Quantum Fisher information metric spread
+    3. entanglement_entropy: Von Neumann entropy of entanglement
+    4. kernel_spectrum_flatness: Flatness of kernel eigenvalue spectrum
+    5. locality_vs_expressibility: Trade-off between locality and expressibility
+    6. topological_invariants_of_embedding: Topological properties of embedded data
+    7. encoded_states_classes_overlap: Overlap of encoded class states in Hilbert space
+
+    Parameters
+    ----------
+    X : torch.Tensor
+        Input feature data, shape (n_samples, *feature_shape)
+    Y : torch.Tensor
+        Class labels, shape (n_samples,)
+    encoding : nn.Module
+        Quantum encoding layer
+    hyper_parameters : list[float], optional
+        Weights for each of the 7 metrics, by default [1, 1, 1, 1, 1, 1, 1]
+    epsilon_hilbert_support_dim : float, optional
+        Threshold for Hilbert space dimension computation, by default 1e-8
+    n_samples_loc_vs_express : int, optional
+        Samples for locality vs expressibility computation, by default 1000
+    n_bins_loc_vs_express : int, optional
+        Bins for locality vs expressibility histogram, by default 50
+    max_dim_topology : int, optional
+        Maximum simplicial dimension for topology computation, by default 2
+    weights_topology : list[float] | None, optional
+        Weights for topological dimensions, by default None
+    max_samples_topology : int | None, optional
+        Max samples for topology computation, by default 1000
+    max_samples : int | None, optional
+        Max samples for induced complexity computation, by default 5000
+    distance : str, optional
+        Distance metric for state overlap, by default "Trace"
+
+    Returns
+    -------
+    dict
+        Dictionary with keys:
+        - Individual metric names (7 total)
+        - "total": Sum of weighted metrics
+        - "min_max": List of [min, max] bounds for each metric
+    """
     if max_samples is not None and X.size(0) > max_samples:
         rng = np.random.default_rng(42)
         idx = rng.choice(X.size(0), size=max_samples, replace=False)
         X = X[idx]
+        Y = Y[idx]
 
     print("[induced_quantum_complexity] Computing hilbert_space_support_dim...")
     hsd = hyper_parameters[0] * hilbert_space_support_dim(
@@ -119,6 +170,12 @@ def induced_quantum_complexity(
         max_dim=max_dim_topology,
         weights=weights_topology,
         max_samples=max_samples_topology,
+    )
+    ove = hyper_parameters[6] * encoded_states_classes_overlap(
+        X,
+        Y,
+        encoding,
+        distance=distance,
     )
     print("[induced_quantum_complexity] All metrics computed.")
     if isinstance(encoding, NeuralEmbeddingMerLinKernel):
@@ -154,6 +211,7 @@ def induced_quantum_complexity(
             0,
             (N - 1) + np.sum([comb(N, k) for k in range(2, max_dim_topology + 2)]),
         ],
+        [0, 1],
     ]
     return {
         "hilbert_space_support_dim": hsd,
@@ -162,7 +220,8 @@ def induced_quantum_complexity(
         "kernel_spectrum_flatness": ksf,
         "locality_vs_expressibility": lve,
         "topological_invariants_of_embedding": tie,
-        "total": hsd + qfi + ee + ksf + lve + tie,
+        "encoded_states_classes_overlap": ove,
+        "total": hsd + qfi + ee + ksf + lve + tie + ove,
         "min_max": min_max,
     }
 

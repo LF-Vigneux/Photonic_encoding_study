@@ -14,7 +14,7 @@
     "max_dim_topology_classical": 2,
     "weights_topology_classical": null,
     "max_samples_topology_classical": 1000,
-    "hyper_parameters_induced": [1, 1, 1, 1, 1, 1],
+    "hyper_parameters_induced": [1, 1, 1, 1, 1, 1, 1],
     "epsilon_hilbert_support_dim_induced": 1e-8,
     "n_samples_loc_vs_express_induced": 1000,
     "n_bins_loc_vs_express_induced": 50,

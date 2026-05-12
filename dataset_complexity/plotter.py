@@ -19,6 +19,7 @@ _INDUCED_METRICS = [
     "kernel_spectrum_flatness",
     "locality_vs_expressibility",
     "topological_invariants_of_embedding",
+    "encoded_states_classes_overlap",
 ]
 _METRIC_LABELS = {
     "distributional_entropy": "Distr. entropy",
@@ -31,11 +32,20 @@ _METRIC_LABELS = {
     "kernel_spectrum_flatness": "Kernel flatness",
     "locality_vs_expressibility": "Locality/Expr.",
     "topological_invariants_of_embedding": "Topo. invariants",
+    "encoded_states_classes_overlap": "Class overlap",
 }
 
 # Colour palette – one per metric slot (classical uses its own 4, induced its 6)
 _CLASSICAL_COLORS = ["#76b7b2", "#59a14f", "#edc948", "#b07aa1"]
-_INDUCED_COLORS = ["#4E79A7", "#F28E2B", "#E15759", "#76B7B2", "#59A14F", "#EDC948"]
+_INDUCED_COLORS = [
+    "#4E79A7",
+    "#F28E2B",
+    "#E15759",
+    "#76B7B2",
+    "#59A14F",
+    "#EDC948",
+    "#B07AA1",
+]
 
 
 def _save_plot(fig: plt.Figure, filename: str, run_dir: Path | None = None) -> Path:

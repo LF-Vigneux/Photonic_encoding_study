@@ -143,7 +143,7 @@ def train_and_evaluate(cfg, run_dir: Path) -> None:
             classes_raw = tuple(classes_raw)
 
         hyper_cls_raw = cfg.get("hyper_parameters_classical", [1, 1, 1, 1])
-        hyper_ind_raw = cfg.get("hyper_parameters_induced", [1, 1, 1, 1, 1, 1])
+        hyper_ind_raw = cfg.get("hyper_parameters_induced", [1, 1, 1, 1, 1, 1, 1])
         weights_cls_raw = cfg.get("weights_topology_classical", None)
         weights_ind_raw = cfg.get("weights_topology_induced", None)
 

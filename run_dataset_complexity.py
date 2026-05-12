@@ -53,7 +53,7 @@ def dataset_complexity_induced_comparison(
     max_dim_topology_classical: int = 2,
     weights_topology_classical: list[float] | None = None,
     max_samples_topology_classical: int | None = 1000,
-    hyper_parameters_induced: list[float] = [1, 1, 1, 1, 1, 1],
+    hyper_parameters_induced: list[float] = [1, 1, 1, 1, 1, 1, 1],
     epsilon_hilbert_support_dim_induced: float = 1e-8,
     n_samples_loc_vs_express_induced: int = 1000,
     n_bins_loc_vs_express_induced: int = 50,

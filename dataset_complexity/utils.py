@@ -421,6 +421,44 @@ def topological_invariants_of_embedding(
     return total
 
 
+def encoded_states_classes_overlap(
+    x: torch.Tensor,
+    y: torch.Tensor,
+    embedder: nn.Module | NeuralEmbeddingMerLinKernel,
+    distance: str = "Trace",
+) -> float:
+    num_classes = torch.max(y).item() + 1
+    possible_combinations = list(combinations(list(i for i in range(num_classes)), 2))
+    rhos = []
+
+    X_splits = []
+    for class_index in tqdm(
+        range(num_classes), desc="[encoded_states_classes_overlap] splitting classes"
+    ):
+        X_splits.append(
+            torch.stack([x[i] for i in range(len(x)) if y[i] == class_index])
+        )
+
+    for class_index in tqdm(
+        range(num_classes), desc="[encoded_states_classes_overlap] computing rhos"
+    ):
+        # Training states
+        states = embedder(x[class_index])
+        total_rhos = state_vector_to_density_matrix(states)
+        rhos.append(torch.sum(total_rhos, dim=0) / len(X_splits[class_index]))
+
+    overlaps = 0
+    for comb in tqdm(
+        possible_combinations, desc="[encoded_states_classes_overlap] computing overlaps"
+    ):
+        overlaps += 1 - calculate_distance(
+            rhos[comb[0]],
+            rhos[comb[1]],
+            distance=distance,
+        )
+    return overlaps / len(possible_combinations)
+
+
 # Quantum
 ############################################################################################################
 
@@ -577,6 +615,19 @@ def topological_quantum_complexity(
 
 # general utils
 ############################################################################################################
+def calculate_distance(
+    rho0: torch.Tensor, rho1: torch.Tensor, distance: str = "Trace"
+) -> float:
+    rho_diff = rho1 - rho0
+    if distance == "Trace":
+        eigvals = torch.linalg.eigvals(rho_diff)
+        return 0.5 * torch.real(torch.sum(torch.abs(eigvals)))
+    elif distance == "Hilbert-Schmidt":
+        return 0.5 * torch.trace(rho_diff @ rho_diff)
+    else:
+        raise ValueError("No distance with that name")
+
+
 def quantum_entropy(rho: torch.Tensor) -> float:
     """
     To check but I think its legit
