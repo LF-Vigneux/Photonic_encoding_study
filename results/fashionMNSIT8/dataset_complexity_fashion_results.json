@@ -33,7 +33,7 @@
         "kernel_spectrum_flatness": 0.32525166869163513,
         "locality_vs_expressibility": 0.4912405246901944,
         "topological_invariants_of_embedding": 49.752194702625275,
-        "total": 144.59524269492823,
+        "total": 145.2397269168635,
         "min_max": [
           [
             1.0,
@@ -58,8 +58,16 @@
           [
             0.0,
             166667499.0
+          ],
+          [
+            0,
+            1
           ]
-        ]
+        ],
+        "encoded_states_classes_overlap": 0.6444842219352722,
+        "encoded_states_classes_distances": {
+          "0-1": 0.3555157780647278
+        }
       },
       "dense_angle": {
         "hilbert_space_support_dim": 14.65941047668457,
@@ -68,7 +76,7 @@
         "kernel_spectrum_flatness": 1.1170785427093506,
         "locality_vs_expressibility": 0.0017544901929795742,
         "topological_invariants_of_embedding": 2.102123737335205,
-        "total": 23.06914953090514,
+        "total": 23.88385168411101,
         "min_max": [
           [
             1.0,
@@ -93,8 +101,16 @@
           [
             0.0,
             166667499.0
+          ],
+          [
+            0,
+            1
           ]
-        ]
+        ],
+        "encoded_states_classes_overlap": 0.8147021532058716,
+        "encoded_states_classes_distances": {
+          "0-1": 0.18529784679412842
+        }
       },
       "fourier": {
         "hilbert_space_support_dim": 44.0932731628418,
@@ -103,7 +119,7 @@
         "kernel_spectrum_flatness": 0.9902364015579224,
         "locality_vs_expressibility": 0.04260760545730591,
         "topological_invariants_of_embedding": 3.0219554901123047e-05,
-        "total": 53.71998886924626,
+        "total": 54.50234691959263,
         "min_max": [
           [
             1.0,
@@ -128,8 +144,16 @@
           [
             0.0,
             166667499.0
+          ],
+          [
+            0,
+            1
           ]
-        ]
+        ],
+        "encoded_states_classes_overlap": 0.7823580503463745,
+        "encoded_states_classes_distances": {
+          "0-1": 0.2176419496536255
+        }
       },
       "amplitude": {
         "hilbert_space_support_dim": 7.999986049982227,
@@ -138,7 +162,7 @@
         "kernel_spectrum_flatness": 1.1258529108742903,
         "locality_vs_expressibility": 0.10405162349659662,
         "topological_invariants_of_embedding": 2.6386352096742556,
-        "total": 23.75173518421387,
+        "total": 24.48614747637216,
         "min_max": [
           [
             1.0,
@@ -163,8 +187,16 @@
           [
             0.0,
             166667499.0
+          ],
+          [
+            0,
+            1
           ]
-        ]
+        ],
+        "encoded_states_classes_overlap": 0.7344122921582902,
+        "encoded_states_classes_distances": {
+          "0-1": 0.2655877078417098
+        }
       },
       "dense_amplitude": {
         "hilbert_space_support_dim": 3.9999973697352775,
@@ -173,7 +205,7 @@
         "kernel_spectrum_flatness": 1.1258529108742903,
         "locality_vs_expressibility": 0.10755084014835857,
         "topological_invariants_of_embedding": 2.638635209674252,
-        "total": 18.018914082988623,
+        "total": 18.789877859754462,
         "min_max": [
           [
             1.0,
@@ -198,8 +230,16 @@
           [
             0.0,
             166667499.0
+          ],
+          [
+            0,
+            1
           ]
-        ]
+        ],
+        "encoded_states_classes_overlap": 0.77096377676584,
+        "encoded_states_classes_distances": {
+          "0-1": 0.22903622323415995
+        }
       },
       "evolution": null,
       "nqe": {
@@ -209,7 +249,7 @@
         "kernel_spectrum_flatness": 2.1414053440093994,
         "locality_vs_expressibility": 0.033260935103899714,
         "topological_invariants_of_embedding": 0.5511159896850586,
-        "total": 66.58168747344078,
+        "total": 66.65306337990822,
         "min_max": [
           [
             1.0,
@@ -234,8 +274,16 @@
           [
             0.0,
             166667499.0
+          ],
+          [
+            0,
+            1
           ]
-        ]
+        ],
+        "encoded_states_classes_overlap": 0.07137590646743774,
+        "encoded_states_classes_distances": {
+          "0-1": 0.9286240935325623
+        }
       }
     }
   },

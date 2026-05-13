@@ -427,7 +427,26 @@ def encoded_states_classes_overlap(
     embedder: nn.Module | NeuralEmbeddingMerLinKernel,
     distance: str = "Trace",
 ) -> float:
-    num_classes = torch.max(y).item() + 1
+
+    if isinstance(embedder, NeuralEmbeddingMerLinKernel):
+
+        class Encoder(nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.classical_model = embedder.classical_encoder
+
+            def forward(self, x: torch.Tensor):
+                params = self.classical_model(x)
+                with torch.no_grad():
+                    output = assign_params(embedder.quantum_embedding_layer, params)
+                return output
+
+        encoder = Encoder()
+
+    else:
+        encoder = embedder
+
+    num_classes = int(torch.max(y).item()) + 1
     possible_combinations = list(combinations(list(i for i in range(num_classes)), 2))
     rhos = []
 
@@ -443,13 +462,14 @@ def encoded_states_classes_overlap(
         range(num_classes), desc="[encoded_states_classes_overlap] computing rhos"
     ):
         # Training states
-        states = embedder(x[class_index])
+        states = encoder(X_splits[class_index])
         total_rhos = state_vector_to_density_matrix(states)
         rhos.append(torch.sum(total_rhos, dim=0) / len(X_splits[class_index]))
 
     overlaps = 0
     for comb in tqdm(
-        possible_combinations, desc="[encoded_states_classes_overlap] computing overlaps"
+        possible_combinations,
+        desc="[encoded_states_classes_overlap] computing overlaps",
     ):
         overlaps += 1 - calculate_distance(
             rhos[comb[0]],

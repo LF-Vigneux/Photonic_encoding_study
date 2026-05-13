@@ -67,10 +67,11 @@ def dataset_complexity_induced_comparison(
 ) -> dict:
     output = {"classical": None, "induced": {}}
 
-    x_train, x_test, y_train, _ = data_load_and_process(
+    x_train, x_test, y_train, y_test = data_load_and_process(
         dataset=dataset_name, classes=classes, feature_reduction=feature_reduction
     )
     X = torch.cat((x_train, x_test), 0)
+    Y = torch.cat((y_train, y_test), 0)
     n_features = int(np.prod(X.shape[1:]))
 
     def _total(v) -> float:
@@ -191,6 +192,7 @@ def dataset_complexity_induced_comparison(
         )
         output["induced"]["angle"] = induced_quantum_complexity(
             X,
+            Y,
             model,
             hyper_parameters=hyper_parameters_induced,
             epsilon_hilbert_support_dim=epsilon_hilbert_support_dim_induced,
@@ -222,6 +224,7 @@ def dataset_complexity_induced_comparison(
         )
         output["induced"]["dense_angle"] = induced_quantum_complexity(
             X,
+            Y,
             model,
             hyper_parameters=hyper_parameters_induced,
             epsilon_hilbert_support_dim=epsilon_hilbert_support_dim_induced,
@@ -253,6 +256,7 @@ def dataset_complexity_induced_comparison(
         )
         output["induced"]["fourier"] = induced_quantum_complexity(
             X,
+            Y,
             model,
             hyper_parameters=hyper_parameters_induced,
             epsilon_hilbert_support_dim=epsilon_hilbert_support_dim_induced,
@@ -286,6 +290,7 @@ def dataset_complexity_induced_comparison(
         )
         output["induced"]["amplitude"] = induced_quantum_complexity(
             X,
+            Y,
             encoder,
             hyper_parameters=hyper_parameters_induced,
             epsilon_hilbert_support_dim=epsilon_hilbert_support_dim_induced,
@@ -319,6 +324,7 @@ def dataset_complexity_induced_comparison(
         )
         output["induced"]["dense_amplitude"] = induced_quantum_complexity(
             X,
+            Y,
             encoder,
             hyper_parameters=hyper_parameters_induced,
             epsilon_hilbert_support_dim=epsilon_hilbert_support_dim_induced,
@@ -372,6 +378,7 @@ def dataset_complexity_induced_comparison(
 
         output["induced"]["evolution"] = induced_quantum_complexity(
             merged_X,
+            Y,
             encoder,
             hyper_parameters=hyper_parameters_induced,
             epsilon_hilbert_support_dim=epsilon_hilbert_support_dim_induced,
@@ -442,6 +449,7 @@ def dataset_complexity_induced_comparison(
         )
         output["induced"]["nqe"] = induced_quantum_complexity(
             X,
+            Y,
             model,
             hyper_parameters=hyper_parameters_induced,
             epsilon_hilbert_support_dim=epsilon_hilbert_support_dim_induced,
