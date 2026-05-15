@@ -445,7 +445,10 @@ def dataset_complexity_induced_comparison(
             quantum_embedding_layer=encoder,
         )
         model.train_embedding(
-            x_train=x_train, y_train=y_train, batch_size=100, num_epochs=1000
+            x_train=x_train,
+            y_train=y_train,
+            batch_size=len(classes) * 100,
+            num_epochs=1000,
         )
         output["induced"]["nqe"] = induced_quantum_complexity(
             X,
