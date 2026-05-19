@@ -38,6 +38,7 @@ from dataset_complexity.plotter import (
     plot_normalized_summary,
     plot_complexity_comparison_normalized,
 )
+from dataset_complexity.umap import save_umap_plots
 
 
 def dataset_complexity_induced_comparison(
@@ -63,6 +64,10 @@ def dataset_complexity_induced_comparison(
     max_samples_induced: int | None = 5000,
     evaluate_evolution: bool = False,
     randomize_entangling: bool = True,
+    generate_umap_plots: bool = True,
+    generate_umap_2d: bool = True,
+    generate_umap_3d: bool = True,
+    umap_state: int = 42,
     run_dir: Path = None,
 ) -> dict:
     output = {"classical": None, "induced": {}}
@@ -115,6 +120,10 @@ def dataset_complexity_induced_comparison(
         "max_samples_topology_induced": max_samples_topology_induced,
         "max_samples_induced": max_samples_induced,
         "randomize_entangling": randomize_entangling,
+        "generate_umap_plots": generate_umap_plots,
+        "generate_umap_2d": generate_umap_2d,
+        "generate_umap_3d": generate_umap_3d,
+        "umap_state": umap_state,
     }
 
     def _json_default(obj):
@@ -129,6 +138,38 @@ def dataset_complexity_induced_comparison(
     def _save():
         payload = {"results": output, "config": config_payload}
         output_path.write_text(json.dumps(payload, indent=2, default=_json_default))
+
+    def _save_umap_projection(
+        embedding_name: str,
+        embedder=None,
+        X_input: torch.Tensor | None = None,
+    ) -> None:
+        if not generate_umap_plots:
+            return
+
+        X_plot = X if X_input is None else X_input
+        Y_plot = Y
+        if max_samples_induced is not None and len(X_plot) > max_samples_induced:
+            idx = torch.randperm(len(X_plot))[:max_samples_induced]
+            X_plot = X_plot[idx]
+            Y_plot = Y_plot[idx]
+
+        saved_paths = save_umap_plots(
+            X_plot,
+            Y_plot,
+            embedder=embedder,
+            dataset_name=dataset_name,
+            embedding_strategy=embedding_name,
+            output_dir=results_dir,
+            umap_state=umap_state,
+            save_2d=generate_umap_2d,
+            save_3d=generate_umap_3d,
+        )
+        if saved_paths:
+            print(
+                "Saved UMAP plots for "
+                f"{embedding_name}: {', '.join(str(path.name) for path in saved_paths.values())}"
+            )
 
     # Load any previously computed results
     if output_path.exists():
@@ -159,6 +200,7 @@ def dataset_complexity_induced_comparison(
             max_samples_topology=max_samples_topology_classical,
         )
         _save()
+        _save_umap_projection("classical")
     print(f"Complexity of {_total(output['classical'])}")
     print()
 
@@ -204,6 +246,7 @@ def dataset_complexity_induced_comparison(
             max_samples=max_samples_induced,
         )
         _save()
+        _save_umap_projection("angle", embedder=model)
         del encoder, model
     gc.collect()
     print(f"Complexity of {_total(output['induced']['angle'])}")
@@ -236,6 +279,7 @@ def dataset_complexity_induced_comparison(
             max_samples=max_samples_induced,
         )
         _save()
+        _save_umap_projection("dense_angle", embedder=model)
         del encoder, model
     gc.collect()
     print(f"Complexity of {_total(output['induced']['dense_angle'])}")
@@ -268,6 +312,7 @@ def dataset_complexity_induced_comparison(
             max_samples=max_samples_induced,
         )
         _save()
+        _save_umap_projection("fourier", embedder=model)
         del encoder, model
     gc.collect()
     print(f"Complexity of {_total(output['induced']['fourier'])}")
@@ -302,6 +347,7 @@ def dataset_complexity_induced_comparison(
             max_samples=max_samples_induced,
         )
         _save()
+        _save_umap_projection("amplitude", embedder=encoder)
         del encoder
     gc.collect()
     print(f"Complexity of {_total(output['induced']['amplitude'])}")
@@ -336,6 +382,7 @@ def dataset_complexity_induced_comparison(
             max_samples=max_samples_induced,
         )
         _save()
+        _save_umap_projection("dense_amplitude", embedder=encoder)
         del encoder
     gc.collect()
     print(f"Complexity of {_total(output['induced']['dense_amplitude'])}")
@@ -390,6 +437,7 @@ def dataset_complexity_induced_comparison(
             max_samples=max_samples_induced,
         )
         _save()
+        _save_umap_projection("evolution", embedder=encoder, X_input=merged_X)
         print(f"Complexity of {_total(output['induced']['evolution'])}")
         del encoder
         if merged_X is not X:
@@ -464,6 +512,7 @@ def dataset_complexity_induced_comparison(
             max_samples=max_samples_induced,
         )
         _save()
+        _save_umap_projection("nqe", embedder=model)
         del model
     del encoder, classical_model
     gc.collect()

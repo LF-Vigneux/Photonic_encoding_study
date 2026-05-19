@@ -23,5 +23,9 @@
     "max_samples_topology_induced": 1000,
     "max_samples_induced": 1000,
     "evaluate_evolution": false,
-    "randomize_entangling": true
+    "randomize_entangling": true,
+    "generate_umap_plots": true,
+    "generate_umap_2d": true,
+    "generate_umap_3d": true,
+    "umap_state": 42
 }

@@ -183,6 +183,10 @@ def train_and_evaluate(cfg, run_dir: Path) -> None:
             max_samples_induced=cfg.get("max_samples_induced", 5000),
             evaluate_evolution=cfg.get("evaluate_evolution", False),
             randomize_entangling=cfg.get("randomize_entangling", False),
+            generate_umap_plots=cfg.get("generate_umap_plots", True),
+            generate_umap_2d=cfg.get("generate_umap_2d", True),
+            generate_umap_3d=cfg.get("generate_umap_3d", True),
+            umap_state=cfg.get("umap_state", 42),
             run_dir=run_dir,
         )
     else:

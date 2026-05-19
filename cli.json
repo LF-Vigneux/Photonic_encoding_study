@@ -133,6 +133,34 @@
       "type": "bool",
       "default": null,
       "apply": {"kind": "config_path", "path": "dont_generate_graph"}
+    },
+    {
+      "flags": ["--generate_umap_plots"],
+      "help": "Generate interactive UMAP plots for the dataset complexity pipeline (default: true)",
+      "type": "bool",
+      "default": null,
+      "apply": {"kind": "config_path", "path": "generate_umap_plots"}
+    },
+    {
+      "flags": ["--generate_umap_2d"],
+      "help": "Generate 2D interactive UMAP plots (default: true)",
+      "type": "bool",
+      "default": null,
+      "apply": {"kind": "config_path", "path": "generate_umap_2d"}
+    },
+    {
+      "flags": ["--generate_umap_3d"],
+      "help": "Generate 3D interactive UMAP plots (default: true)",
+      "type": "bool",
+      "default": null,
+      "apply": {"kind": "config_path", "path": "generate_umap_3d"}
+    },
+    {
+      "flags": ["--umap_state"],
+      "help": "Random seed used for the UMAP reductions (default: 42)",
+      "type": "int",
+      "default": null,
+      "apply": {"kind": "config_path", "path": "umap_state"}
     }
   ]
 }

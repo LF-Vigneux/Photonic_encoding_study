@@ -12,5 +12,9 @@
     "samples_per_class": 100,
     "num_classes": 2,
     "num_repetitions": 1,
-    "dont_generate_graph":"True"
+    "dont_generate_graph":"True",
+    "generate_umap_plots": true,
+    "generate_umap_2d": true,
+    "generate_umap_3d": true,
+    "umap_state": 42
 }
