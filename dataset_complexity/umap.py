@@ -2,7 +2,8 @@ import torch
 import torch.nn as nn
 import numpy as np
 from numpy.typing import NDArray
-import umap
+import builtins
+import warnings
 from typing import Any
 
 from pathlib import Path
@@ -18,8 +19,39 @@ from nn_embedding.lib.merlin_based_model import (
     NeuralEmbeddingMerLinKernel,
 )
 from nn_embedding.utils.merlin_model_utils import assign_params  # noqa: E402
+from nn_embedding.utils.utils import (  # noqa: E402
+    calculate_distance,
+    state_vector_to_density_matrix,
+)
 
 import plotly.graph_objects as go
+
+
+def _import_umap_without_tensorflow():
+    """Import umap-learn while intentionally disabling TensorFlow-dependent extras.
+
+    The default `umap` package import attempts to import ParametricUMAP, which in
+    turn imports TensorFlow. On some macOS setups this can block for a long time
+    during startup even though we only need non-parametric UMAP.
+    """
+
+    original_import = builtins.__import__
+
+    def _guarded_import(name, globals=None, locals=None, fromlist=(), level=0):
+        if name == "tensorflow" or name.startswith("tensorflow."):
+            raise ImportError("TensorFlow disabled for non-parametric UMAP usage")
+        return original_import(name, globals, locals, fromlist, level)
+
+    builtins.__import__ = _guarded_import
+    try:
+        import umap as _umap
+    finally:
+        builtins.__import__ = original_import
+
+    return _umap
+
+
+umap = _import_umap_without_tensorflow()
 
 
 def _transform_with_embedder(
@@ -53,11 +85,72 @@ def _to_numpy_array(data: torch.Tensor | NDArray) -> NDArray:
     return np.asarray(data)
 
 
-def _prepare_umap_inputs(
-    X: torch.Tensor, Y: torch.Tensor, embedder: Any | None = None
+def _to_umap_feature_matrix(data: NDArray) -> NDArray:
+    """Return a 2D real-valued matrix suitable for UMAP.
+
+    If the input is complex, features are expanded as
+    [Re(x0), Im(x0), Re(x1), Im(x1), ...].
+    """
+    if data.ndim == 1:
+        data = data.reshape(1, -1)
+    elif data.ndim > 2:
+        data = data.reshape(data.shape[0], -1)
+
+    if np.iscomplexobj(data):
+        real = data.real
+        imag = data.imag
+        out = np.empty((data.shape[0], data.shape[1] * 2), dtype=np.float64)
+        out[:, 0::2] = real
+        out[:, 1::2] = imag
+        return out
+
+    return np.asarray(data, dtype=np.float64)
+
+
+def _prepare_umap_inputs(X: torch.Tensor, Y: torch.Tensor) -> tuple[NDArray, NDArray]:
+    X_np = _to_numpy_array(X)
+    X_features = _to_umap_feature_matrix(X_np)
+    return X_features, _to_numpy_array(Y).reshape(-1)
+
+
+def _prepare_umap_distance_inputs(
+    X: torch.Tensor, Y: torch.Tensor, embedder: Any
 ) -> tuple[NDArray, NDArray]:
-    X_to_use = _transform_with_embedder(X, embedder)
-    return _to_numpy_array(X_to_use), _to_numpy_array(Y).reshape(-1)
+    encoded_states = _transform_with_embedder(X, embedder)
+    if not isinstance(encoded_states, torch.Tensor):
+        encoded_states = torch.as_tensor(encoded_states)
+
+    # Fast path: encoded pure states (N, D). For pure states,
+    # trace distance is sqrt(1 - |<psi_i|psi_j>|^2), so we can compute all
+    # pairwise distances in one vectorized pass.
+    if encoded_states.ndim == 2:
+        psis = encoded_states.to(torch.complex128)
+        norms = torch.linalg.norm(psis, dim=1, keepdim=True)
+        psis = psis / torch.clamp(norms, min=1e-12)
+        gram = psis @ torch.conj(psis).T
+        fidelities = torch.abs(gram) ** 2
+        distances = torch.sqrt(torch.clamp(1.0 - fidelities.real, min=0.0))
+        distance_matrix = distances.detach().cpu().numpy().astype(np.float64)
+        np.fill_diagonal(distance_matrix, 0.0)
+        return distance_matrix, _to_numpy_array(Y).reshape(-1)
+
+    rhos = state_vector_to_density_matrix(encoded_states)
+    if not isinstance(rhos, torch.Tensor):
+        rhos = torch.as_tensor(rhos)
+
+    rhos = rhos.to(torch.complex128)
+    n_samples = int(rhos.shape[0])
+    distance_matrix = np.zeros((n_samples, n_samples), dtype=np.float64)
+
+    for i in range(n_samples):
+        for j in range(i + 1, n_samples):
+            dist = calculate_distance(rhos[i], rhos[j], distance="Trace")
+            dist_value = float(dist.item() if hasattr(dist, "item") else dist)
+            distance_matrix[i, j] = dist_value
+            distance_matrix[j, i] = dist_value
+
+    np.fill_diagonal(distance_matrix, 0.0)
+    return distance_matrix, _to_numpy_array(Y).reshape(-1)
 
 
 def _class_color_metadata(labels: NDArray) -> tuple[NDArray, list[str], list[float]]:
@@ -80,15 +173,45 @@ def _slugify(value: str) -> str:
 
 
 def umap_data(
-    X: torch.Tensor, Y: torch.Tensor, embedder=None, umap_state: int = 42
+    X: torch.Tensor,
+    Y: torch.Tensor,
+    embedder=None,
+    umap_state: int = 42,
+    n_neighbors: int = 15,
+    n_epochs: int = 200,
 ) -> tuple[NDArray, NDArray]:
-    X_to_use, labels = _prepare_umap_inputs(X, Y, embedder)
+    if embedder is None:
+        X_to_use, labels = _prepare_umap_inputs(X, Y)
+        metric = "euclidean"
+    else:
+        X_to_use, labels = _prepare_umap_distance_inputs(X, Y, embedder)
+        metric = "precomputed"
 
-    reducer_2 = umap.UMAP(n_components=2, random_state=umap_state)
-    reducer_3 = umap.UMAP(n_components=3, random_state=umap_state)
+    reducer_2 = umap.UMAP(
+        n_components=2,
+        random_state=umap_state,
+        n_neighbors=n_neighbors,
+        n_epochs=n_epochs,
+        metric=metric,
+        n_jobs=1,
+    )
+    reducer_3 = umap.UMAP(
+        n_components=3,
+        random_state=umap_state,
+        n_neighbors=n_neighbors,
+        n_epochs=n_epochs,
+        metric=metric,
+        n_jobs=1,
+    )
 
-    reduced_2d = reducer_2.fit_transform(X_to_use, y=labels)
-    reduced_3d = reducer_3.fit_transform(X_to_use, y=labels)
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore",
+            message="using precomputed metric; inverse_transform will be unavailable",
+            category=UserWarning,
+        )
+        reduced_2d = reducer_2.fit_transform(X_to_use, y=labels)
+        reduced_3d = reducer_3.fit_transform(X_to_use, y=labels)
     return reduced_2d, reduced_3d
 
 
@@ -251,10 +374,19 @@ def save_umap_plots(
     embedding_strategy: str = "",
     output_dir: str | Path | None = None,
     umap_state: int = 42,
+    umap_n_neighbors: int = 15,
+    umap_n_epochs: int = 200,
     save_2d: bool = True,
     save_3d: bool = True,
 ) -> dict[str, Path]:
-    reduced_2d, reduced_3d = umap_data(X, Y, embedder=embedder, umap_state=umap_state)
+    reduced_2d, reduced_3d = umap_data(
+        X,
+        Y,
+        embedder=embedder,
+        umap_state=umap_state,
+        n_neighbors=umap_n_neighbors,
+        n_epochs=umap_n_epochs,
+    )
 
     if output_dir is None:
         output_root = Path.cwd()

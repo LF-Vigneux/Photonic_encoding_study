@@ -161,6 +161,27 @@
       "type": "int",
       "default": null,
       "apply": {"kind": "config_path", "path": "umap_state"}
+    },
+    {
+      "flags": ["--umap_num_points_per_class"],
+      "help": "Number of points per class sampled for UMAP plots (default: 50)",
+      "type": "int",
+      "default": null,
+      "apply": {"kind": "config_path", "path": "umap_num_points_per_class"}
+    },
+    {
+      "flags": ["--umap_n_neighbors"],
+      "help": "UMAP n_neighbors — controls local vs global structure (default: 15)",
+      "type": "int",
+      "default": null,
+      "apply": {"kind": "config_path", "path": "umap_n_neighbors"}
+    },
+    {
+      "flags": ["--umap_n_epochs"],
+      "help": "UMAP optimisation epochs — lower = faster (default: 200)",
+      "type": "int",
+      "default": null,
+      "apply": {"kind": "config_path", "path": "umap_n_epochs"}
     }
   ]
 }

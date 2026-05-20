@@ -187,6 +187,9 @@ def train_and_evaluate(cfg, run_dir: Path) -> None:
             generate_umap_2d=cfg.get("generate_umap_2d", True),
             generate_umap_3d=cfg.get("generate_umap_3d", True),
             umap_state=cfg.get("umap_state", 42),
+            umap_num_points_per_class=cfg.get("umap_num_points_per_class", 50),
+            umap_n_neighbors=cfg.get("umap_n_neighbors", 15),
+            umap_n_epochs=cfg.get("umap_n_epochs", 200),
             run_dir=run_dir,
         )
     else:

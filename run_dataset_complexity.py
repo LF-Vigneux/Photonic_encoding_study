@@ -68,13 +68,21 @@ def dataset_complexity_induced_comparison(
     generate_umap_2d: bool = True,
     generate_umap_3d: bool = True,
     umap_state: int = 42,
+    umap_num_points_per_class: int = 50,
+    umap_n_neighbors: int = 15,
+    umap_n_epochs: int = 200,
     run_dir: Path = None,
 ) -> dict:
     output = {"classical": None, "induced": {}}
 
+    import time as _time
+
+    _t0 = _time.perf_counter()
+    print("Loading dataset...", flush=True)
     x_train, x_test, y_train, y_test = data_load_and_process(
         dataset=dataset_name, classes=classes, feature_reduction=feature_reduction
     )
+    print(f"Dataset loaded in {_time.perf_counter() - _t0:.1f}s", flush=True)
     X = torch.cat((x_train, x_test), 0)
     Y = torch.cat((y_train, y_test), 0)
     n_features = int(np.prod(X.shape[1:]))
@@ -93,11 +101,18 @@ def dataset_complexity_induced_comparison(
         return float(v)
 
     # ── Persistence setup ─────────────────────────────────────────────────────
-    results_dir = (
+    results_root_dir = (
         run_dir if run_dir is not None else _FILE_DIR / "results" / "dataset_complexity"
     )
-    results_dir.mkdir(parents=True, exist_ok=True)
-    output_path = results_dir / f"dataset_complexity_{dataset_name}_results.json"
+    complexities_dir = results_root_dir / "complexities"
+    umaps_dir = results_root_dir / "umaps"
+    complexities_dir.mkdir(parents=True, exist_ok=True)
+    umaps_dir.mkdir(parents=True, exist_ok=True)
+
+    output_path = complexities_dir / f"dataset_complexity_{dataset_name}_results.json"
+    legacy_output_path = (
+        results_root_dir / f"dataset_complexity_{dataset_name}_results.json"
+    )
 
     config_payload = {
         "dataset_name": dataset_name,
@@ -124,6 +139,9 @@ def dataset_complexity_induced_comparison(
         "generate_umap_2d": generate_umap_2d,
         "generate_umap_3d": generate_umap_3d,
         "umap_state": umap_state,
+        "umap_num_points_per_class": umap_num_points_per_class,
+        "umap_n_neighbors": umap_n_neighbors,
+        "umap_n_epochs": umap_n_epochs,
     }
 
     def _json_default(obj):
@@ -139,6 +157,21 @@ def dataset_complexity_induced_comparison(
         payload = {"results": output, "config": config_payload}
         output_path.write_text(json.dumps(payload, indent=2, default=_json_default))
 
+    def _has_umap_outputs(embedding_name: str) -> bool:
+        dataset_slug = "_".join(str(dataset_name).strip().lower().split()) or "dataset"
+        embedding_slug = (
+            "_".join(str(embedding_name).strip().lower().split()) or "embedding"
+        )
+        base_name = f"u_map_{embedding_slug}_{dataset_slug}"
+        path_2d = umaps_dir / f"{base_name}_2d.html"
+        path_3d = umaps_dir / f"{base_name}_3d.html"
+
+        if generate_umap_2d and not path_2d.exists():
+            return False
+        if generate_umap_3d and not path_3d.exists():
+            return False
+        return True
+
     def _save_umap_projection(
         embedding_name: str,
         embedder=None,
@@ -149,10 +182,17 @@ def dataset_complexity_induced_comparison(
 
         X_plot = X if X_input is None else X_input
         Y_plot = Y
-        if max_samples_induced is not None and len(X_plot) > max_samples_induced:
-            idx = torch.randperm(len(X_plot))[:max_samples_induced]
-            X_plot = X_plot[idx]
-            Y_plot = Y_plot[idx]
+        # Sample umap_num_points_per_class points per class (stratified)
+        unique_classes = torch.unique(Y_plot)
+        keep_idx = torch.cat(
+            [
+                idx_c[:umap_num_points_per_class]
+                for c in unique_classes
+                if len(idx_c := torch.where(Y_plot == c)[0]) > 0
+            ]
+        )
+        X_plot = X_plot[keep_idx]
+        Y_plot = Y_plot[keep_idx]
 
         saved_paths = save_umap_plots(
             X_plot,
@@ -160,8 +200,10 @@ def dataset_complexity_induced_comparison(
             embedder=embedder,
             dataset_name=dataset_name,
             embedding_strategy=embedding_name,
-            output_dir=results_dir,
+            output_dir=umaps_dir,
             umap_state=umap_state,
+            umap_n_neighbors=umap_n_neighbors,
+            umap_n_epochs=umap_n_epochs,
             save_2d=generate_umap_2d,
             save_3d=generate_umap_3d,
         )
@@ -172,19 +214,20 @@ def dataset_complexity_induced_comparison(
             )
 
     # Load any previously computed results
-    if output_path.exists():
+    results_to_load_path = output_path if output_path.exists() else legacy_output_path
+    if results_to_load_path.exists():
         try:
-            existing = json.loads(output_path.read_text())
+            existing = json.loads(results_to_load_path.read_text())
             existing_results = existing.get("results", {})
             if existing_results.get("classical") is not None:
                 output["classical"] = existing_results["classical"]
             for key, val in existing_results.get("induced", {}).items():
                 output["induced"][key] = val
-            print(f"Loaded existing results from {output_path}")
+            print(f"Loaded existing results from {results_to_load_path}")
         except Exception:
             pass
     # ──────────────────────────────────────────────────────────────────────────
-
+    print(f"Everything loaded, ready to compute")
     #######################################################
     ### Classical complexity
     #######################################################
@@ -200,8 +243,16 @@ def dataset_complexity_induced_comparison(
             max_samples_topology=max_samples_topology_classical,
         )
         _save()
+        print(f"UMAP")
         _save_umap_projection("classical")
     print(f"Complexity of {_total(output['classical'])}")
+    if (
+        output["classical"] is not None
+        and generate_umap_plots
+        and not _has_umap_outputs("classical")
+    ):
+        print("UMAP (cached classical)")
+        _save_umap_projection("classical")
     print()
 
     #######################################################
@@ -246,10 +297,31 @@ def dataset_complexity_induced_comparison(
             max_samples=max_samples_induced,
         )
         _save()
+        print(f"UMAP")
         _save_umap_projection("angle", embedder=model)
         del encoder, model
     gc.collect()
     print(f"Complexity of {_total(output['induced']['angle'])}")
+    if (
+        output["induced"].get("angle") is not None
+        and generate_umap_plots
+        and not _has_umap_outputs("angle")
+    ):
+        encoder = angle_encoding_layer(
+            num_features=n_features,
+            num_modes=n_modes,
+            num_photons=num_photons_encoder,
+            computation_space=computation_space,
+            randomize_entangling=randomize_entangling,
+        )
+        model = NeuralEmbeddingMerLinKernel(
+            classical_model=TransparentModel(),
+            quantum_embedding_layer=encoder,
+        )
+        print("UMAP (cached angle)")
+        _save_umap_projection("angle", embedder=model)
+        del encoder, model
+        gc.collect()
     print()
 
     ###########################
@@ -279,10 +351,28 @@ def dataset_complexity_induced_comparison(
             max_samples=max_samples_induced,
         )
         _save()
+        print(f"UMAP")
         _save_umap_projection("dense_angle", embedder=model)
         del encoder, model
     gc.collect()
     print(f"Complexity of {_total(output['induced']['dense_angle'])}")
+    if (
+        output["induced"].get("dense_angle") is not None
+        and generate_umap_plots
+        and not _has_umap_outputs("dense_angle")
+    ):
+        encoder = dense_angle_encoding_layer(
+            num_features=n_features,
+            num_modes=n_modes,
+        )
+        model = NeuralEmbeddingMerLinKernel(
+            classical_model=TransparentModel(),
+            quantum_embedding_layer=encoder,
+        )
+        print("UMAP (cached dense_angle)")
+        _save_umap_projection("dense_angle", embedder=model)
+        del encoder, model
+        gc.collect()
     print()
 
     ###########################
@@ -312,10 +402,28 @@ def dataset_complexity_induced_comparison(
             max_samples=max_samples_induced,
         )
         _save()
+        print(f"UMAP")
         _save_umap_projection("fourier", embedder=model)
         del encoder, model
     gc.collect()
     print(f"Complexity of {_total(output['induced']['fourier'])}")
+    if (
+        output["induced"].get("fourier") is not None
+        and generate_umap_plots
+        and not _has_umap_outputs("fourier")
+    ):
+        encoder = fourier_basis_layer(
+            num_features=n_features,
+            num_qubits_per_feature=num_qubits_per_feature_fourier,
+        )
+        model = NeuralEmbeddingMerLinKernel(
+            classical_model=TransparentModel(),
+            quantum_embedding_layer=encoder,
+        )
+        print("UMAP (cached fourier)")
+        _save_umap_projection("fourier", embedder=model)
+        del encoder, model
+        gc.collect()
     print()
 
     ###########################
@@ -347,10 +455,25 @@ def dataset_complexity_induced_comparison(
             max_samples=max_samples_induced,
         )
         _save()
+        print(f"UMAP")
         _save_umap_projection("amplitude", embedder=encoder)
         del encoder
     gc.collect()
     print(f"Complexity of {_total(output['induced']['amplitude'])}")
+    if (
+        output["induced"].get("amplitude") is not None
+        and generate_umap_plots
+        and not _has_umap_outputs("amplitude")
+    ):
+        encoder = AmplitudeEncoder(
+            num_modes=num_modes_encoder,
+            num_photons=num_photons_encoder,
+            computation_space=computation_space,
+        )
+        print("UMAP (cached amplitude)")
+        _save_umap_projection("amplitude", embedder=encoder)
+        del encoder
+        gc.collect()
     print()
 
     ###########################
@@ -382,10 +505,25 @@ def dataset_complexity_induced_comparison(
             max_samples=max_samples_induced,
         )
         _save()
+        print(f"UMAP")
         _save_umap_projection("dense_amplitude", embedder=encoder)
         del encoder
     gc.collect()
     print(f"Complexity of {_total(output['induced']['dense_amplitude'])}")
+    if (
+        output["induced"].get("dense_amplitude") is not None
+        and generate_umap_plots
+        and not _has_umap_outputs("dense_amplitude")
+    ):
+        encoder = DenseAmplitudeEncoder(
+            num_modes=num_modes_encoder,
+            num_photons=num_photons_encoder,
+            computation_space=computation_space,
+        )
+        print("UMAP (cached dense_amplitude)")
+        _save_umap_projection("dense_amplitude", embedder=encoder)
+        del encoder
+        gc.collect()
     print()
 
     ###########################
@@ -437,67 +575,109 @@ def dataset_complexity_induced_comparison(
             max_samples=max_samples_induced,
         )
         _save()
+        print(f"UMAP")
         _save_umap_projection("evolution", embedder=encoder, X_input=merged_X)
         print(f"Complexity of {_total(output['induced']['evolution'])}")
         del encoder
         if merged_X is not X:
             del merged_X
     gc.collect()
+    if (
+        output["induced"].get("evolution") is not None
+        and generate_umap_plots
+        and not _has_umap_outputs("evolution")
+        and evaluate_evolution
+    ):
+        merged_X = X
+        if len(X.shape) == 2:
+            encoder = TimeEvolutionEncoder(
+                image_size=n_features,
+                num_photons=n_features if n_photons is None else n_photons,
+                computation_space=computation_space,
+                input_are_images=False,
+                randomize_entangling=randomize_entangling,
+            )
+        else:
+            encoder = TimeEvolutionEncoder(
+                image_size=X.size(2),
+                num_photons=n_features if n_photons is None else n_photons,
+                computation_space=computation_space,
+                input_are_images=True,
+                randomize_entangling=randomize_entangling,
+            )
+            if X.ndim == 4 and X.shape[1] == 3:
+                weights = X.new_tensor([0.2989, 0.5870, 0.1140]).view(1, 3, 1, 1)
+                merged_X = (X * weights).sum(dim=1)
+        print("UMAP (cached evolution)")
+        _save_umap_projection("evolution", embedder=encoder, X_input=merged_X)
+        del encoder
+        if merged_X is not X:
+            del merged_X
+        gc.collect()
     print()
 
     ###########################
     ### NQE
     ###########################
     print(f"Doing the nqe complexity 8/8")
-    # Same number of modes as dense amplitude encoder, using the lesser most ressources
-    general_unitary = ml.CircuitBuilder(n_modes=n_features // 2)
-    # Two deep
-    general_unitary.add_entangling_layer()
-    general_unitary.add_entangling_layer()
-
-    encoder = ml.QuantumLayer(
-        input_size=0,
-        builder=deepcopy(general_unitary),
-        n_photons=num_photons_encoder,
-        computation_space=computation_space,
-        measurement_strategy=ml.MeasurementStrategy.AMPLITUDES,
+    nqe_batch_size = (
+        len(classes) * 100 if classes is not None else len(torch.unique(y_train)) * 100
     )
 
-    if len(X.shape) == 2:
-        classical_model = nn.Sequential(
-            nn.Linear(n_features, n_features // 2 + 10),
-            nn.ReLU(),
-            nn.Linear(n_features // 2 + 10, n_features // 2 + 10),
-            nn.ReLU(),
-            nn.Linear(
-                n_features // 2 + 10, sum([i.numel() for i in encoder.parameters()])
-            ),
-        )
-    else:
-        in_channels = X.shape[1] if X.ndim == 4 else 1
-        classical_model = nn.Sequential(
-            nn.Conv2d(in_channels, 16, kernel_size=3, padding=1),
-            nn.ReLU(),
-            nn.Conv2d(16, 32, kernel_size=3, padding=1),
-            nn.ReLU(),
-            nn.Conv2d(32, 64, kernel_size=3, padding=1),
-            nn.ReLU(),
-            nn.AdaptiveAvgPool2d((4, 4)),
-            nn.Flatten(),
-            nn.LazyLinear(sum([i.numel() for i in encoder.parameters()])),
+    def _train_nqe_model() -> NeuralEmbeddingMerLinKernel:
+        # Same number of modes as dense amplitude encoder, using the lesser most resources.
+        general_unitary = ml.CircuitBuilder(n_modes=n_features // 2)
+        # Two deep
+        general_unitary.add_entangling_layer()
+        general_unitary.add_entangling_layer()
+
+        encoder = ml.QuantumLayer(
+            input_size=0,
+            builder=deepcopy(general_unitary),
+            n_photons=num_photons_encoder,
+            computation_space=computation_space,
+            measurement_strategy=ml.MeasurementStrategy.AMPLITUDES,
         )
 
-    if output["induced"].get("nqe") is None:
-        model = NeuralEmbeddingMerLinKernel(
+        if len(X.shape) == 2:
+            classical_model = nn.Sequential(
+                nn.Linear(n_features, n_features // 2 + 10),
+                nn.ReLU(),
+                nn.Linear(n_features // 2 + 10, n_features // 2 + 10),
+                nn.ReLU(),
+                nn.Linear(
+                    n_features // 2 + 10,
+                    sum([i.numel() for i in encoder.parameters()]),
+                ),
+            )
+        else:
+            in_channels = X.shape[1] if X.ndim == 4 else 1
+            classical_model = nn.Sequential(
+                nn.Conv2d(in_channels, 16, kernel_size=3, padding=1),
+                nn.ReLU(),
+                nn.Conv2d(16, 32, kernel_size=3, padding=1),
+                nn.ReLU(),
+                nn.Conv2d(32, 64, kernel_size=3, padding=1),
+                nn.ReLU(),
+                nn.AdaptiveAvgPool2d((4, 4)),
+                nn.Flatten(),
+                nn.LazyLinear(sum([i.numel() for i in encoder.parameters()])),
+            )
+
+        model_local = NeuralEmbeddingMerLinKernel(
             classical_model=classical_model,
             quantum_embedding_layer=encoder,
         )
-        model.train_embedding(
+        model_local.train_embedding(
             x_train=x_train,
             y_train=y_train,
-            batch_size=len(classes) * 100,
+            batch_size=nqe_batch_size,
             num_epochs=1000,
         )
+        return model_local
+
+    if output["induced"].get("nqe") is None:
+        model = _train_nqe_model()
         output["induced"]["nqe"] = induced_quantum_complexity(
             X,
             Y,
@@ -512,11 +692,21 @@ def dataset_complexity_induced_comparison(
             max_samples=max_samples_induced,
         )
         _save()
+        print(f"UMAP")
         _save_umap_projection("nqe", embedder=model)
         del model
-    del encoder, classical_model
     gc.collect()
     print(f"Complexity of {_total(output['induced']['nqe'])}")
+    if (
+        output["induced"].get("nqe") is not None
+        and generate_umap_plots
+        and not _has_umap_outputs("nqe")
+    ):
+        print("UMAP (cached nqe)")
+        model = _train_nqe_model()
+        _save_umap_projection("nqe", embedder=model)
+        del model
+        gc.collect()
     print()
     print(f"Saved results to {output_path}")
 
@@ -525,7 +715,7 @@ def dataset_complexity_induced_comparison(
         dataset_name=dataset_name,
         classes=classes,
         feature_reduction=feature_reduction,
-        run_dir=results_dir,
+        run_dir=complexities_dir,
         filename=f"dataset_complexity_{dataset_name}_plot.pdf",
     )
 
@@ -533,19 +723,19 @@ def dataset_complexity_induced_comparison(
     plot_induced_per_encoding(
         output,
         dataset_name=dataset_name,
-        run_dir=results_dir,
+        run_dir=complexities_dir,
     )
     plot_normalized_summary(
         output,
         dataset_name=dataset_name,
-        run_dir=results_dir,
+        run_dir=complexities_dir,
     )
     plot_complexity_comparison_normalized(
         output,
         dataset_name=dataset_name,
         classes=classes,
         feature_reduction=feature_reduction,
-        run_dir=results_dir,
+        run_dir=complexities_dir,
         filename=f"dataset_complexity_{dataset_name}_normalized_comparison.pdf",
     )
 
