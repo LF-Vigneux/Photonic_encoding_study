@@ -55,6 +55,7 @@ def create_balanced_pairs(batch_size, X, Y, negative_ratio=0.5):
     n_positive = batch_size - n_negative
 
     X1_new, X2_new, Y_new = [], [], []
+
     # --------------------------------------------------
     # Positive pairs (same class)
     # Uniformly distributed across classes
