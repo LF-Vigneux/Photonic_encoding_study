@@ -1,0 +1,84 @@
+{
+  "results": {
+    "classical": {
+      "distributional_entropy": 11.156250521031495,
+      "correlation_order": 33.42529590669839,
+      "kolmogorov_complexity": 0.8851205357142857,
+      "topological_complexity": 155.57010839693248,
+      "total": 201.03677536037665,
+      "min_max": [
+        [
+          0,
+          16.095067301607052
+        ],
+        [
+          -19.408121055678468,
+          19.408121055678468
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          57166666724999
+        ]
+      ]
+    },
+    "induced": {}
+  },
+  "config": {
+    "dataset_name": "mnist",
+    "classes": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10
+    ],
+    "feature_reduction": 8,
+    "n_modes": null,
+    "n_photons": null,
+    "computation_space": "UNBUNCHED",
+    "num_qubits_per_feature_fourier": 1,
+    "hyper_parameters_classical": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "max_order_correlation_classical": 4,
+    "max_dim_topology_classical": 2,
+    "weights_topology_classical": null,
+    "hyper_parameters_induced": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "epsilon_hilbert_support_dim_induced": 1e-08,
+    "n_samples_loc_vs_express_induced": 1000,
+    "n_bins_loc_vs_express_induced": 50,
+    "max_dim_topology_induced": 2,
+    "weights_topology_induced": null,
+    "max_samples_topology_induced": 1000,
+    "max_samples_induced": 1000,
+    "randomize_entangling": true,
+    "generate_umap_plots": true,
+    "generate_umap_2d": true,
+    "generate_umap_3d": true,
+    "umap_state": 42,
+    "umap_num_points_per_class": 50,
+    "umap_n_neighbors": 15,
+    "umap_n_epochs": 200
+  }
+}

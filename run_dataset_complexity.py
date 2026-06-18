@@ -431,7 +431,7 @@ def dataset_complexity_induced_comparison(
     ###########################
     print(f"Doing the amplitude encoding complexity 5/8")
     num_modes_encoder, num_photons_encoder = (
-        find_mode_photon_config(n_features)
+        find_mode_photon_config(n_features, len(classes))
         if (n_modes is None or n_photons is None)
         else (n_modes, n_photons)
     )
@@ -481,7 +481,7 @@ def dataset_complexity_induced_comparison(
     ###########################
     print(f"Doing the dense angle encoding complexity 6/8")
     num_modes_encoder, num_photons_encoder = (
-        find_mode_photon_config(n_features // 2 + 1)
+        find_mode_photon_config(max(n_features // 2 + 1, len(classes)))
         if (n_modes is None or n_photons is None)
         else (n_modes, n_photons)
     )
@@ -626,7 +626,7 @@ def dataset_complexity_induced_comparison(
 
     def _train_nqe_model() -> NeuralEmbeddingMerLinKernel:
         # Same number of modes as dense amplitude encoder, using the lesser most resources.
-        general_unitary = ml.CircuitBuilder(n_modes=n_features // 2)
+        general_unitary = ml.CircuitBuilder(n_modes=max(n_features, len(classes)) // 2)
         # Two deep
         general_unitary.add_entangling_layer()
         general_unitary.add_entangling_layer()
