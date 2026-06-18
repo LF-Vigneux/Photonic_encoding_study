@@ -21,7 +21,7 @@ from nn_embedding.utils.utils import (  # noqa: E402
     create_trainable_embedding_gate_based_model,
     create_with_input_embedding_merlin_model,
     loss_lower_bound,
-    pick_random_data,
+    pick_balanced_data,
     state_vector_to_density_matrix,
 )
 
@@ -132,7 +132,7 @@ def train_gate_based(
         ## Training loop
         model.train()
 
-        X_batch, Y_batch = pick_random_data(batch_size, x_train, y_train)
+        X_batch, Y_batch = pick_balanced_data(batch_size, x_train, y_train)
 
         optimizer.zero_grad()
         outputs = model(X_batch)
@@ -322,7 +322,7 @@ def train_merlin_based(
         ## Training loop
         model.train()
 
-        X_batch, Y_batch = pick_random_data(batch_size, x_train, y_train)
+        X_batch, Y_batch = pick_balanced_data(batch_size, x_train, y_train)
 
         optimizer.zero_grad()
         outputs = model(X_batch)

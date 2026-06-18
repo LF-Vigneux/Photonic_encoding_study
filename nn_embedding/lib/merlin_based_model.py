@@ -23,9 +23,9 @@ from nn_embedding.utils.merlin_model_utils import (  # noqa: E402
 from nn_embedding.utils.utils import (  # noqa: E402
     LinearLoss,
     calculate_distance,
-    create_random_pairs,
+    create_balanced_pairs,
     loss_lower_bound,
-    pick_random_data,
+    pick_balanced_data,
     state_vector_to_density_matrix,
 )
 
@@ -257,7 +257,7 @@ class NeuralEmbeddingMerLinModel(nn.Module):
             # Training loop
             self.embedding_training_model.train()
 
-            X1_batch, X2_batch, Y_batch = create_random_pairs(
+            X1_batch, X2_batch, Y_batch = create_balanced_pairs(
                 batch_size, x_train, y_train
             )
 
@@ -399,7 +399,7 @@ class NeuralEmbeddingMerLinModel(nn.Module):
             ### Training loop
             self.model.train()
 
-            X_batch, Y_batch = pick_random_data(batch_size, x_train, y_train)
+            X_batch, Y_batch = pick_balanced_data(batch_size, x_train, y_train)
 
             optimizer.zero_grad()
             outputs = self.model(X_batch)
@@ -644,7 +644,7 @@ class NeuralEmbeddingMerLinKernel(nn.Module):
             # Training loop
             self.kernel_function.train()
 
-            X1_batch, X2_batch, Y_batch = create_random_pairs(
+            X1_batch, X2_batch, Y_batch = create_balanced_pairs(
                 batch_size, x_train, y_train
             )
 

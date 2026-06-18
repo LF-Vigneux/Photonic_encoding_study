@@ -29,14 +29,14 @@ from nn_embedding.utils.utils import (  # noqa: E402
     TransparentModel,
     calculate_distance,
     create_param_ensemble,
-    create_random_pairs,
+    create_balanced_pairs,
     get_error_bound,
     haar_integral_gate_based,
     haar_integral_photonics,
     kernel_variance,
     kron,
     loss_lower_bound,
-    pick_random_data,
+    pick_balanced_data,
     random_state_photonics,
     random_unitary_gate_based,
     randomize_trainable_parameters,
@@ -239,7 +239,7 @@ class TestCreateRandomPairs:
     def test_output_shapes(self):
         X = [torch.randn(4) for _ in range(20)]
         Y = [0] * 10 + [1] * 10
-        X1, X2, Y_new = create_random_pairs(8, X, Y)
+        X1, X2, Y_new = create_balanced_pairs(8, X, Y)
         assert X1.shape == (8, 4)
         assert X2.shape == (8, 4)
         assert Y_new.shape == (8,)
@@ -248,7 +248,7 @@ class TestCreateRandomPairs:
         X = [torch.tensor([float(i)]) for i in range(4)]
         Y = [0, 0, 1, 1]
         np.random.seed(42)
-        X1, X2, Y_new = create_random_pairs(200, X, Y)
+        X1, X2, Y_new = create_balanced_pairs(200, X, Y)
         for i in range(200):
             idx1 = int(X1[i].item())
             idx2 = int(X2[i].item())
@@ -260,7 +260,7 @@ class TestPickRandomData:
     def test_output_shapes(self):
         X = [torch.randn(3) for _ in range(50)]
         Y = list(range(50))
-        X_batch, Y_batch = pick_random_data(10, X, Y)
+        X_batch, Y_batch = pick_balanced_data(10, X, Y)
         assert X_batch.shape == (10, 3)
         assert Y_batch.shape == (10,)
 

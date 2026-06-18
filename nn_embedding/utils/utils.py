@@ -2,6 +2,7 @@ import argparse
 import sys
 from copy import deepcopy
 from pathlib import Path
+from collections import defaultdict
 
 import merlin as ml
 import numpy as np
@@ -23,27 +24,115 @@ from nn_embedding.utils.merlin_model_utils import assign_params  # noqa: E402
 # https://github.com/takh04/neural-quantum-embedding
 
 
-def create_random_pairs(batch_size, X, Y):
+def create_balanced_pairs(batch_size, X, Y, negative_ratio=0.5):
+    """
+    Parameters
+    ----------
+    batch_size : int
+        Number of pairs to generate.
+    X : sequence of tensors
+    Y : sequence / array of labels
+    negative_ratio : float
+        Fraction of pairs with different labels.
+
+    Returns
+    -------
+    X1, X2, pair_labels
+        pair_labels = 1 if same class else 0
+    """
+
+    Y = np.asarray(Y)
+
+    # Indices per class
+    class_to_idx = defaultdict(list)
+    for idx, y in enumerate(Y):
+        class_to_idx[y].append(idx)
+
+    classes = list(class_to_idx.keys())
+    n_classes = len(classes)
+
+    n_negative = int(round(batch_size * negative_ratio))
+    n_positive = batch_size - n_negative
+
     X1_new, X2_new, Y_new = [], [], []
-    for _ in range(batch_size):
-        n, m = np.random.randint(len(X)), np.random.randint(len(X))
-        X1_new.append(X[n])
-        X2_new.append(X[m])
-        if Y[n] == Y[m]:
+    # --------------------------------------------------
+    # Positive pairs (same class)
+    # Uniformly distributed across classes
+    # --------------------------------------------------
+    pos_per_class = n_positive // n_classes
+    remainder = n_positive % n_classes
+
+    for i, cls in enumerate(classes):
+        n_pairs = pos_per_class + (i < remainder)
+
+        idxs = class_to_idx[cls]
+
+        for _ in range(n_pairs):
+            a, b = np.random.choice(idxs, size=2, replace=True)
+
+            X1_new.append(X[a])
+            X2_new.append(X[b])
             Y_new.append(1)
-        else:
-            Y_new.append(0)
+
+    # --------------------------------------------------
+    # Negative pairs (different classes)
+    # --------------------------------------------------
+    for _ in range(n_negative):
+        cls1, cls2 = np.random.choice(classes, size=2, replace=False)
+
+        a = np.random.choice(class_to_idx[cls1])
+        b = np.random.choice(class_to_idx[cls2])
+
+        X1_new.append(X[a])
+        X2_new.append(X[b])
+        Y_new.append(0)
+
+    # Shuffle final pairs
+    perm = np.random.permutation(len(Y_new))
+
+    X1_new = [X1_new[i] for i in perm]
+    X2_new = [X2_new[i] for i in perm]
+    Y_new = [Y_new[i] for i in perm]
+
     return (
         torch.stack(X1_new),
         torch.stack(X2_new),
-        torch.as_tensor(Y_new, dtype=torch.float32),
+        torch.tensor(Y_new, dtype=torch.float32),
     )
 
 
-def pick_random_data(batch_size, X, Y):
-    batch_index = np.random.randint(0, len(X), (batch_size,))
-    X_batch = torch.stack([X[i] for i in batch_index])
-    Y_batch = torch.as_tensor([Y[i] for i in batch_index], dtype=torch.long)
+def pick_balanced_data(batch_size, X, Y):
+    Y = np.asarray(Y)
+
+    # Indices for each class
+    class_to_idx = defaultdict(list)
+    for i, y in enumerate(Y):
+        class_to_idx[y].append(i)
+
+    classes = list(class_to_idx.keys())
+    n_classes = len(classes)
+
+    samples_per_class = batch_size // n_classes
+    remainder = batch_size % n_classes
+
+    batch_indices = []
+
+    for i, cls in enumerate(classes):
+        n_samples = samples_per_class + (i < remainder)
+
+        idx = np.random.choice(
+            class_to_idx[cls],
+            size=n_samples,
+            replace=len(class_to_idx[cls]) < n_samples,
+        )
+
+        batch_indices.extend(idx)
+
+    np.random.shuffle(batch_indices)
+
+    X_batch = torch.stack([X[i] for i in batch_indices])
+    Y_batch = torch.as_tensor([Y[i] for i in batch_indices], dtype=torch.long)
+
     return X_batch, Y_batch
 
 
