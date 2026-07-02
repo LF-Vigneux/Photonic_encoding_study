@@ -32,6 +32,12 @@ from encodings_merlin.encoding_layers import (
 from encodings_merlin.utils import find_mode_photon_config
 from nn_embedding.lib.merlin_based_model import NeuralEmbeddingMerLinKernel
 from nn_embedding.utils.utils import TransparentModel
+from egas.lib.photonic_egas import (
+    run_egas as run_photonic_egas,
+    unique_sorted_candidates,
+    refine_candidates,
+)
+from egas.lib.photonic_circuits import build_token_pool
 from dataset_complexity.plotter import (
     plot_complexity_comparison,
     plot_induced_per_encoding,
@@ -232,7 +238,7 @@ def dataset_complexity_induced_comparison(
     ### Classical complexity
     #######################################################
 
-    print(f"Doing the classical complexity 1/8")
+    print(f"Doing the classical complexity 1/9")
     if output["classical"] is None:
         output["classical"] = classical_complexity(
             X,
@@ -262,7 +268,7 @@ def dataset_complexity_induced_comparison(
     ###########################
     ### Angle complexity
     ###########################
-    print(f"Doing the angle encoding complexity 2/8")
+    print(f"Doing the angle encoding complexity 2/9")
     if n_photons is None:
         if n_modes is None:
             num_photons_encoder = n_features // 2
@@ -327,7 +333,7 @@ def dataset_complexity_induced_comparison(
     ###########################
     ### Dense Angle complexity
     ###########################
-    print(f"Doing the dense angle encoding complexity 3/8")
+    print(f"Doing the dense angle encoding complexity 3/9")
     if output["induced"].get("dense_angle") is None:
         encoder = dense_angle_encoding_layer(
             num_features=n_features,
@@ -378,7 +384,7 @@ def dataset_complexity_induced_comparison(
     ###########################
     ### Fourier complexity
     ###########################
-    print(f"Doing the Fourier encoding complexity 4/8")
+    print(f"Doing the Fourier encoding complexity 4/9")
     if output["induced"].get("fourier") is None:
         encoder = fourier_basis_layer(
             num_features=n_features,
@@ -429,7 +435,7 @@ def dataset_complexity_induced_comparison(
     ###########################
     ### Amplitude complexity
     ###########################
-    print(f"Doing the amplitude encoding complexity 5/8")
+    print(f"Doing the amplitude encoding complexity 5/9")
     num_modes_encoder, num_photons_encoder = (
         find_mode_photon_config(n_features, len(classes))
         if (n_modes is None or n_photons is None)
@@ -479,7 +485,7 @@ def dataset_complexity_induced_comparison(
     ###########################
     ### Dense amplitude complexity
     ###########################
-    print(f"Doing the dense angle encoding complexity 6/8")
+    print(f"Doing the dense angle encoding complexity 6/9")
     num_modes_encoder, num_photons_encoder = (
         find_mode_photon_config(max(n_features // 2 + 1, len(classes)))
         if (n_modes is None or n_photons is None)
@@ -529,7 +535,7 @@ def dataset_complexity_induced_comparison(
     ###########################
     ### Evolution complexity
     ###########################
-    print(f"Doing the evolution encoding complexity 7/8")
+    print(f"Doing the evolution encoding complexity 7/9")
     _existing_evolution = output["induced"].get("evolution")
     if _existing_evolution is not None:
         print(f"Complexity of {_total(_existing_evolution)} (loaded from file)")
@@ -619,7 +625,7 @@ def dataset_complexity_induced_comparison(
     ###########################
     ### NQE
     ###########################
-    print(f"Doing the nqe complexity 8/8")
+    print(f"Doing the nqe complexity 8/9")
     nqe_batch_size = (
         len(classes) * 100 if classes is not None else len(torch.unique(y_train)) * 100
     )
@@ -705,6 +711,123 @@ def dataset_complexity_induced_comparison(
         print("UMAP (cached nqe)")
         model = _train_nqe_model()
         _save_umap_projection("nqe", embedder=model)
+        del model
+        gc.collect()
+    print()
+    print(f"Saved results to {output_path}")
+
+    ###########################
+    ### EGAS
+    ###########################
+    print(f"Doing the EGAS complexity 9/9")
+    nqe_batch_size = (
+        len(classes) * 100 if classes is not None else len(torch.unique(y_train)) * 100
+    )
+
+    def _train_egas_model() -> nn.Module:
+        def _flatten_for_egas(tensor: torch.Tensor) -> torch.Tensor:
+            return tensor.reshape(tensor.size(0), -1) if tensor.ndim > 2 else tensor
+
+        X_flat = _flatten_for_egas(X)
+        x_train_flat = _flatten_for_egas(x_train)
+        y_train_flat = y_train
+
+        n_modes_encoder = (
+            n_modes if n_modes is not None else min(int(X_flat.shape[1]), 8)
+        )
+        n_modes_encoder = max(1, min(int(X_flat.shape[1]), int(n_modes_encoder)))
+        num_photons_encoder = n_photons if n_photons is not None else 2
+
+        print(
+            f"Running EGAS search with n_modes={n_modes_encoder}, num_photons={num_photons_encoder}, "
+            f"seq_len={min(8, n_modes_encoder)}"
+        )
+
+        pool = build_token_pool(n_modes_encoder)
+        seed = 0
+        rng = np.random.default_rng(seed)
+        search_samples = min(256, len(x_train_flat))
+        idx = rng.choice(len(x_train_flat), search_samples, replace=False)
+        Xe = x_train_flat[idx]
+        ye = y_train_flat[idx]
+
+        gpt, history, buffer = run_photonic_egas(
+            pool,
+            Xe,
+            ye,
+            n_modes_encoder,
+            seq_len=min(8, n_modes_encoder),
+            num_photons=num_photons_encoder,
+            computation_space=computation_space,
+            n_iters=200,
+            n_candidates=24,
+            select_k=6,
+            gamma=0.1,
+            lr=5e-5,
+            temp_max=100.0,
+            temp_min=0.04,
+            d_model=64,
+            n_layers=2,
+            n_heads=4,
+            seed=seed,
+            device=X_flat.device,
+            log_every=50,
+        )
+
+        G_ids, _ = unique_sorted_candidates(buffer, top=5, bottom=0)
+        refined = refine_candidates(
+            G_ids,
+            pool,
+            Xe,
+            ye,
+            n_modes_encoder,
+            num_photons=num_photons_encoder,
+            computation_space=computation_space,
+            device=X_flat.device,
+            epochs=100,
+            batch_samples=25,
+            lr=5e-4,
+            seed=seed,
+        )
+        if not refined:
+            raise RuntimeError("EGAS produced no refined candidates")
+
+        best = min(refined, key=lambda item: item["E_after"])
+        print(
+            f"Selected EGAS candidate with E_after={best['E_after']:.6f} "
+            f"and sequence length={len(best['seq'])}"
+        )
+        return best["encoder"]
+
+    if output["induced"].get("egas") is None:
+        model = _train_egas_model()
+        output["induced"]["egas"] = induced_quantum_complexity(
+            X,
+            Y,
+            model,
+            hyper_parameters=hyper_parameters_induced,
+            epsilon_hilbert_support_dim=epsilon_hilbert_support_dim_induced,
+            n_samples_loc_vs_express=n_samples_loc_vs_express_induced,
+            n_bins_loc_vs_express=n_bins_loc_vs_express_induced,
+            max_dim_topology=max_dim_topology_induced,
+            weights_topology=weights_topology_induced,
+            max_samples_topology=max_samples_topology_induced,
+            max_samples=max_samples_induced,
+        )
+        _save()
+        print(f"UMAP")
+        _save_umap_projection("egas", embedder=model)
+        del model
+    gc.collect()
+    print(f"Complexity of {_total(output['induced']['egas'])}")
+    if (
+        output["induced"].get("egas") is not None
+        and generate_umap_plots
+        and not _has_umap_outputs("egas")
+    ):
+        print("UMAP (cached egas)")
+        model = _train_egas_model()
+        _save_umap_projection("egas", embedder=model)
         del model
         gc.collect()
     print()
