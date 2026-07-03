@@ -641,8 +641,9 @@ def dataset_complexity_induced_comparison(
             input_size=0,
             builder=deepcopy(general_unitary),
             n_photons=num_photons_encoder,
-            computation_space=computation_space,
-            measurement_strategy=ml.MeasurementStrategy.AMPLITUDES,
+            measurement_strategy=ml.MeasurementStrategy.amplitudes(
+                computation_space=computation_space
+            ),
         )
 
         if len(X.shape) == 2:

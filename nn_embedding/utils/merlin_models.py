@@ -23,7 +23,7 @@ def create_merlin_fig_2_models():
         input_size=0,
         builder=circ,
         n_photons=2,
-        measurement_strategy=ml.MeasurementStrategy.AMPLITUDES,
+        measurement_strategy=ml.MeasurementStrategy.amplitudes(),
     )
     randomize_trainable_parameters(embedder)
 
@@ -34,7 +34,7 @@ def create_merlin_fig_2_models():
         builder=circ,
         n_photons=2,
         amplitude_encoding=True,
-        measurement_strategy=ml.MeasurementStrategy.PROBABILITIES,
+        measurement_strategy=ml.MeasurementStrategy.probs(),
     )
     randomize_trainable_parameters(classifier)
 
@@ -70,7 +70,7 @@ def create_merlin_fig_3_models():
         input_size=0,
         builder=circ,
         n_photons=5,
-        measurement_strategy=ml.MeasurementStrategy.AMPLITUDES,
+        measurement_strategy=ml.MeasurementStrategy.amplitudes(),
     )
     randomize_trainable_parameters(embedder)
 
@@ -81,7 +81,7 @@ def create_merlin_fig_3_models():
         builder=circ,
         n_photons=5,
         amplitude_encoding=True,
-        measurement_strategy=ml.MeasurementStrategy.PROBABILITIES,
+        measurement_strategy=ml.MeasurementStrategy.probs(),
     )
     randomize_trainable_parameters(classifier)
 
@@ -119,7 +119,7 @@ def create_trainable_merlin_layer_fig_3(N_layer: int):
         input_size=8 * N_layer,
         builder=circuit,
         n_photons=5,
-        measurement_strategy=ml.MeasurementStrategy.AMPLITUDES,
+        measurement_strategy=ml.MeasurementStrategy.amplitudes(),
     )
 
     class BasicModelRepeatedModel(nn.Module):
@@ -150,7 +150,7 @@ def create_merlin_fig_4_models():
         input_size=0,
         builder=circ,
         n_photons=2,
-        measurement_strategy=ml.MeasurementStrategy.AMPLITUDES,
+        measurement_strategy=ml.MeasurementStrategy.amplitudes(),
     )
     randomize_trainable_parameters(embedder)
 
@@ -161,7 +161,7 @@ def create_merlin_fig_4_models():
         builder=circ,
         n_photons=2,
         amplitude_encoding=True,
-        measurement_strategy=ml.MeasurementStrategy.PROBABILITIES,
+        measurement_strategy=ml.MeasurementStrategy.probs(),
     )
     randomize_trainable_parameters(classifier)
 
@@ -188,7 +188,7 @@ def create_merlin_fig_5_models():
         input_size=0,
         builder=circ,
         n_photons=2,
-        measurement_strategy=ml.MeasurementStrategy.AMPLITUDES,
+        measurement_strategy=ml.MeasurementStrategy.amplitudes(),
     )
     randomize_trainable_parameters(embedder)
 

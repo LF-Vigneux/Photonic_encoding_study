@@ -36,7 +36,7 @@ def merlin_kernel() -> NeuralEmbeddingMerLinKernel:
         input_size=0,
         builder=circ,
         n_photons=4,
-        measurement_strategy=ml.MeasurementStrategy.AMPLITUDES,
+        measurement_strategy=ml.MeasurementStrategy.amplitudes(),
     )
     classical_model = nn.Sequential(
         nn.Linear(8, 10),

@@ -107,8 +107,9 @@ class NeuralEmbeddingMerLinModel(nn.Module):
                 input_state=encoder_1.input_state,
                 n_photons=encoder_1.n_photons,
                 amplitude_encoding=False,
-                computation_space=encoder_1.computation_space,
-                measurement_strategy=ml.MeasurementStrategy.PROBABILITIES,
+                measurement_strategy=ml.MeasurementStrategy.probs(
+                    computation_space=encoder_1.computation_space,
+                ),
                 device=encoder_1.device,
                 dtype=encoder_1.dtype,
                 input_parameters=input_prefixes,
@@ -509,8 +510,9 @@ class NeuralEmbeddingMerLinKernel(nn.Module):
                 input_state=encoder_1.input_state,
                 n_photons=encoder_1.n_photons,
                 amplitude_encoding=False,
-                computation_space=encoder_1.computation_space,
-                measurement_strategy=ml.MeasurementStrategy.PROBABILITIES,
+                measurement_strategy=ml.MeasurementStrategy.probs(
+                    computation_space=encoder_1.computation_space,
+                ),
                 device=encoder_1.device,
                 dtype=encoder_1.dtype,
                 input_parameters=input_prefixes,
@@ -790,7 +792,7 @@ def create_merlin_models_paper() -> NeuralEmbeddingMerLinModel:
         input_size=0,
         builder=circ,
         n_photons=4,
-        measurement_strategy=ml.MeasurementStrategy.AMPLITUDES,
+        measurement_strategy=ml.MeasurementStrategy.amplitudes(),
     )
 
     # Quantum classifier
@@ -800,7 +802,7 @@ def create_merlin_models_paper() -> NeuralEmbeddingMerLinModel:
         builder=circ,
         n_photons=4,
         amplitude_encoding=True,
-        measurement_strategy=ml.MeasurementStrategy.PROBABILITIES,
+        measurement_strategy=ml.MeasurementStrategy.probs(),
     )
 
     classical_model = nn.Sequential(

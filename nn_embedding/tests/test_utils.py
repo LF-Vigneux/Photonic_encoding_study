@@ -55,7 +55,7 @@ def trainable_merlin_layer():
         input_size=0,
         builder=builder,
         input_state=[1, 1, 0, 0],
-        measurement_strategy=ml.MeasurementStrategy.AMPLITUDES,
+        measurement_strategy=ml.MeasurementStrategy.amplitudes(),
     )
 
 

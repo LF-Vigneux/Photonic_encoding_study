@@ -53,8 +53,9 @@ def angle_encoding_layer(
         return ml.QuantumLayer(
             input_size=0,
             circuit=pcvl_circuit,
-            computation_space=computation_space,
-            measurement_strategy=ml.MeasurementStrategy.AMPLITUDES,
+            measurement_strategy=ml.MeasurementStrategy.amplitudes(
+                computation_space=computation_space
+            ),
             n_photons=num_photons,
             trainable_parameters=trainable_prefixes,
         )
@@ -73,8 +74,9 @@ def angle_encoding_layer(
         return ml.QuantumLayer(
             input_size=num_features,
             circuit=pcvl_circuit,
-            computation_space=computation_space,
-            measurement_strategy=ml.MeasurementStrategy.AMPLITUDES,
+            measurement_strategy=ml.MeasurementStrategy.amplitudes(
+                computation_space=computation_space
+            ),
             n_photons=num_photons,
             input_parameters=input_prefixes,
         )
@@ -115,8 +117,9 @@ def dense_angle_encoding_layer(
         return ml.QuantumLayer(
             input_size=0,
             circuit=circuit,
-            computation_space=ml.ComputationSpace.DUAL_RAIL,
-            measurement_strategy=ml.MeasurementStrategy.AMPLITUDES,
+            measurement_strategy=ml.MeasurementStrategy.amplitudes(
+                computation_space=ml.ComputationSpace.DUAL_RAIL,
+            ),
             trainable_parameters=params_name,
             n_photons=int(np.ceil(num_features / 2)),
         )
@@ -124,8 +127,9 @@ def dense_angle_encoding_layer(
         return ml.QuantumLayer(
             input_size=num_features,
             circuit=circuit,
-            computation_space=ml.ComputationSpace.DUAL_RAIL,
-            measurement_strategy=ml.MeasurementStrategy.AMPLITUDES,
+            measurement_strategy=ml.MeasurementStrategy.amplitudes(
+                computation_space=ml.ComputationSpace.DUAL_RAIL
+            ),
             input_parameters=params_name,
             n_photons=int(np.ceil(num_features / 2)),
         )
@@ -158,8 +162,9 @@ def fourier_basis_layer(
         return ml.QuantumLayer(
             input_size=0,
             circuit=main_circuit,
-            computation_space=ml.ComputationSpace.DUAL_RAIL,
-            measurement_strategy=ml.MeasurementStrategy.AMPLITUDES,
+            measurement_strategy=ml.MeasurementStrategy.amplitudes(
+                computation_space=ml.ComputationSpace.DUAL_RAIL,
+            ),
             trainable_parameters=params_name,
             n_photons=num_features * num_qubits_per_feature,
         )
@@ -167,8 +172,9 @@ def fourier_basis_layer(
         return ml.QuantumLayer(
             input_size=num_features,
             circuit=main_circuit,
-            computation_space=ml.ComputationSpace.DUAL_RAIL,
-            measurement_strategy=ml.MeasurementStrategy.AMPLITUDES,
+            measurement_strategy=ml.MeasurementStrategy.amplitudes(
+                computation_space=ml.ComputationSpace.DUAL_RAIL,
+            ),
             input_parameters=params_name,
             n_photons=num_features * num_qubits_per_feature,
         )
@@ -532,8 +538,9 @@ class TimeEvolutionEncoder(nn.Module):
                 qlayer = ml.QuantumLayer(
                     circuit=total_circuit,
                     n_photons=self.num_photons,
-                    measurement_strategy=ml.MeasurementStrategy.AMPLITUDES,
-                    computation_space=self.computation_space,
+                    measurement_strategy=ml.MeasurementStrategy.amplitudes(
+                        computation_space=self.computation_space
+                    ),
                     trainable_parameters=["el_"],
                 )
                 output_tensors[i, :] = self.encoder(qlayer().flatten()).detach()
@@ -552,8 +559,9 @@ class TimeEvolutionEncoder(nn.Module):
                 qlayer = ml.QuantumLayer(
                     circuit=total_circuit,
                     n_photons=self.num_photons,
-                    measurement_strategy=ml.MeasurementStrategy.AMPLITUDES,
-                    computation_space=self.computation_space,
+                    measurement_strategy=ml.MeasurementStrategy.amplitudes(
+                        computation_space=self.computation_space
+                    ),
                     trainable_parameters=["el_"],
                 )
                 state = self.encoder(qlayer().flatten()).detach()
