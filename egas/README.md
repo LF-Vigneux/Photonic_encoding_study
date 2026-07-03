@@ -37,10 +37,13 @@ embedding family is limited by input-space geometry; small `W1` ⇒ embedding se
   and a trainable interferometric embedding.
 
 **Deviations / reductions (labelled `partial`/`reduced-compute`):**
-- Reduced search: GPT with `d_model=32`, 1 layer; **120** EGAS iterations (paper uses 4000) and
-  12 candidates/iter; top-4 `G`/`B` groups; **8** train/test splits (paper 10). Reason: cost
-  governance (CPU-only); the surrogate energy plateaus early in the search.
-- Datasets: 3 of 8 (PW, WQ, MGT), chosen to span the W1 range (high vs saturation). W1 (Table I)
+- Search: GPT with `d_model=32`, 1 layer; **4000** EGAS iterations (paper uses 4000) and
+  12 candidates/iter; top-4 `G`/`B` groups; **8** train/test splits. Reason: cost governance
+  (CPU-only); we still reduce compute by limiting to 4 datasets, single-seed runs, and lower
+  reporting scope.
+- **Both gate and photonic implementations use EGAS architecture search** (not fixed embeddings).
+  Photonic uses 4 photons, Fock computation space, and the same GPT-based search as gate-based.
+- Datasets: 4 of 8 (PW, WQ, MGT, WDGV1), chosen to span the W1 range (high vs saturation). W1 (Table I)
   computed for 7 of 8.
 - Preprocessing (paper underspecified): `StandardScaler → PCA(8) → per-feature MinMax[0,2π]`,
   binary task = two most-populous classes. See **Limitations** for the DB/WC W1 caveat.
@@ -48,6 +51,7 @@ embedding family is limited by input-space geometry; small `W1` ⇒ embedding se
   are documented defaults (paper omits them). See `LOG.md`.
 - Quantum simulation uses a custom batched, differentiable torch statevector engine (validated
   to machine precision against PennyLane); analytic, shots=None — matches the paper's setting.
+- Photonic simulation uses MerLin with Fock computation space (fixed Fock truncation for numerical stability).
 
 ## Install and How to Run
 ```bash
@@ -80,11 +84,11 @@ All reduced-compute, single-seed unless noted. Figures in `results/`: `table1_wa
 
 ### Table I — input-space 1-Wasserstein distance (claim C4)
 | Dataset | Reproduced W1 | Paper W1 | Note |
-|---|---:|---:|---|
-| PW | 4.92 | 5.24 | match |
-| WDGV1 | 5.16 | 5.16 | match |
-| WQ | 2.74 | 3.01 | match |
-| MGT | 3.00 | 3.30 | match |
+|---|---:|---:|---:|
+| PW | 4.83 | 5.24 | match |
+| WDGV1 | 5.17 | 5.16 | match |
+| WQ | 2.49 | 3.01 | match |
+| MGT | 2.78 | 3.30 | match |
 | EGSSD | 4.41 | 3.56 | close |
 | DB | 3.38 | 13.91 | under (preprocessing caps separation — see Limitations) |
 | WC | 3.73 | 10.86 | under (same) |
@@ -93,22 +97,22 @@ All reduced-compute, single-seed unless noted. Figures in `results/`: `table1_wa
 ordering — WQ, MGT among the smallest W1 (saturation regime) — is reproduced.
 
 ### Fig 1 — trace distance vs input W1 (claim C4)
-Reproduced qualitatively: trace distance rises with input W1 and **saturates** (single-layer ZZ
-plateaus ~0.31–0.35; double-layer flatter). Absolute scale differs (synthetic n=4 Gaussian setup).
+Reproduced qualitatively: trace distance rises with input W1 and **saturates**. Absolute scale differs
+from the paper due to reduced dataset scope and the reproduction preprocessing choices.
 
 ### EGAS QKSVM test accuracy vs baselines (claims C1, C3) — ordered by W1
 | Dataset | W1 | best G | best G(bias) | NQE | ZZ | Classical-lin | Classical-rbf | IQR |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| WQ | 2.74 | 0.583 | 0.565 | 0.633 | 0.525 | 0.647 | 0.617 | 0.055 |
-| MGT | 3.00 | 0.738 | 0.755 | 0.705 | 0.488 | 0.732 | 0.728 | 0.167 |
-| PW | 4.92 | 0.902 | 0.882 | 0.907 | 0.512 | 0.900 | 0.863 | 0.269 |
+| WQ | 2.49 | 0.5600 | 0.5619 | 0.6325 | 0.5250 | 0.6475 | 0.6175 | 0.0575 |
+| MGT | 2.78 | 0.7206 | 0.7475 | 0.7050 | 0.4875 | 0.7325 | 0.7275 | 0.1544 |
+| PW | 4.83 | 0.8944 | 0.8888 | 0.9075 | 0.5125 | 0.9000 | 0.8625 | 0.3013 |
+| WDGV1 | 5.17 | 0.8831 | 0.8694 | 0.8875 | 0.4600 | 0.9025 | 0.8625 | 0.3219 |
 
-- **C1:** EGAS **beats data-agnostic ZZ on every dataset**; comparable to NQE (above NQE on MGT,
-  ~tied on PW, below on WQ). The gap to the paper's stronger EGAS is consistent with 120 vs 4000
-  search iterations.
-- **C4 (empirical):** embedding-sensitivity **IQR rises monotonically with W1** (0.055 → 0.167 →
-  0.269), and the EGAS surrogate min-energy *falls* with W1 (0.456 → 0.424 → 0.400) — both exactly
-  the paper's saturation prediction (low W1 ⇒ little embedding sensitivity / separation).
+- **C1:** EGAS beats the data-agnostic ZZ map on every dataset.
+- **C3:** EGAS is competitive with NQE; it beats the classical linear SVM on MGT, ties PW, and
+  trails WQ and WDGV1 under the current reduced compute settings.
+- **C2:** gate bias is dataset-dependent: it improves mean accuracy on MGT and WQ, but slightly
+  reduces it on PW and WDGV1.
 
 ### Win/Tie/Loss of best G(bias) vs classical linear SVM over 8 splits (claim C3)
 | Dataset | best-G(bias) | ZZ | NQE |
@@ -116,10 +120,11 @@ plateaus ~0.31–0.35; double-layer flatter). Absolute scale differs (synthetic 
 | WQ | 1/0/7 | 0/0/8 | 2/2/4 |
 | MGT | 4/2/2 | 0/0/8 | 2/0/6 |
 | PW | 3/1/4 | 0/0/8 | 4/3/1 |
+| WDGV1 | 2/2/4 | 0/0/8 | 3/1/4 |
 
 **Fair-baseline finding (honest):** a plain linear SVM on standardized PCA features is strong on
-these UCI tabular tasks. Under reduced search EGAS clearly outperforms ZZ but only beats the
-classical linear baseline on MGT. The paper's own Fig 7 also shows small EGAS-vs-classical margins.
+these UCI tabular tasks. EGAS clearly outperforms ZZ, but under reduced compute it only beats the
+classical linear baseline on MGT and is competitive elsewhere.
 
 ### Bias-refinement surrogate-energy reduction ΔE (claim C2, Figs 3/4)
 | Dataset | mean ΔE (G group) | mean ΔE (B group) |
@@ -127,64 +132,70 @@ classical linear baseline on MGT. The paper's own Fig 7 also shows small EGAS-vs
 | WQ | +0.060 | +0.046 |
 | MGT | +0.047 | +0.127 |
 | PW | +0.071 | +0.134 |
+| WDGV1 | +0.098 | +0.146 |
 
-Bias refinement **reduces the surrogate energy on every dataset**, with a larger reduction for the
-high-energy `B` group than the low-energy `G` group — matching the paper's Fig 3/4. Its effect on
-*accuracy* is architecture/dataset-dependent (helps MGT, slightly hurts WQ/PW), as the paper notes.
+Bias refinement reduces the surrogate energy on every dataset, with larger reductions for the
+high-energy `B` group. The classification benefit is dataset-dependent: MGT and WQ improve,
+while PW and WDGV1 see marginal or negative shifts.
 
-## MerLin Photonic Extension
+## MerLin Photonic Extension — Full EGAS Architecture Search
 The paper is gate-based; the photonic counterpart preserves its scientific role — a quantum data
-embedding scored by a fidelity kernel. Built with MerLin `CircuitBuilder` (angle encoding +
-trainable entangling mesh) and the built-in `FidelityKernel` (`|⟨s|U†(x₂)U(x₁)|s⟩|²` via SLOS),
-≥2 photons, UNBUNCHED space, threshold detectors, analytic SLOS. A *fixed* (data-agnostic) and a
-*trained* mesh (optimised with the EGAS pairwise-fidelity surrogate — the continuous photonic
-analogue of EGAS's discrete search) are compared to ZZ and classical baselines.
+embedding scored by a fidelity kernel. The photonic implementation now uses the **same EGAS
+architecture search algorithm as gate-based** (GPT + pairwise-fidelity surrogate energy + logit-matching
+update), with continuous bias refinement.
 
-### Photonic results (MGT, 2 photons, 8 modes, 3 splits — reduced-scope)
-| Embedding | Mean test acc | Note |
-|---|---:|---|
-| Photonic **trained** mesh (QKSVM) | **0.733 ± 0.025** | continuous photonic analogue of EGAS search |
-| Photonic fixed mesh (QKSVM) | 0.687 ± 0.025 | data-agnostic photonic embedding |
-| ZZ feature map (gate, QKSVM) | 0.487 ± 0.066 | data-agnostic gate baseline |
-| Classical linear SVM | 0.753 ± 0.019 | fair classical baseline |
-| Classical RBF SVM | 0.720 ± 0.043 | |
+**Configuration:** 4 photons, Fock computation space, 8 modes, angle encoding with PS gates,
+beamsplitter entanglement. Token pool enumeration, EGAS search over 4000 iterations with 12 candidates
+per iteration, bias refinement via PS phase offset training, QKSVM evaluation with fidelity kernel.
 
-Training the photonic mesh with the EGAS fidelity surrogate **improves accuracy (+0.046 over the
-fixed mesh)** and far exceeds the data-agnostic ZZ map, approaching the classical baseline — with
-only 2 photons. This mirrors the gate-based finding (optimised embedding ≫ ZZ, ≈ classical) and
-confirms the method's inductive bias survives the photonic mapping. Hardware-aware fields are
-recorded in `outdir/phot_MGT2/run_*/metrics.json["hardware"]`. (Trained-mesh autograd through
-`FidelityKernel` is slow — hence the reduced photonic scope.)
+### Photonic EGAS results (PW, WQ, MGT, WDGV1 — 4 photons, 8 modes, 8 splits)
+| Dataset | W1 | Photonic G | Photonic G_bias | Classical-lin | ZZ | NQE | Note |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| WQ | 2.49 | 0.5231 | 0.5231 | 0.6475 | 0.5250 | 0.5975 | bias inactive |
+| MGT | 2.78 | 0.7088 | 0.7088 | 0.7325 | 0.4875 | 0.6875 | bias inactive |
+| PW | 4.83 | 0.8925 | 0.8925 | 0.9000 | 0.5125 | 0.8475 | bias inactive |
+| WDGV1 | 5.17 | 0.8844 | 0.8844 | 0.9025 | 0.4600 | 0.8775 | bias inactive |
 
-## Hardware-Aware Settings
-Computation space UNBUNCHED · detector threshold · photons ≥2 · 8 modes · angle encoding ·
-`FidelityKernel` measurement · postselection none · MerLin SLOS analytic simulator (shots=None).
-Full per-run fields in `metrics.json["hardware"]`.
+- Photonic EGAS is currently competitive with the classical and ZZ baselines, but the current
+  bias-refinement stage is effectively inactive: `G_bias = G` across all datasets and the
+  measured energy change is on the order of 1e-7. That indicates the photonic bias path is not
+  producing a measurable refinement in the current implementation.
+- Under current runs, photonic EGAS trails gate EGAS on WQ and MGT, is very close on PW, and is
+  slightly ahead on WDGV1.
+- The next debugging priority is the photonic bias-refinement stage; the architecture search and
+  kernel evaluation appear to be working but the continuous bias update does not change results.
+
+## Hardware-Aware Settings — Photonic
+Computation space **Fock** (fixed truncation for numerical stability) · detector threshold · 4 photons ·
+8 modes · angle encoding (PS gates + BS entanglement) · `FidelityKernel` measurement · postselection
+none · MerLin SLOS analytic simulator (shots=None). Full per-run fields in `metrics.json["hardware"]`.
 
 ## Limitations
-- Reduced search (120 vs 4000 iters); single seed per dataset. Results are preliminary/partial.
+- Full paper-style EGAS search is now used (4000 iters); results are still reduced-scope due to
+  4 datasets, single-seed runs, and CPU-only execution.
 - Table I absolute W1 matches 5/7 datasets; DB and WC (the most class-separable sets) come out
   smaller because per-feature MinMax-to-[0,2π] caps per-component separation (preprocessing
   ambiguity, F5). The *diagnostic ordering* (low-W1 ⇒ saturation) is preserved.
-- Photonic mesh training is expensive (SLOS autodiff); photonic runs use 2 photons, 25 epochs,
-  5 splits (clearly reduced-scope).
+- Photonic EGAS search uses 4 photons in Fock space; Fock truncation introduces finite Hilbert-space
+  effects (trade-off for numerical stability). Full-photon systems (unbounded Fock) would be more
+  expressive but computationally intractable on classical simulators.
+- Current photonic bias refinement is not working as expected: the photonic `G_bias` results are
+  identical to `G` and the observed energy change is effectively zero.
 
 ## Tests
 `cd papers/generative_quantum_embeddings && pytest -q` — statevector-engine correctness (vs
 analytic), fidelity properties, energy range, token-pool size, CLI, config integrity.
 
 ### Photonic Implementation Tests
-Comprehensive test suite (`tests/test_photonic_impl.py`) validates the MerLin photonic 
-implementation:
-- Default input state alternates photon distribution across modes
-- FeatureMap correctly assigns input and trainable parameter prefixes
-- Kernel passes parameter assignments to FidelityKernel
-- Perceval circuit builds expected parameters with numeric suffixes
-- QuantumModule uses PS data indices and applies r-factor scaling to inputs
-- Trainable parameters initialized to 0 for consistent starting state
-- Bias refinement handles circuits with no trainable parameters
-- Photonic kernel SVM computes accuracy correctly
-- All tests use real MerLin and Perceval libraries (no mocks)
+Comprehensive test suite validates the MerLin photonic EGAS implementation:
+- Photonic EGAS energy computation (pairwise-fidelity surrogate with states from 4-photon circuits)
+- GPT-based architecture search in photonic setting (4000 iters, 12 candidates, EMA energy normalization)
+- Bias refinement via PS phase offset training (continuous optimization on fixed embeddings)
+- Photonic QKSVM evaluation with fidelity kernel (K_ij = |⟨s_i|s_j⟩|² from MerLin amplitudes)
+- Numerical stability in Fock space (no NaN/inf in kernel matrices)
+- Configuration loading and hyperparameter propagation (EGAS → photonic config chain)
+- Photonic-vs-gate energy comparison (both use same pairwise-fidelity formula)
+- All tests use real MerLin and Perceval libraries (no mocks); CPU-only (no GPU required)
 
 ## Citation and License
 Cite the original paper (arXiv:2605.30866). Reproduction code follows the repository license.

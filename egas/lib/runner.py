@@ -47,7 +47,7 @@ def train_and_evaluate(cfg, run_dir: Path) -> None:
 
 def _run_photonic_eval(cfg, run_dir, logger):
     """Photonic EGAS search/refinement + photonic QKSVM evaluation.
-    
+
     Supports binary and multiclass labels. For multiclass, pairwise energy uses
     same-class matching and classical baselines use one-vs-rest (OvR) strategy.
     """
@@ -61,8 +61,6 @@ def _run_photonic_eval(cfg, run_dir, logger):
     )
     from .photonic_kernel_svm import (
         classical_svm_accuracy,
-    )
-    from .photonic_kernel_svm import (
         qksvm_accuracy as photonic_qksvm_accuracy,
     )
     from .wasserstein import dataset_wasserstein
@@ -102,12 +100,14 @@ def _run_photonic_eval(cfg, run_dir, logger):
     Xe, ye = Xtr0[idx], slices[0]["y_train"][idx]
 
     t0 = time.time()
+    # For photonic_eval, seq_len should come from photonic config (same as gate-based)
+    photonic_seq_len = int(pcfg.get("seq_len", 28))
     gpt, hist, buf = run_egas(
         pool,
         Xe,
         ye,
         n_modes,
-        seq_len=int(ecfg.get("seq_len", pcfg.get("seq_len", 28))),
+        seq_len=photonic_seq_len,
         num_photons=n_photons,
         computation_space=computation_space,
         n_iters=int(ecfg.get("n_iters", pcfg.get("n_iters", 20))),
@@ -118,7 +118,7 @@ def _run_photonic_eval(cfg, run_dir, logger):
         temp_max=float(ecfg.get("temp_max", pcfg.get("temp_max", 100.0))),
         temp_min=float(ecfg.get("temp_min", pcfg.get("temp_min", 0.04))),
         d_model=int(ecfg.get("d_model", pcfg.get("d_model", 32))),
-        n_layers=int(ecfg.get("n_layers", pcfg.get("gpt_layers", 1))),
+        n_layers=int(ecfg.get("n_layers", 1)),
         n_heads=int(ecfg.get("n_heads", pcfg.get("n_heads", 2))),
         seed=seed,
         device=device,
@@ -406,7 +406,7 @@ def _run_fig1(cfg, run_dir, logger):
 
 def _run_egas_eval(cfg, run_dir, logger):
     """Gate-based EGAS search/refinement + gate QKSVM evaluation.
-    
+
     Supports binary and multiclass labels. For multiclass, pairwise energy uses
     same-class matching and classical baselines use one-vs-rest (OvR) strategy.
     """
