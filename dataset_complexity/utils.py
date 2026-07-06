@@ -32,6 +32,7 @@ from nn_embedding.lib.merlin_based_model import (
 from nn_embedding.utils.merlin_model_utils import assign_params  # noqa: E402
 from nn_embedding.utils.utils import state_vector_to_density_matrix, TransparentModel
 from encodings_merlin.utils import compute_kernel_matrix_without_nqe
+from scipy.optimize import linear_sum_assignment
 
 
 # Classical
@@ -126,6 +127,30 @@ def topological_complexity(
         total += weights[k] * float(np.sum(lifetimes))
 
     return total
+
+
+# New metric wasserstein distance
+def dataset_wasserstein(X: np.ndarray, y: np.ndarray, **kw) -> float:
+    """Compute average pairwise 1-Wasserstein distance between all class pairs.
+
+    For binary: returns W1(pos, neg).
+    For multiclass: returns mean W1 over all (class_i, class_j) pairs.
+    """
+    classes = np.unique(y)
+
+    # Binary case (backward compatible)
+    if len(classes) == 2:
+        y_pos, y_neg = classes[0], classes[1]
+        return wasserstein1_l1(X[y == y_pos], X[y == y_neg], **kw)
+
+    # Multiclass: average pairwise distances
+    w1_distances = []
+    for i, c1 in enumerate(classes):
+        for c2 in classes[i + 1 :]:
+            w1 = wasserstein1_l1(X[y == c1], X[y == c2], **kw)
+            w1_distances.append(w1)
+
+    return float(np.mean(w1_distances))
 
 
 # Induced, MerLin gives states not density matrix (easier to compute for some metrics)
@@ -860,3 +885,32 @@ def _get_all_bipartitions(m: int) -> list[tuple[list[int]]]:
                 continue
             result.append(tuple([A, B]))
     return result
+
+
+def wasserstein1_l1(
+    X_pos: np.ndarray, X_neg: np.ndarray, max_per_class: int = 500, seed: int = 0
+) -> float:
+    """Empirical 1-Wasserstein distance with L1 ground metric between two point clouds.
+
+    Uses scipy's linear_sum_assignment for exact EMD (Hungarian algorithm). This is
+    a polynomial algorithm. It is ok since all the points have the same points but different distances.
+    The problem becomes an assignement problem.
+    No threading issues, pure Python implementation.
+    """
+    rng = np.random.default_rng(seed)
+    if len(X_pos) > max_per_class:
+        X_pos = X_pos[rng.choice(len(X_pos), max_per_class, replace=False)]
+    if len(X_neg) > max_per_class:
+        X_neg = X_neg[rng.choice(len(X_neg), max_per_class, replace=False)]
+
+    # Compute L1 cost matrix
+    M = np.abs(X_pos[:, np.newaxis, :] - X_neg[np.newaxis, :, :]).sum(axis=2)
+
+    # Solve assignment problem (Hungarian algorithm)
+    row_ind, col_ind = linear_sum_assignment(M)
+
+    # Compute transport cost
+    transport_cost = M[row_ind, col_ind].sum()
+
+    # Normalize by number of samples (average cost per sample)
+    return float(transport_cost / max(len(X_pos), len(X_neg)))

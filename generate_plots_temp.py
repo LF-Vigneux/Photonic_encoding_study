@@ -24,17 +24,20 @@ from dataset_complexity.plotter import (
 
 def _classical_min_max(config: dict, x_all: torch.Tensor) -> list[list[float]]:
     n = int(x_all.size(0))
-    max_order = int(config.get("max_order_correlation_classical", 4))
-    max_dim = int(config.get("max_dim_topology_classical", 2))
+    max_order = int(config.get("max_order_correlation_classical", 4) or 4)
+    max_dim = int(config.get("max_dim_topology_classical", 2) or 2)
 
     corr_bound = ((2**max_order) - 2) * float(np.log(max_order))
     topo_bound = float((n - 1) + sum(math.comb(n, k) for k in range(2, max_dim + 2)))
+
+    max_wasserstein = float(torch.sum(torch.abs(x_all.max(dim=0).values - x_all.min(dim=0).values)))
 
     return [
         [0.0, float(np.log2(n))],
         [-corr_bound, corr_bound],
         [0.0, 1.0],
         [0.0, topo_bound],
+        [0.0, max_wasserstein],
     ]
 
 

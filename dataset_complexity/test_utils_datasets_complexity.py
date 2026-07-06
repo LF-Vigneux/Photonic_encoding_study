@@ -904,12 +904,14 @@ def test_classical_complexity_returns_all_metric_keys():
     from dataset_complexity.complexity_metrics import classical_complexity
 
     X = torch.randn(20, 4)
-    result = classical_complexity(X)
+    Y = torch.cat((torch.zeros(10), torch.ones(10))).long()
+    result = classical_complexity(X, Y)
     for key in (
         "distributional_entropy",
         "correlation_order",
         "kolmogorov_complexity",
         "topological_complexity",
+        "wasserstein distance",
         "total",
     ):
         assert key in result, f"Missing key: {key}"
@@ -919,14 +921,16 @@ def test_classical_complexity_total_equals_weighted_sum():
     """Paper Eq. 7: total = λ1·S + λ2·I_corr + λ3·K + λ4·C_top."""
     from dataset_complexity.complexity_metrics import classical_complexity
 
-    weights = [2.0, 0.5, 1.0, 3.0]
+    weights = [2.0, 0.5, 1.0, 3.0, 0.75]
     X = torch.randn(20, 3)
-    result = classical_complexity(X, hyper_parameters=weights)
+    Y = torch.cat((torch.zeros(10), torch.ones(10))).long()
+    result = classical_complexity(X, Y, hyper_parameters=weights)
     expected = (
         result["distributional_entropy"]
         + result["correlation_order"]
         + result["kolmogorov_complexity"]
         + result["topological_complexity"]
+        + result["wasserstein distance"]
     )
     assert result["total"] == pytest.approx(expected, rel=1e-6)
 
@@ -938,8 +942,10 @@ def test_classical_complexity_low_entropy_dataset_has_lower_total():
 
     constant = torch.zeros((30, 4))
     random = torch.randn(30, 4)
+    labels = torch.cat((torch.zeros(15), torch.ones(15))).long()
     assert (
-        classical_complexity(constant)["total"] < classical_complexity(random)["total"]
+        classical_complexity(constant, labels)["total"]
+        < classical_complexity(random, labels)["total"]
     )
 
 
@@ -954,8 +960,10 @@ def test_induced_quantum_complexity_returns_all_metric_keys():
     embedder = DummyDualRailEmbedder(states, m=4, num_photons=2)
     # Shape [4, 1]: rows iterate as 1-D tensors so DummyDualRailEmbedder uses x[0] as index
     X = torch.arange(4, dtype=torch.float32).unsqueeze(1)
+    Y = torch.tensor([0, 0, 1, 1], dtype=torch.long)
     result = induced_quantum_complexity(
         X,
+        Y,
         embedder,
         max_samples=4,
         n_samples_loc_vs_express=4,
@@ -980,8 +988,10 @@ def test_induced_quantum_complexity_total_equals_weighted_sum():
     states = torch.eye(4, dtype=torch.complex64)
     embedder = DummyDualRailEmbedder(states, m=4, num_photons=2)
     X = torch.arange(4, dtype=torch.float32).unsqueeze(1)
+    Y = torch.tensor([0, 0, 1, 1], dtype=torch.long)
     result = induced_quantum_complexity(
         X,
+        Y,
         embedder,
         max_samples=4,
         n_samples_loc_vs_express=4,

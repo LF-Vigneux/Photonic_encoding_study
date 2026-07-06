@@ -27,6 +27,7 @@ from encodings_merlin.encoding_layers import (
     fourier_basis_layer,
     AmplitudeEncoder,
     DenseAmplitudeEncoder,
+    EGASEncoder,
     TimeEvolutionEncoder,
 )
 from encodings_merlin.utils import find_mode_photon_config
@@ -55,7 +56,7 @@ def dataset_complexity_induced_comparison(
     n_photons: int | None = None,
     computation_space: ml.ComputationSpace = ml.ComputationSpace.UNBUNCHED,
     num_qubits_per_feature_fourier: int = 1,
-    hyper_parameters_classical: list[float] = [1, 1, 1, 1],
+    hyper_parameters_classical: list[float] = [1, 1, 1, 1, 1],
     max_order_correlation_classical: int | None = None,
     max_dim_topology_classical: int = 2,
     weights_topology_classical: list[float] | None = None,
@@ -242,6 +243,7 @@ def dataset_complexity_induced_comparison(
     if output["classical"] is None:
         output["classical"] = classical_complexity(
             X,
+            Y,
             hyper_parameters=hyper_parameters_classical,
             max_order_correlation=max_order_correlation_classical,
             max_dim_topology=max_dim_topology_classical,
@@ -437,7 +439,7 @@ def dataset_complexity_induced_comparison(
     ###########################
     print(f"Doing the amplitude encoding complexity 5/9")
     num_modes_encoder, num_photons_encoder = (
-        find_mode_photon_config(n_features, len(classes))
+        find_mode_photon_config(max(n_features, len(classes)))
         if (n_modes is None or n_photons is None)
         else (n_modes, n_photons)
     )
@@ -721,11 +723,8 @@ def dataset_complexity_induced_comparison(
     ### EGAS
     ###########################
     print(f"Doing the EGAS complexity 9/9")
-    nqe_batch_size = (
-        len(classes) * 100 if classes is not None else len(torch.unique(y_train)) * 100
-    )
 
-    def _train_egas_model() -> nn.Module:
+    def _train_egas_model() -> EGASEncoder:
         def _flatten_for_egas(tensor: torch.Tensor) -> torch.Tensor:
             return tensor.reshape(tensor.size(0), -1) if tensor.ndim > 2 else tensor
 
@@ -734,14 +733,15 @@ def dataset_complexity_induced_comparison(
         y_train_flat = y_train
 
         n_modes_encoder = (
-            n_modes if n_modes is not None else min(int(X_flat.shape[1]), 8)
+            n_modes if n_modes is not None else max(n_features, len(classes)) // 2
         )
-        n_modes_encoder = max(1, min(int(X_flat.shape[1]), int(n_modes_encoder)))
-        num_photons_encoder = n_photons if n_photons is not None else 2
+        num_photons_encoder = (
+            n_photons if n_photons is not None else n_modes_encoder // 2
+        )
 
         print(
             f"Running EGAS search with n_modes={n_modes_encoder}, num_photons={num_photons_encoder}, "
-            f"seq_len={min(8, n_modes_encoder)}"
+            f"seq_len={max(28, n_modes_encoder * 3 + 4)}"
         )
 
         pool = build_token_pool(n_modes_encoder)
@@ -757,7 +757,7 @@ def dataset_complexity_induced_comparison(
             Xe,
             ye,
             n_modes_encoder,
-            seq_len=max(28, n_modes * 3 + 4),
+            seq_len=max(28, n_modes_encoder * 3 + 4),
             num_photons=num_photons_encoder,
             computation_space=computation_space,
             n_iters=4000,
@@ -798,7 +798,8 @@ def dataset_complexity_induced_comparison(
             f"Selected EGAS candidate with E_after={best['E_after']:.6f} "
             f"and sequence length={len(best['seq'])}"
         )
-        return best["encoder"]
+
+        return EGASEncoder(best["encoder"])
 
     if output["induced"].get("egas") is None:
         model = _train_egas_model()

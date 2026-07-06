@@ -9,7 +9,7 @@
     "n_photons": null,
     "computation_space": "UNBUNCHED",
     "num_qubits_per_feature_fourier": 1,
-    "hyper_parameters_classical": [1, 1, 1, 1],
+    "hyper_parameters_classical": [1, 1, 1, 1, 1],
     "max_order_correlation_classical": 4,
     "max_dim_topology_classical": 2,
     "weights_topology_classical": null,

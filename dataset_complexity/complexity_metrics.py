@@ -12,6 +12,7 @@ sys.path.insert(0, str(REPO_ROOT))
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from dataset_complexity.utils import (
+    dataset_wasserstein,
     distributional_entropy,
     correlation_order,
     kolmogorov_complexity,
@@ -38,7 +39,8 @@ from nn_embedding.utils.merlin_model_utils import assign_params  # noqa: E402
 
 def classical_complexity(
     X: torch.Tensor,
-    hyper_parameters: list[float] = [1, 1, 1, 1],
+    Y: torch.Tensor,
+    hyper_parameters: list[float] = [1, 1, 1, 1, 1],
     max_order_correlation: int | None = None,
     max_dim_topology: int = 2,
     weights_topology: list[float] | None = None,
@@ -53,25 +55,32 @@ def classical_complexity(
         weights=weights_topology,
         max_samples=max_samples_topology,
     )
+    ws = hyper_parameters[4] * dataset_wasserstein(X, Y)
     N = int(X.size(0))
+    max_order = 4 if max_order_correlation is None else max_order_correlation
+    max_wasserstein = float(
+        torch.sum(torch.abs(X.max(dim=0).values - X.min(dim=0).values))
+    )
     min_max = [
         [0, np.log2(N)],
         [
-            -((2**max_order_correlation) - 2) * np.log(max_order_correlation),
-            ((2**max_order_correlation) - 2) * np.log(max_order_correlation),
+            -((2**max_order) - 2) * np.log(max_order),
+            ((2**max_order) - 2) * np.log(max_order),
         ],
         [0, 1],
         [
             0,
             (N - 1) + np.sum([comb(N, k) for k in range(2, max_dim_topology + 2)]),
         ],
+        [0, max_wasserstein],
     ]
     return {
         "distributional_entropy": de,
         "correlation_order": co,
         "kolmogorov_complexity": kc,
         "topological_complexity": tc,
-        "total": de + co + kc + tc,
+        "wasserstein distance": ws,
+        "total": de + co + kc + tc + ws,
         "min_max": min_max,
     }
 

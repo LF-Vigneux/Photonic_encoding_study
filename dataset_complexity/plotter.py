@@ -11,6 +11,7 @@ _CLASSICAL_METRICS = [
     "correlation_order",
     "kolmogorov_complexity",
     "topological_complexity",
+    "wasserstein distance",
 ]
 _INDUCED_METRICS = [
     "hilbert_space_support_dim",
@@ -26,6 +27,7 @@ _METRIC_LABELS = {
     "correlation_order": "Corr. order",
     "kolmogorov_complexity": "Kolmogorov",
     "topological_complexity": "Topology",
+    "wasserstein distance": "Wasserstein",
     "hilbert_space_support_dim": "Hilbert dim",
     "quantum_fisher_information_spread": "QFI spread",
     "entanglement_entropy": "Entanglement",
@@ -36,7 +38,7 @@ _METRIC_LABELS = {
 }
 
 # Colour palette – one per metric slot (classical uses its own 4, induced its 6)
-_CLASSICAL_COLORS = ["#76b7b2", "#59a14f", "#edc948", "#b07aa1"]
+_CLASSICAL_COLORS = ["#76b7b2", "#59a14f", "#edc948", "#b07aa1", "#ff9da7"]
 _INDUCED_COLORS = [
     "#4E79A7",
     "#F28E2B",

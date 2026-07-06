@@ -564,6 +564,7 @@ class TimeEvolutionEncoder(nn.Module):
                     ),
                     trainable_parameters=["el_"],
                 )
+                qlayer.computation_space
                 state = self.encoder(qlayer().flatten()).detach()
 
                 output_tensors[i, :, :] = torch.outer(state, state.conj())
@@ -572,3 +573,39 @@ class TimeEvolutionEncoder(nn.Module):
 
     def __repr__(self):
         return "TimeEvolutionEncoder()"
+
+
+class EGASEncoder(nn.Module):
+    def __init__(
+        self,
+        module,
+    ):
+        super().__init__()
+        self.num_modes = module.layer.circuit.m
+        self.num_photons = module.layer.n_photons
+        self.computation_space = module.layer.computation_space
+        self.module = module
+        for param in self.module.layer.parameters():
+            param.requires_grad = False
+
+        if self.computation_space is ml.ComputationSpace.UNBUNCHED:
+            self.output_size = math.comb(self.num_modes, self.num_photons)
+        elif self.computation_space is ml.ComputationSpace.FOCK:
+            self.output_size = math.comb(
+                self.num_modes + self.num_photons - 1, self.num_photons
+            )
+        elif self.computation_space is ml.ComputationSpace.DUAL_RAIL:
+            self.output_size = 2 ** (self.num_modes // 2)
+        else:
+            raise ValueError("Wrong computation space")
+
+        self.encoder = ml.LexGrouping(self.output_size, self.output_size)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        output: torch.Tensor = self.encoder(self.module(x))
+        if len(output.shape) == 2 and output.shape[0] == 1:
+            return output.squeeze(0)
+        return output
+
+    def __repr__(self):
+        return "EGASEncoder()"
