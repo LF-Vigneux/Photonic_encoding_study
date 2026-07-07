@@ -31,11 +31,11 @@ def _bce_pair_loss(states, labels, eps=1e-3):
 
 
 def _parameter_l2(parameters):
-    reg = None
-    for param in parameters:
-        term = (param.double() ** 2).mean()
-        reg = term if reg is None else reg + term
-    return reg if reg is not None else torch.tensor(0.0)
+    if not parameters:
+        return torch.tensor(0.0)
+
+    all_params = torch.cat([p.double().flatten() for p in parameters])
+    return (all_params**2).mean()
 
 
 def refine_bias(
@@ -43,6 +43,7 @@ def refine_bias(
     X,
     y,
     n_modes,
+    num_features,
     *,
     num_photons=2,
     computation_space=ml.ComputationSpace.UNBUNCHED,
@@ -69,11 +70,12 @@ def refine_bias(
 
     encoder = create_quantum_module(
         seq,
+        num_features=num_features,
         n_modes=n_modes,
         num_photons=num_photons,
         computation_space=computation_space,
     ).to(device)
-    trainable_parameters = [p for p in encoder.parameters() if p.requires_grad]
+    trainable_parameters = [p for p in encoder.bias.parameters() if p.requires_grad]
     if len(trainable_parameters) == 0:
         with torch.no_grad():
             # Evaluate with a single sample and replicate if no input indices
@@ -88,7 +90,7 @@ def refine_bias(
             E_before = pairwise_energy(states, yt).item()
         return encoder, E_before, E_before
 
-    opt = torch.optim.RMSprop(trainable_parameters, lr=lr)
+    opt = torch.optim.RMSprop(encoder.bias.parameters(), lr=lr)
 
     with torch.no_grad():
         # Evaluate with a single sample and replicate if no input indices
@@ -118,6 +120,7 @@ def refine_bias(
         if len(encoder.ps_data_indices) == 0:
             states = states.repeat(len(Xb), 1)
         loss = _bce_pair_loss(states, yb)
+        trainable_parameters = [p for p in encoder.bias.parameters() if p.requires_grad]
         reg = l2_bias * _parameter_l2(trainable_parameters)
         opt.zero_grad()
         (loss + reg).backward()

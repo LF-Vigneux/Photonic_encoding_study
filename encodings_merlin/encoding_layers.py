@@ -587,6 +587,8 @@ class EGASEncoder(nn.Module):
         self.module = module
         for param in self.module.layer.parameters():
             param.requires_grad = False
+        for param in self.module.bias.parameters():
+            param.requires_grad = False
 
         if self.computation_space is ml.ComputationSpace.UNBUNCHED:
             self.output_size = math.comb(self.num_modes, self.num_photons)
