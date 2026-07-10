@@ -22,6 +22,8 @@ from .statevec import fidelity_matrix
 
 def _bce_pair_loss(states, labels, eps=1e-3):
     F = fidelity_matrix(states)
+    if not torch.isfinite(F).all():
+        return torch.tensor(float("inf"), device=states.device)
     Fbar = F.clamp(eps, 1 - eps)
     same = (labels.unsqueeze(0) == labels.unsqueeze(1)).double()
     S = states.shape[0]
@@ -52,8 +54,8 @@ def refine_bias(
     lr=5e-4,
     grad_clip=2.0,
     l2_bias=1e-6,
-    hidden=None,
-    gain=None,
+    hidden=32,
+    gain=10.0,
     seed=0,
     device="cpu",
     avg_last=10,
@@ -74,7 +76,9 @@ def refine_bias(
         n_modes=n_modes,
         num_photons=num_photons,
         computation_space=computation_space,
-    ).to(device)
+    )
+    encoder.reset_bias(hidden=hidden, gain=gain)
+    encoder = encoder.to(device)
     trainable_parameters = [p for p in encoder.bias.parameters() if p.requires_grad]
     if len(trainable_parameters) == 0:
         with torch.no_grad():
@@ -102,6 +106,8 @@ def refine_bias(
         states = encoder(dummy_input)
         if len(encoder.ps_data_indices) == 0:
             states = states.repeat(len(Xt), 1)
+        if not torch.isfinite(states).all():
+            return encoder, float("inf"), float("inf")
         E_before = pairwise_energy(states, yt).item()
 
     rng = np.random.default_rng(seed)
@@ -117,6 +123,8 @@ def refine_bias(
             else Xb
         )
         states = encoder(Xb_input)
+        if not torch.isfinite(states).all():
+            return encoder, E_before, float("inf")
         if len(encoder.ps_data_indices) == 0:
             states = states.repeat(len(Xb), 1)
         loss = _bce_pair_loss(states, yb)

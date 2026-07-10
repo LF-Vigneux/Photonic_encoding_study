@@ -157,6 +157,21 @@ def dataset_wasserstein(X: np.ndarray, y: np.ndarray, **kw) -> float:
 ############################################################################################################
 
 
+def _safe_hermitian_eigvals(rho: torch.Tensor) -> torch.Tensor:
+    if not torch.isfinite(rho).all():
+        raise ValueError("Density matrix contains non-finite entries")
+    rho = (rho + rho.conj().mT) / 2
+    try:
+        return torch.linalg.eigvalsh(rho)
+    except RuntimeError:
+        try:
+            rho_cpu = rho.detach().cpu().to(torch.complex128)
+            return torch.linalg.eigvalsh(rho_cpu).to(rho.dtype)
+        except RuntimeError:
+            jitter = 1e-10 * torch.eye(rho.size(-1), dtype=rho.dtype, device=rho.device)
+            return torch.linalg.eigvalsh(rho + jitter)
+
+
 def hilbert_space_support_dim(
     x: torch.Tensor,
     embedder: nn.Module | NeuralEmbeddingMerLinKernel,
@@ -184,10 +199,19 @@ def hilbert_space_support_dim(
     psis = encoder(x)
     rhos = state_vector_to_density_matrix(psis)
     rho = torch.sum(rhos, dim=0) / x.size(0)
-    eigvals = torch.linalg.eigvalsh(rho)
-    effective_dim = 0
-    for val in tqdm(eigvals, desc="[hilbert_space_support_dim] eigvals"):
-        effective_dim += val / (val + eps)
+    if not torch.isfinite(rho).all():
+        return float(min(x.size(0), rho.size(0)))
+    try:
+        eigvals = _safe_hermitian_eigvals(rho)
+    except RuntimeError:
+        purity = torch.real(torch.trace(rho @ rho))
+        if torch.isfinite(purity) and purity > 0:
+            return float(1.0 / purity)
+        return float(min(x.size(0), rho.size(0)))
+
+    effective_dim = 0.0
+    for val in eigvals:
+        effective_dim += float(val) / (float(val) + eps)
     return effective_dim
 
 

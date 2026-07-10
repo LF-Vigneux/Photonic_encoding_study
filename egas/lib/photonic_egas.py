@@ -72,6 +72,9 @@ def evaluate_sequences(
         encoder.eval()
         with torch.no_grad():
             states = encoder(X)
+            if not torch.isfinite(states).all():
+                energies.append(np.inf)
+                continue
             energies.append(pairwise_energy(states, y).item())
     return np.array(energies)
 

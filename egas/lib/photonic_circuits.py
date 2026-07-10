@@ -70,32 +70,30 @@ def create_quantum_module(
     ps_r_factors = [r for gate, _, _, r in sequence if gate == "PS"]
 
     class BiasMLP(nn.Module):
-        """MLP whose initial output is identically zero."""
+        """Small MLP with a zero-initialised output head; output scaled by a fixed gain (=10)."""
 
         def __init__(
-            self,
-            n_in: int,
-            n_biases: int,
-            hidden: int = 32,
-            gain: float = 10.0,
+            self, n_in: int, output_size: int = 1, hidden: int = 32, gain: float = 10.0
         ):
             super().__init__()
-
-            self.net = nn.Sequential(
-                nn.Linear(n_in, hidden),
-                nn.Tanh(),
-                nn.Linear(hidden, hidden),
-                nn.Tanh(),
-                nn.Linear(hidden, n_biases),
-            )
-
-            # Zero-initialize the output layer
-            nn.init.zeros_(self.net[-1].weight)
-            nn.init.zeros_(self.net[-1].bias)
-
+            self.output_size = output_size
             self.gain = gain
+            if output_size <= 0:
+                self.net = None
+            else:
+                self.net = nn.Sequential(
+                    nn.Linear(n_in, hidden),
+                    nn.Tanh(),
+                    nn.Linear(hidden, hidden),
+                    nn.Tanh(),
+                    nn.Linear(hidden, output_size),
+                )
+                nn.init.zeros_(self.net[-1].weight)
+                nn.init.zeros_(self.net[-1].bias)
 
         def forward(self, X: torch.Tensor) -> torch.Tensor:
+            if self.output_size <= 0:
+                return torch.zeros(X.shape[0], 0, dtype=torch.float32, device=X.device)
             return self.gain * self.net(X.to(torch.float32))
 
     class QuantumModule(nn.Module):
@@ -112,10 +110,7 @@ def create_quantum_module(
                     computation_space=computation_space
                 ),
             )
-            self.bias = BiasMLP(
-                n_in=num_features,
-                n_biases=len(input_parameters),
-            )
+            self.bias = BiasMLP(n_in=num_features, output_size=len(input_parameters))
 
         def forward(self, x: torch.Tensor) -> torch.Tensor:
             if len(self.ps_data_indices) > 0:
@@ -125,12 +120,26 @@ def create_quantum_module(
                         "the sequence."
                     )
                 theta = x[..., self.ps_data_indices] * self.ps_r_factors
+                # Biases
                 phi = self.bias(x)
+
                 layer_input = torch.cat([theta, phi], dim=-1)
                 return self.layer(layer_input)
             else:
                 # No input parameters needed, create empty input with batch size
                 layer_input = torch.zeros(x.shape[0], 0, dtype=x.dtype, device=x.device)
                 return self.layer()
+
+        def reset_bias(self, hidden: int | None = None, gain: float | None = None):
+            if hidden is None:
+                hidden = 32
+            if gain is None:
+                gain = 10.0
+            self.bias = BiasMLP(
+                n_in=num_features,
+                output_size=len(input_parameters),
+                hidden=hidden,
+                gain=gain,
+            )
 
     return QuantumModule()
