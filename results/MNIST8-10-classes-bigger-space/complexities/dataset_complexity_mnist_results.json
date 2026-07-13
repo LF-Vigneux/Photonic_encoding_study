@@ -5,7 +5,8 @@
       "correlation_order": 33.42529590669839,
       "kolmogorov_complexity": 0.8851205357142857,
       "topological_complexity": 155.57010839693248,
-      "total": 201.03677536037665,
+      "wasserstein distance": 1.0150303694936964,
+      "total": 202.05180572987035,
       "min_max": [
         [
           0,
@@ -22,19 +23,23 @@
         [
           0,
           57166666724999
+        ],
+        [
+          0,
+          8.0
         ]
       ]
     },
     "induced": {
       "angle": {
-        "hilbert_space_support_dim": 109.49577331542969,
-        "quantum_fisher_information_spread": 21.170426006427792,
-        "entanglement_entropy": 1.8422839641571045,
-        "kernel_spectrum_flatness": 0.6824959516525269,
-        "locality_vs_expressibility": 0.47655869171776655,
-        "topological_invariants_of_embedding": 63.87334966659546,
-        "encoded_states_classes_overlap": 0.6769870519638062,
-        "total": 198.21787464794414,
+        "hilbert_space_support_dim": 104.22065064451868,
+        "quantum_fisher_information_spread": 17.54398554012906,
+        "entanglement_entropy": 1.8954827785491943,
+        "kernel_spectrum_flatness": 1.2519335746765137,
+        "locality_vs_expressibility": 0.06831307102552764,
+        "topological_invariants_of_embedding": 4.331163823604584,
+        "encoded_states_classes_overlap": 0.5377688407897949,
+        "total": 129.84929827329336,
         "min_max": [
           [
             1,
@@ -67,14 +72,14 @@
         ]
       },
       "dense_angle": {
-        "hilbert_space_support_dim": 14.976314544677734,
-        "quantum_fisher_information_spread": 4.812266572506807,
-        "entanglement_entropy": 0.039304427802562714,
-        "kernel_spectrum_flatness": 1.1138771772384644,
-        "locality_vs_expressibility": 0.0007898355252109468,
-        "topological_invariants_of_embedding": 5.037213087081909,
-        "encoded_states_classes_overlap": 0.8543798923492432,
-        "total": 26.834145537181932,
+        "hilbert_space_support_dim": 15.138923935196212,
+        "quantum_fisher_information_spread": 5.091457862856829,
+        "entanglement_entropy": 0.040993645787239075,
+        "kernel_spectrum_flatness": 1.2051432132720947,
+        "locality_vs_expressibility": 0.0008579257992096245,
+        "topological_invariants_of_embedding": 3.172907292842865,
+        "encoded_states_classes_overlap": 0.7286463975906372,
+        "total": 25.378930273345087,
         "min_max": [
           [
             1,
@@ -107,14 +112,14 @@
         ]
       },
       "fourier": {
-        "hilbert_space_support_dim": 66.91500091552734,
-        "quantum_fisher_information_spread": 8.019206319282782,
-        "entanglement_entropy": 0.5383553504943848,
-        "kernel_spectrum_flatness": 0.9904634356498718,
-        "locality_vs_expressibility": 0.03754977136850357,
-        "topological_invariants_of_embedding": 1.5497207641601562e-06,
-        "encoded_states_classes_overlap": 0.7960675358772278,
-        "total": 77.29664487792088,
+        "hilbert_space_support_dim": 65.01192091749141,
+        "quantum_fisher_information_spread": 8.019311609591888,
+        "entanglement_entropy": 0.5971875786781311,
+        "kernel_spectrum_flatness": 0.9774731993675232,
+        "locality_vs_expressibility": 0.04621875286102295,
+        "topological_invariants_of_embedding": 1.2278556823730469e-05,
+        "encoded_states_classes_overlap": 0.6990973949432373,
+        "total": 75.35122173149003,
         "min_max": [
           [
             1,
@@ -147,14 +152,14 @@
         ]
       },
       "amplitude": {
-        "hilbert_space_support_dim": 7.99999371792718,
-        "quantum_fisher_information_spread": 14.69594388690745,
-        "entanglement_entropy": 0.8835912728777658,
-        "kernel_spectrum_flatness": 1.1835966054007765,
-        "locality_vs_expressibility": 0.1033899692424873,
-        "topological_invariants_of_embedding": 8.018526705360273,
-        "encoded_states_classes_overlap": 0.7236218225248411,
-        "total": 33.60866398024077,
+        "hilbert_space_support_dim": 7.99999378464152,
+        "quantum_fisher_information_spread": 11.543524364716912,
+        "entanglement_entropy": 0.8511672869659443,
+        "kernel_spectrum_flatness": 1.2243820407424966,
+        "locality_vs_expressibility": 0.09591535033172462,
+        "topological_invariants_of_embedding": 4.971355663688878,
+        "encoded_states_classes_overlap": 0.6476382757077237,
+        "total": 27.333976766795203,
         "min_max": [
           [
             1,
@@ -187,18 +192,18 @@
         ]
       },
       "dense_amplitude": {
-        "hilbert_space_support_dim": 3.999998677672242,
-        "quantum_fisher_information_spread": 12.596553148924968,
-        "entanglement_entropy": 0.5445059818744633,
-        "kernel_spectrum_flatness": 1.1835966054007767,
-        "locality_vs_expressibility": 0.027238718577808164,
-        "topological_invariants_of_embedding": 8.018526705360271,
-        "encoded_states_classes_overlap": 0.7467307190785822,
-        "total": 27.11715055688911,
+        "hilbert_space_support_dim": 3.9999987651521143,
+        "quantum_fisher_information_spread": 9.894655950717716,
+        "entanglement_entropy": 0.7117646686616723,
+        "kernel_spectrum_flatness": 1.2243820407424966,
+        "locality_vs_expressibility": 0.10474899988786145,
+        "topological_invariants_of_embedding": 4.971355663688882,
+        "encoded_states_classes_overlap": 0.6820344067750886,
+        "total": 21.58894049562583,
         "min_max": [
           [
             1,
-            15
+            6
           ],
           [
             0,
@@ -206,7 +211,7 @@
           ],
           [
             0,
-            3.9068905956085187
+            2.584962500721156
           ],
           [
             1,
@@ -228,18 +233,18 @@
       },
       "evolution": null,
       "nqe": {
-        "hilbert_space_support_dim": 9.999994277954102,
-        "quantum_fisher_information_spread": 257.606767844777,
-        "entanglement_entropy": 0.8898513317108154,
-        "kernel_spectrum_flatness": 6.69921875,
-        "locality_vs_expressibility": 6.499004760341694e-06,
-        "topological_invariants_of_embedding": 26.661352336406708,
-        "encoded_states_classes_overlap": 0.23269852995872498,
-        "total": 302.0898895698121,
+        "hilbert_space_support_dim": 5.999852409906074,
+        "quantum_fisher_information_spread": 30.779394230914765,
+        "entanglement_entropy": 0.7752285003662109,
+        "kernel_spectrum_flatness": 2.032595634460449,
+        "locality_vs_expressibility": 0.11655602244473992,
+        "topological_invariants_of_embedding": 0.17291933298110962,
+        "encoded_states_classes_overlap": 0.04199725389480591,
+        "total": 39.91854338496815,
         "min_max": [
           [
             1,
-            10
+            6
           ],
           [
             0,
@@ -247,7 +252,47 @@
           ],
           [
             0,
-            3.321928094887362
+            2.584962500721156
+          ],
+          [
+            1,
+            1000
+          ],
+          [
+            0,
+            1.0
+          ],
+          [
+            0,
+            166667499
+          ],
+          [
+            0,
+            1
+          ]
+        ]
+      },
+      "egas": {
+        "hilbert_space_support_dim": 6.040219258406741,
+        "quantum_fisher_information_spread": 10.377479839880841,
+        "entanglement_entropy": 0.39251434803009033,
+        "kernel_spectrum_flatness": 2.6441951284447005,
+        "locality_vs_expressibility": 0.02134257335073886,
+        "topological_invariants_of_embedding": 0.6382178068161011,
+        "encoded_states_classes_overlap": 0.02036154270172119,
+        "total": 20.134330497630934,
+        "min_max": [
+          [
+            1,
+            6
+          ],
+          [
+            0,
+            3.1999999999999994e+17
+          ],
+          [
+            0,
+            2.584962500721156
           ],
           [
             1,
@@ -273,16 +318,7 @@
     "dataset_name": "mnist",
     "classes": [
       0,
-      1,
-      2,
-      3,
-      4,
-      5,
-      6,
-      7,
-      8,
-      9,
-      10
+      1
     ],
     "feature_reduction": 8,
     "n_modes": null,
@@ -290,6 +326,7 @@
     "computation_space": "UNBUNCHED",
     "num_qubits_per_feature_fourier": 1,
     "hyper_parameters_classical": [
+      1,
       1,
       1,
       1,
