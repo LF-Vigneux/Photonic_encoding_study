@@ -13,3 +13,4 @@ nn_embedding/lib/__pycache__/merlin_based_model.cpython-312.pyc
 nn_embedding/lib/__pycache__/training_without_nqe.cpython-312.pyc
 nn_embedding/utils/__pycache__/merlin_models.cpython-312.pyc
 nn_embedding/utils/__pycache__/utils.cpython-312.pyc
+datasets/
