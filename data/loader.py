@@ -10,10 +10,8 @@ from sklearn.datasets import fetch_openml, make_moons, make_circles
 from merlin.datasets import spiral
 from sklearn.decomposition import PCA
 from sklearn.model_selection import train_test_split
-import medmnist
 import numpy as np
 import torch
-from medmnist import INFO
 from torchvision import datasets
 from torchvision.transforms import Compose, Resize, ToTensor
 
@@ -84,6 +82,8 @@ def _load_datasets(
 
         # ---- PathMNIST ----
         if dataset in ["pathmnist", "path_mnist", "path-mnist"]:
+            import medmnist
+            from medmnist import INFO
             info = INFO["pathmnist"]
             DataClass = getattr(medmnist, info["python_class"])
 
