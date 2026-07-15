@@ -1,0 +1,11 @@
+merlinquantum
+ripser
+zlib
+matplotlib
+pennylane
+quimb
+torchvision
+scipy
+sklearn
+tqdm
+plotly
