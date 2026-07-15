@@ -1,11 +1,9 @@
-merlinquantum
-ripser
-zlib
+merlinquantum==0.4.0
+ripser==0.6.14
 matplotlib
 pennylane
 quimb
 torchvision
 scipy
-sklearn
 tqdm
 plotly

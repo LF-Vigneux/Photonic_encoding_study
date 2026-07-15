@@ -6,10 +6,9 @@
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=80000
 
-module load python/3.11.5
-module load symengine/0.13.0
+module load python/3.12.4
 
-source $HOME/venv/Encoding_Study/bin/activate
+source $HOME/venv/Encoding_Study_official/bin/activate
 
 cd $SLURM_SUBMIT_DIR
 
