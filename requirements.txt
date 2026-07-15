@@ -6,4 +6,5 @@ quimb
 torchvision
 scipy
 tqdm
+umap-learn
 plotly
