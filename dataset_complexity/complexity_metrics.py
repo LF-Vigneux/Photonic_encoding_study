@@ -58,9 +58,6 @@ def classical_complexity(
     ws = hyper_parameters[4] * dataset_wasserstein(X, Y)
     N = int(X.size(0))
     max_order = 4 if max_order_correlation is None else max_order_correlation
-    max_wasserstein = float(
-        torch.sum(torch.abs(X.max(dim=0).values - X.min(dim=0).values))
-    )
     min_max = [
         [0, np.log2(N)],
         [
@@ -72,7 +69,7 @@ def classical_complexity(
             0,
             (N - 1) + np.sum([comb(N, k) for k in range(2, max_dim_topology + 2)]),
         ],
-        [0, max_wasserstein],
+        [0, np.prod(X.shape[1:])],
     ]
     return {
         "distributional_entropy": de,

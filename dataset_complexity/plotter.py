@@ -369,6 +369,121 @@ def plot_complexity_comparison_normalized(
     return output_path
 
 
+def plot_normalized_complexities_classical(
+    complexities: dict[str, Any],
+    *,
+    dataset_name: str = "",
+    figsize: tuple[float, float] = (10.0, 6.0),
+    run_dir: Path | None = None,
+) -> Path:
+    """Create a normalized (0–1) bar plot of the dataset complexity metrics."""
+
+    metrics = [
+        "distributional_entropy",
+        "correlation_order",
+        "kolmogorov_complexity",
+        "topological_complexity",
+        "wasserstein distance",
+    ]
+
+    labels = [
+        "Distributional\nEntropy",
+        "Correlation\nOrder",
+        "Kolmogorov\nComplexity",
+        "Topological\nComplexity",
+        "Wasserstein\nDistance",
+    ]
+
+    if not complexities:
+        fig, ax = plt.subplots(figsize=figsize)
+        title = "Normalized dataset complexities"
+        if dataset_name:
+            title += f" — {dataset_name}"
+
+        ax.set_title(title)
+        ax.text(
+            0.5,
+            0.5,
+            "No complexity metrics available",
+            ha="center",
+            va="center",
+            transform=ax.transAxes,
+        )
+        ax.set_xticks([])
+        ax.set_yticks([])
+
+        for spine in ax.spines.values():
+            spine.set_visible(True)
+            spine.set_linewidth(1.5)
+
+        fig.tight_layout()
+
+        filename = "dataset_complexities_normalized.pdf"
+        output_path = _save_plot(fig, filename, run_dir)
+        print(f"Saved normalized complexity plot to {output_path}")
+        return output_path
+
+    # Normalize each metric using its own min/max bounds
+    bounds = _entry_bounds(complexities, metrics)
+
+    normalized_values = []
+    for metric, (min_val, max_val) in zip(metrics, bounds):
+        value = float(complexities.get(metric, 0.0))
+        normalized_values.append(_normalize_metric(value, min_val, max_val))
+
+    fig, ax = plt.subplots(figsize=figsize)
+
+    x = np.arange(len(metrics))
+
+    bars = ax.bar(
+        x,
+        normalized_values,
+        width=0.65,
+        alpha=0.8,
+        edgecolor="black",
+        linewidth=0.7,
+    )
+
+    # Value labels
+    for bar, value in zip(bars, normalized_values):
+        ax.text(
+            bar.get_x() + bar.get_width() / 2,
+            value,
+            f"{value:.2f}",
+            ha="center",
+            va="bottom",
+            fontsize=9,
+        )
+
+    # Reference lines
+    ax.axhline(0.0, color="red", linestyle=":", linewidth=1.5, alpha=0.5)
+    ax.axhline(1.0, color="green", linestyle=":", linewidth=1.5, alpha=0.5)
+
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels, rotation=30, ha="right")
+    ax.set_ylabel("Normalized complexity (0–1)")
+    ax.set_ylim(0.0, 1.05)
+
+    title = "Normalized dataset complexities"
+    if dataset_name:
+        title += f" — {dataset_name}"
+    ax.set_title(title)
+
+    ax.grid(True, axis="y", linestyle="--", alpha=0.3)
+
+    for spine in ax.spines.values():
+        spine.set_visible(True)
+        spine.set_linewidth(1.5)
+
+    fig.tight_layout()
+
+    filename = "dataset_complexities_normalized.pdf"
+    output_path = _save_plot(fig, filename, run_dir)
+    print(f"Saved normalized complexity plot to {output_path}")
+
+    return output_path
+
+
 def _normalize_metric(value: float, min_val: float, max_val: float) -> float:
     """Normalize a metric value to [0, 1] using min_max bounds.
 

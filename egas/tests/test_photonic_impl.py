@@ -1,8 +1,10 @@
+import importlib
 import sys
 
 import pytest
 import torch
 from common import PROJECT_DIR
+from lib.photonic_kernel_svm import qksvm_accuracy
 
 if str(PROJECT_DIR) not in sys.path:
     sys.path.insert(0, str(PROJECT_DIR))
@@ -10,8 +12,8 @@ if str(PROJECT_DIR) not in sys.path:
 pytest.importorskip("merlin")
 pytest.importorskip("perceval")
 
-import merlin as ml
-import perceval as pcvl
+import merlin as ml  # noqa: E402
+import perceval as pcvl  # noqa: E402
 
 
 def test_default_input_state_alternates_modes():
@@ -84,8 +86,6 @@ def test_create_quantum_module_uses_ps_data_indices_and_trainable_parameters():
 
 
 def test_photonic_kernel_svm_accuracy_uses_precomputed_kernel():
-    from lib.photonic_kernel_svm import qksvm_accuracy
-
     class DummyModel(torch.nn.Module):
         def forward(self, x: torch.Tensor) -> torch.Tensor:
             return x
@@ -102,8 +102,6 @@ def test_photonic_kernel_svm_accuracy_uses_precomputed_kernel():
 
 
 def test_refine_bias_returns_same_energy_when_no_trainable_parameters():
-    import importlib
-
     photonic_bias = importlib.import_module("lib.photonic_bias")
 
     sequence = [("PS_PI", 0, 0, 0.0)]

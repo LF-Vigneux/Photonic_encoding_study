@@ -44,6 +44,7 @@ from dataset_complexity.plotter import (
     plot_induced_per_encoding,
     plot_normalized_summary,
     plot_complexity_comparison_normalized,
+    plot_normalized_complexities_classical,
 )
 from dataset_complexity.umap import save_umap_plots
 
@@ -261,6 +262,14 @@ def dataset_complexity_induced_comparison(
     ):
         print("UMAP (cached classical)")
         _save_umap_projection("classical")
+
+    plot_normalized_complexities_classical(
+        output["classical"],
+        dataset_name=dataset_name,
+        run_dir=complexities_dir,
+        filename=f"dataset_complexity_{dataset_name}_normalized_comparison.pdf",
+    )
+
     print()
 
     #######################################################
