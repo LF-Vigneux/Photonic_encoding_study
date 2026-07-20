@@ -212,7 +212,7 @@ def induced_quantum_complexity(
         ],
         [0, np.log2(hilbert_dim)],
         [1, N],
-        [0, max(1.0, (2 * np.log2(hilbert_dim)) / (np.log2(N)))],
+        [0, 1],
         [
             0,
             (N - 1) + np.sum([comb(N, k) for k in range(2, max_dim_topology + 2)]),
