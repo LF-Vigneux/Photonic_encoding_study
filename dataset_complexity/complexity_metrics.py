@@ -210,7 +210,7 @@ def induced_quantum_complexity(
             0,
             (4 * d) / (eps**2),
         ],
-        [0, np.log2(hilbert_dim)],
+        [0, 0.5 * np.log2(hilbert_dim)],
         [1, N],
         [0, 1],
         [
