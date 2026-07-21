@@ -375,6 +375,7 @@ def plot_normalized_complexities_classical(
     dataset_name: str = "",
     figsize: tuple[float, float] = (10.0, 6.0),
     run_dir: Path | None = None,
+    filename: str = "dataset_complexities_normalized.pdf",
 ) -> Path:
     """Create a normalized (0–1) bar plot of the dataset complexity metrics."""
 
@@ -396,6 +397,7 @@ def plot_normalized_complexities_classical(
 
     if not complexities:
         fig, ax = plt.subplots(figsize=figsize)
+
         title = "Normalized dataset complexities"
         if dataset_name:
             title += f" — {dataset_name}"
@@ -418,7 +420,6 @@ def plot_normalized_complexities_classical(
 
         fig.tight_layout()
 
-        filename = "dataset_complexities_normalized.pdf"
         output_path = _save_plot(fig, filename, run_dir)
         print(f"Saved normalized complexity plot to {output_path}")
         return output_path
@@ -477,7 +478,6 @@ def plot_normalized_complexities_classical(
 
     fig.tight_layout()
 
-    filename = "dataset_complexities_normalized.pdf"
     output_path = _save_plot(fig, filename, run_dir)
     print(f"Saved normalized complexity plot to {output_path}")
 
