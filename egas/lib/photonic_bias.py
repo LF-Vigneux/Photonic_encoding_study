@@ -43,7 +43,6 @@ def refine_bias(
     X,
     y,
     n_modes,
-    num_features,
     *,
     num_photons=2,
     computation_space=ml.ComputationSpace.UNBUNCHED,
@@ -67,6 +66,7 @@ def refine_bias(
     torch.manual_seed(seed)
     Xt = torch.as_tensor(X, dtype=torch.float32, device=device)
     yt = torch.as_tensor(y, dtype=torch.long, device=device)
+    num_features = Xt.shape[-1]
 
     encoder = create_quantum_module(
         seq,
@@ -74,7 +74,7 @@ def refine_bias(
         n_modes=n_modes,
         num_photons=num_photons,
         computation_space=computation_space,
-    )
+    ).to(X.device)
     encoder.reset_bias(hidden=hidden, gain=gain)
     encoder = encoder.to(device)
     trainable_parameters = [p for p in encoder.bias.parameters() if p.requires_grad]

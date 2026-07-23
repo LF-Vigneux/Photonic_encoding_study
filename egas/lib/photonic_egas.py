@@ -235,7 +235,6 @@ def refine_candidates(
     for sid in candidate_ids:
         seq = [pool[int(i)] for i in sid]
         kwargs = {
-            "num_features": X.shape[-1],
             "num_photons": num_photons,
             "device": device,
             **refine_kwargs,

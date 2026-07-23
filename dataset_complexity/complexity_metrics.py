@@ -58,11 +58,12 @@ def classical_complexity(
     ws = hyper_parameters[4] * dataset_wasserstein(X, Y)
     N = int(X.size(0))
     max_order = 4 if max_order_correlation is None else max_order_correlation
+    K = min(X.size(1), max_order)
     min_max = [
         [0, np.log2(N)],
         [
-            -((2**max_order) - 2) * np.log(max_order),
-            ((2**max_order) - 2) * np.log(max_order),
+            -np.log2(X.shape[0]) * ((2 ** (K + 1)) - K - 3),
+            np.log2(X.shape[0]) * ((2 ** (K + 1)) - K - 3),
         ],
         [0, 1],
         [

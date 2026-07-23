@@ -254,6 +254,12 @@ def dataset_complexity_induced_comparison(
         _save()
         print(f"UMAP")
         _save_umap_projection("classical")
+    K = min(X.shape[1], max_order_correlation_classical)
+    output["classical"]["min_max"][1] = [
+        -np.log2(X.shape[0]) * ((2 ** (K + 1)) - K - 3),
+        np.log2(X.shape[0]) * ((2 ** (K + 1)) - K - 3),
+    ]
+    _save()
     print(f"Complexity of {_total(output['classical'])}")
     if (
         output["classical"] is not None
@@ -643,7 +649,7 @@ def dataset_complexity_induced_comparison(
 
     def _train_nqe_model() -> NeuralEmbeddingMerLinKernel:
         # Same number of modes as dense amplitude encoder, using the lesser most resources.
-        general_unitary = ml.CircuitBuilder(n_modes=max(n_features, len(classes)) // 2)
+        general_unitary = ml.CircuitBuilder(n_modes=num_modes_encoder)
         # Two deep
         general_unitary.add_entangling_layer()
         general_unitary.add_entangling_layer()
@@ -734,6 +740,8 @@ def dataset_complexity_induced_comparison(
     print(f"Doing the EGAS complexity 9/9")
 
     def _train_egas_model() -> EGASEncoder:
+        computation_space = ml.ComputationSpace.FOCK
+
         def _flatten_for_egas(tensor: torch.Tensor) -> torch.Tensor:
             return tensor.reshape(tensor.size(0), -1) if tensor.ndim > 2 else tensor
 
@@ -741,19 +749,12 @@ def dataset_complexity_induced_comparison(
         x_train_flat = _flatten_for_egas(x_train)
         y_train_flat = y_train
 
-        n_modes_encoder = (
-            n_modes if n_modes is not None else max(n_features, len(classes)) // 2
-        )
-        num_photons_encoder = (
-            n_photons if n_photons is not None else n_modes_encoder // 2
-        )
-
         print(
-            f"Running EGAS search with n_modes={n_modes_encoder}, num_photons={num_photons_encoder}, "
-            f"seq_len={max(28, n_modes_encoder * 3 + 4)}"
+            f"Running EGAS search with n_modes={num_modes_encoder}, num_photons={num_photons_encoder}, "
+            f"seq_len={max(28, num_modes_encoder * 3 + 4)}"
         )
 
-        pool = build_token_pool(n_modes_encoder)
+        pool = build_token_pool(num_modes_encoder, X_flat.shape[-1])
         seed = 0
         rng = np.random.default_rng(seed)
         search_samples = min(256, len(x_train_flat))
@@ -765,8 +766,8 @@ def dataset_complexity_induced_comparison(
             pool,
             Xe,
             ye,
-            n_modes_encoder,
-            seq_len=max(28, n_modes_encoder * 3 + 4),
+            num_modes_encoder,
+            seq_len=max(28, num_modes_encoder * 3 + 4),
             num_photons=num_photons_encoder,
             computation_space=computation_space,
             n_iters=4000,
@@ -790,7 +791,7 @@ def dataset_complexity_induced_comparison(
             pool,
             Xe,
             ye,
-            n_modes_encoder,
+            num_modes_encoder,
             num_photons=num_photons_encoder,
             computation_space=computation_space,
             device=X_flat.device,

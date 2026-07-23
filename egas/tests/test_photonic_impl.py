@@ -112,7 +112,6 @@ def test_refine_bias_returns_same_energy_when_no_trainable_parameters():
         sequence,
         X,
         y,
-        num_features=4,
         n_modes=3,
         num_photons=2,
         computation_space=ml.ComputationSpace.UNBUNCHED,
