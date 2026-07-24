@@ -206,6 +206,9 @@ def run_egas(
                 loss.item(),
                 len(buffer),
             )
+        print(
+            f"Iter {history["iter"][-1]} ahd a min_energy: {history["min_energy"][-1]}, a mean_energy: {history["mean_energy"][-1]} and loss: {history["loss"][-1]}."
+        )
     return gpt, history, buffer
 
 
@@ -235,6 +238,7 @@ def refine_candidates(
     for sid in candidate_ids:
         seq = [pool[int(i)] for i in sid]
         kwargs = {
+            "num_features": X.shape[-1],
             "num_photons": num_photons,
             "device": device,
             **refine_kwargs,

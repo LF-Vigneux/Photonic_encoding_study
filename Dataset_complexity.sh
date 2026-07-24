@@ -5,6 +5,9 @@
 #SBATCH --time=48:00:00
 #SBATCH --cpus-per-task=36
 #SBATCH --mem=100000
+export OMP_NUM_THREADS=36
+export MKL_NUM_THREADS=36
+export OPENBLAS_NUM_THREADS=36
 
 module load python/3.12.4
 

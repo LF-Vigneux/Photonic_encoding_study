@@ -23,7 +23,7 @@ def build_token_pool(n_modes: int, num_features: int):
                 tokens.append(("PS", q, d, r))
         tokens.append(("PS_PI", q, 0, 0.0))
         tokens.append(("PS_PI_2", q, 0, 0.0))
-    for q in range(n_modes - 1):  # CNOT (q, q+1)
+    for q in range(n_modes - 1):  # BS (q, q+1)
         tokens.append(("BS", q, 0, 0.0))
     return tokens
 
@@ -100,10 +100,7 @@ def create_quantum_module(
         def __init__(self):
             super().__init__()
             self.ps_data_indices = ps_data_indices
-            self.register_buffer(
-                "ps_r_factors",
-                torch.tensor(ps_r_factors, dtype=torch.float32),
-            )
+            self.ps_r_factors = torch.tensor(ps_r_factors, dtype=torch.float32)
             self.layer = ml.QuantumLayer(
                 input_size=2 * len(input_parameters),
                 circuit=circuit,
@@ -113,11 +110,7 @@ def create_quantum_module(
                     computation_space=computation_space
                 ),
             )
-            self.num_features = num_features
-            self.bias_output_size = len(input_parameters)
-            self.bias = BiasMLP(
-                n_in=self.num_features, output_size=self.bias_output_size
-            )
+            self.bias = BiasMLP(n_in=num_features, output_size=len(input_parameters))
 
         def forward(self, x: torch.Tensor) -> torch.Tensor:
             if len(self.ps_data_indices) > 0:
@@ -127,10 +120,10 @@ def create_quantum_module(
                         "the sequence."
                     )
                 theta = x[..., self.ps_data_indices] * self.ps_r_factors
+                # Biases
                 phi = self.bias(x)
-                layer_input = torch.stack((theta, phi), dim=-1).reshape(
-                    theta.shape[0], -1
-                )
+
+                layer_input = torch.cat([theta, phi], dim=-1)
                 return self.layer(layer_input)
             else:
                 # No input parameters needed, create empty input with batch size
@@ -146,23 +139,11 @@ def create_quantum_module(
             param = next(self.parameters())
             device = param.device
             dtype = param.dtype
-
             self.bias = BiasMLP(
-                n_in=self.num_features,
-                output_size=self.bias_output_size,
+                n_in=num_features,
+                output_size=len(input_parameters),
                 hidden=hidden,
                 gain=gain,
             ).to(device=device, dtype=dtype)
-
-        def to(self, *args, **kwargs):
-            super().to(*args, **kwargs)
-
-            # ps_r_factors is not a parameter or buffer, so move it manually
-            self.ps_r_factors = self.ps_r_factors.to(*args, **kwargs)
-
-            # bias may have been recreated, so ensure it is moved as well
-            self.bias.to(*args, **kwargs)
-
-            return self
 
     return QuantumModule()

@@ -14,6 +14,7 @@ import numpy as np
 import torch
 from torchvision import datasets
 from torchvision.transforms import Compose, Resize, ToTensor
+from sklearn.datasets import load_breast_cancer, load_diabetes
 
 
 def _load_datasets(
@@ -53,6 +54,26 @@ def _load_datasets(
             stratify=targets,
         )
     else:
+        # ---- scikit-learn tabular datasets ----
+        if dataset in ["breast_cancer", "breast-cancer"]:
+            data, targets = load_breast_cancer(return_X_y=True)
+            return train_test_split(
+                data.astype(np.float32),
+                targets.astype(np.int64),
+                test_size=0.2,
+                random_state=42,
+                stratify=targets,
+            )
+
+        if dataset == "diabetes":
+            data, targets = load_diabetes(return_X_y=True)
+            return train_test_split(
+                data.astype(np.float32),
+                targets.astype(np.float32),
+                test_size=0.2,
+                random_state=42,
+            )
+
         transform_32 = Compose([Resize((32, 32)), ToTensor()])
         root = "datasets/data"
         # ---- CIFAR-10 ----
@@ -84,6 +105,7 @@ def _load_datasets(
         if dataset in ["pathmnist", "path_mnist", "path-mnist"]:
             import medmnist
             from medmnist import INFO
+
             info = INFO["pathmnist"]
             DataClass = getattr(medmnist, info["python_class"])
 

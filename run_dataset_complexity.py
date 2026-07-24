@@ -103,10 +103,29 @@ def dataset_complexity_induced_comparison(
                 sum(
                     float(val)
                     for k, val in v.items()
-                    if k != "total" and isinstance(val, (int, float, np.number))
+                    if k not in {"total", "n_modes", "n_photons"}
+                    and isinstance(val, (int, float, np.number))
                 )
             )
         return float(v)
+
+    def _add_encoding_resources(
+        encoding_name: str, n_modes_used: int, n_photons_used: int
+    ) -> bool:
+        """Record the physical resources used by an induced encoding."""
+        result = output["induced"].get(encoding_name)
+        if not isinstance(result, dict):
+            return False
+
+        resources = {
+            "n_modes": int(n_modes_used),
+            "n_photons": int(n_photons_used),
+        }
+        changed = any(result.get(key) != value for key, value in resources.items())
+        result.update(resources)
+        if changed:
+            _save()
+        return changed
 
     # ── Persistence setup ─────────────────────────────────────────────────────
     results_root_dir = (
@@ -323,6 +342,11 @@ def dataset_complexity_induced_comparison(
         print(f"UMAP")
         _save_umap_projection("angle", embedder=model)
         del encoder, model
+    _add_encoding_resources(
+        "angle",
+        max(n_modes or 0, n_features + 1),
+        num_photons_encoder,
+    )
     gc.collect()
     print(f"Complexity of {_total(output['induced']['angle'])}")
     if (
@@ -377,6 +401,11 @@ def dataset_complexity_induced_comparison(
         print(f"UMAP")
         _save_umap_projection("dense_angle", embedder=model)
         del encoder, model
+    _add_encoding_resources(
+        "dense_angle",
+        max(n_modes or 0, 2 * int(np.ceil(n_features / 2))),
+        int(np.ceil(n_features / 2)),
+    )
     gc.collect()
     print(f"Complexity of {_total(output['induced']['dense_angle'])}")
     if (
@@ -428,6 +457,11 @@ def dataset_complexity_induced_comparison(
         print(f"UMAP")
         _save_umap_projection("fourier", embedder=model)
         del encoder, model
+    _add_encoding_resources(
+        "fourier",
+        n_features * num_qubits_per_feature_fourier * 2,
+        n_features * num_qubits_per_feature_fourier,
+    )
     gc.collect()
     print(f"Complexity of {_total(output['induced']['fourier'])}")
     if (
@@ -481,6 +515,7 @@ def dataset_complexity_induced_comparison(
         print(f"UMAP")
         _save_umap_projection("amplitude", embedder=encoder)
         del encoder
+    _add_encoding_resources("amplitude", num_modes_encoder, num_photons_encoder)
     gc.collect()
     print(f"Complexity of {_total(output['induced']['amplitude'])}")
     if (
@@ -531,6 +566,7 @@ def dataset_complexity_induced_comparison(
         print(f"UMAP")
         _save_umap_projection("dense_amplitude", embedder=encoder)
         del encoder
+    _add_encoding_resources("dense_amplitude", num_modes_encoder, num_photons_encoder)
     gc.collect()
     print(f"Complexity of {_total(output['induced']['dense_amplitude'])}")
     if (
@@ -605,6 +641,11 @@ def dataset_complexity_induced_comparison(
         if merged_X is not X:
             del merged_X
     gc.collect()
+    evolution_num_modes = (
+        2 * (n_features // 2 + 1) if len(X.shape) == 2 else 2 * X.size(2)
+    )
+    evolution_num_photons = n_features if n_photons is None else n_photons
+    _add_encoding_resources("evolution", evolution_num_modes, evolution_num_photons)
     if (
         output["induced"].get("evolution") is not None
         and generate_umap_plots
@@ -719,6 +760,7 @@ def dataset_complexity_induced_comparison(
         print(f"UMAP")
         _save_umap_projection("nqe", embedder=model)
         del model
+    _add_encoding_resources("nqe", num_modes_encoder, num_photons_encoder)
     gc.collect()
     print(f"Complexity of {_total(output['induced']['nqe'])}")
     if (
@@ -767,10 +809,10 @@ def dataset_complexity_induced_comparison(
             Xe,
             ye,
             num_modes_encoder,
-            seq_len=max(28, num_modes_encoder * 3 + 4),
+            seq_len=num_modes_encoder * 3 + 4,
             num_photons=num_photons_encoder,
             computation_space=computation_space,
-            n_iters=4000,
+            n_iters=1000 * num_modes_encoder,
             n_candidates=24,
             select_k=6,
             gamma=0.1,
@@ -805,7 +847,7 @@ def dataset_complexity_induced_comparison(
 
         best = min(refined, key=lambda item: item["E_after"])
         print(
-            f"Selected EGAS candidate with E_after={best['E_after']:.6f} "
+            f"Selected EGAS candidate with E_before={best['E_before']:.6f}, E_after={best['E_after']:.6f} "
             f"and sequence length={len(best['seq'])}"
         )
 
@@ -830,6 +872,7 @@ def dataset_complexity_induced_comparison(
         print(f"UMAP")
         _save_umap_projection("egas", embedder=model)
         del model
+    _add_encoding_resources("egas", num_modes_encoder, num_photons_encoder)
     gc.collect()
     print(f"Complexity of {_total(output['induced']['egas'])}")
     if (
@@ -844,6 +887,9 @@ def dataset_complexity_induced_comparison(
         gc.collect()
     print()
     print(f"Saved results to {output_path}")
+
+    # Persist resource metadata added to cached entries as well as newly computed ones.
+    _save()
 
     plot_complexity_comparison(
         results=output,

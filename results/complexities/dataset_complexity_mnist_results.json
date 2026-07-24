@@ -69,7 +69,9 @@
             0,
             1
           ]
-        ]
+        ],
+        "n_modes": 9,
+        "n_photons": 4
       },
       "dense_angle": {
         "hilbert_space_support_dim": 15.138923935196212,
@@ -109,7 +111,9 @@
             0,
             1
           ]
-        ]
+        ],
+        "n_modes": 8,
+        "n_photons": 4
       },
       "fourier": {
         "hilbert_space_support_dim": 65.01192091749141,
@@ -149,7 +153,9 @@
             0,
             1
           ]
-        ]
+        ],
+        "n_modes": 16,
+        "n_photons": 8
       },
       "amplitude": {
         "hilbert_space_support_dim": 7.99999378464152,
@@ -189,7 +195,9 @@
             0,
             1
           ]
-        ]
+        ],
+        "n_modes": 5,
+        "n_photons": 2
       },
       "dense_amplitude": {
         "hilbert_space_support_dim": 3.9999987651521143,
@@ -229,7 +237,9 @@
             0,
             1
           ]
-        ]
+        ],
+        "n_modes": 5,
+        "n_photons": 2
       },
       "evolution": null,
       "nqe": {
@@ -270,21 +280,23 @@
             0,
             1
           ]
-        ]
+        ],
+        "n_modes": 5,
+        "n_photons": 2
       },
       "egas": {
-        "hilbert_space_support_dim": 6.040219258406741,
-        "quantum_fisher_information_spread": 10.377479839880841,
-        "entanglement_entropy": 0.39251434803009033,
-        "kernel_spectrum_flatness": 2.6441951284447005,
-        "locality_vs_expressibility": 0.02134257335073886,
-        "topological_invariants_of_embedding": 0.6382178068161011,
-        "encoded_states_classes_overlap": 0.02036154270172119,
-        "total": 20.134330497630934,
+        "hilbert_space_support_dim": 7.126673381895967,
+        "quantum_fisher_information_spread": 764.4575643437021,
+        "entanglement_entropy": 0.6678628921508789,
+        "kernel_spectrum_flatness": 7.956866060720189,
+        "locality_vs_expressibility": 0.023115063501048378,
+        "topological_invariants_of_embedding": 83.51872164011002,
+        "encoded_states_classes_overlap": 0.5659356117248535,
+        "total": 864.3167389938051,
         "min_max": [
           [
             1,
-            6
+            15
           ],
           [
             0,
@@ -292,7 +304,7 @@
           ],
           [
             0,
-            1.292481250360578
+            1.9534452978042594
           ],
           [
             1,
@@ -300,7 +312,7 @@
           ],
           [
             0,
-            1.0
+            1
           ],
           [
             0,
@@ -310,7 +322,9 @@
             0,
             1
           ]
-        ]
+        ],
+        "n_modes": 5,
+        "n_photons": 2
       }
     }
   },

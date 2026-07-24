@@ -71,7 +71,14 @@ def _get_total(v: Any) -> float:
     """Return the scalar total from either a metrics dict or a plain float."""
     if isinstance(v, dict):
         return float(
-            v.get("total", sum(val for key, val in v.items() if key != "total"))
+            v.get(
+                "total",
+                sum(
+                    val
+                    for key, val in v.items()
+                    if key not in {"total", "n_modes", "n_photons"}
+                ),
+            )
         )
     return float(v)
 
@@ -111,6 +118,7 @@ def plot_complexity_comparison(
                 if (
                     k not in known
                     and k != "total"
+                    and k not in {"n_modes", "n_photons"}
                     and isinstance(v, (int, float, np.number))
                 ):
                     segs.append((k, float(v)))
@@ -151,6 +159,7 @@ def plot_complexity_comparison(
                 color=color,
                 edgecolor="white",
                 linewidth=0.5,
+                hatch="//" if label in {"nqe", "egas"} else None,
             )
             bottom += seg_val
             if metric_key not in seen_metrics:
@@ -261,6 +270,7 @@ def plot_complexity_comparison_normalized(
                     k not in known
                     and k != "total"
                     and k != "min_max"
+                    and k not in {"n_modes", "n_photons"}
                     and isinstance(v, (int, float, np.number))
                 ):
                     segs.append((k, float(v)))
@@ -301,6 +311,7 @@ def plot_complexity_comparison_normalized(
                 color=color,
                 edgecolor="white",
                 linewidth=0.5,
+                hatch="//" if label in {"nqe", "egas"} else None,
             )
             bottom += seg_val
             if metric_key not in seen_metrics:
@@ -710,6 +721,7 @@ def plot_normalized_summary(
             alpha=0.8,
             edgecolor="black",
             linewidth=0.5,
+            hatch="//" if encoding_name in {"nqe", "egas"} else None,
         )
 
         # Add value labels

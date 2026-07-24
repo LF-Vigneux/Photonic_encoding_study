@@ -43,6 +43,7 @@ def refine_bias(
     X,
     y,
     n_modes,
+    num_features,
     *,
     num_photons=2,
     computation_space=ml.ComputationSpace.UNBUNCHED,
@@ -66,7 +67,6 @@ def refine_bias(
     torch.manual_seed(seed)
     Xt = torch.as_tensor(X, dtype=torch.float32, device=device)
     yt = torch.as_tensor(y, dtype=torch.long, device=device)
-    num_features = Xt.shape[-1]
 
     encoder = create_quantum_module(
         seq,
@@ -77,33 +77,26 @@ def refine_bias(
     ).to(X.device)
     encoder.reset_bias(hidden=hidden, gain=gain)
     encoder = encoder.to(device)
+
+    def _states_for_energy(inputs: torch.Tensor) -> torch.Tensor:
+        """Embed every sample used to evaluate the pairwise-energy objective."""
+        if len(encoder.ps_data_indices) == 0:
+            # A circuit without data-dependent phases produces one fixed state.
+            state = encoder(torch.zeros(1, 0, dtype=torch.float32, device=device))
+            return state.expand(len(inputs), -1)
+        return encoder(inputs)
+
     trainable_parameters = [p for p in encoder.bias.parameters() if p.requires_grad]
     if len(trainable_parameters) == 0:
         with torch.no_grad():
-            # Evaluate with a single sample and replicate if no input indices
-            dummy_input = (
-                torch.zeros(1, 0, dtype=torch.float32, device=device)
-                if len(encoder.ps_data_indices) == 0
-                else Xt[:1]
-            )
-            states = encoder(dummy_input)
-            if len(encoder.ps_data_indices) == 0:
-                states = states.repeat(len(Xt), 1)
+            states = _states_for_energy(Xt)
             E_before = pairwise_energy(states, yt).item()
         return encoder, E_before, E_before
 
     opt = torch.optim.RMSprop(encoder.bias.parameters(), lr=lr)
 
     with torch.no_grad():
-        # Evaluate with a single sample and replicate if no input indices
-        dummy_input = (
-            torch.zeros(1, 0, dtype=torch.float32, device=device)
-            if len(encoder.ps_data_indices) == 0
-            else Xt[:1]
-        )
-        states = encoder(dummy_input)
-        if len(encoder.ps_data_indices) == 0:
-            states = states.repeat(len(Xt), 1)
+        states = _states_for_energy(Xt)
         E_before = pairwise_energy(states, yt).item()
 
     rng = np.random.default_rng(seed)
@@ -130,14 +123,7 @@ def refine_bias(
         opt.step()
         if ep >= epochs - avg_last:
             with torch.no_grad():
-                dummy_input = (
-                    torch.zeros(1, 0, dtype=torch.float32, device=device)
-                    if len(encoder.ps_data_indices) == 0
-                    else Xt[:1]
-                )
-                states = encoder(dummy_input)
-                if len(encoder.ps_data_indices) == 0:
-                    states = states.repeat(len(Xt), 1)
+                states = _states_for_energy(Xt)
                 recent.append(pairwise_energy(states, yt).item())
     E_after = float(np.mean(recent)) if recent else E_before
     return encoder, E_before, E_after

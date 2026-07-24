@@ -246,6 +246,8 @@ def entanglement_entropy(
     x: torch.Tensor, embedder: nn.Module | NeuralEmbeddingMerLinKernel
 ) -> float:
 
+    disable_tqdm = not sys.stdout.isatty()
+
     if isinstance(embedder, NeuralEmbeddingMerLinKernel):
         is_dual_rail = (
             embedder.quantum_embedding_layer.computation_space
@@ -263,8 +265,7 @@ def entanglement_entropy(
             def forward(self, x: torch.Tensor):
                 params = self.classical_model(x)
                 with torch.no_grad():
-                    output = assign_params(embedder.quantum_embedding_layer, params)
-                return output
+                    return assign_params(embedder.quantum_embedding_layer, params)
 
         encoder = Encoder()
 
@@ -274,9 +275,11 @@ def entanglement_entropy(
             ml.ComputationSpace.FOCK: "fock",
             ml.ComputationSpace.UNBUNCHED: "unbunched",
         }
+
         is_dual_rail = embedder.computation_space is ml.ComputationSpace.DUAL_RAIL
         num_modes = embedder.num_modes
         num_photons = embedder.num_photons
+
         state_keys = ml.Combinadics(
             scheme=comp_space_to_str[embedder.computation_space],
             n=num_photons,
@@ -285,73 +288,79 @@ def entanglement_entropy(
 
         encoder = embedder
 
-    # Get data for the partial trace
+    # Hilbert space structure
     if is_dual_rail:
         dim_per_state = 2
         num_states = num_modes // 2
     else:
         dim_per_state = num_photons + 1
         num_states = num_modes
+
     bipartitions = _get_all_bipartitions(num_states)
     num_bipartitions = len(bipartitions)
 
-    total_entropy = 0
+    total_entropy = 0.0
 
-    for point in tqdm(x, desc="[entanglement_entropy] points"):
-        # Getting the density matrix in the right encoding
+    for point in tqdm(x, desc="[entanglement_entropy] points", disable=disable_tqdm):
+
+        psi = encoder(point)
+
+        point_entropy = 0.0
+
         if is_dual_rail:
-            psi = encoder(point)
             rho = state_vector_to_density_matrix(psi)
 
-            point_entropy = 0
             for bipartition in tqdm(
-                bipartitions, desc="[entanglement_entropy] bipartitions", leave=False
+                bipartitions,
+                desc="[entanglement_entropy] bipartitions",
+                leave=False,
+                disable=disable_tqdm,
             ):
+
                 bip_to_use = (
                     bipartition[0]
                     if len(bipartition[0]) > len(bipartition[1])
                     else bipartition[1]
                 )
+
                 point_entropy += quantum_entropy(
                     partial_trace_from_density(
-                        rho, states_to_trace=bip_to_use, dim_per_state=dim_per_state
+                        rho,
+                        states_to_trace=bip_to_use,
+                        dim_per_state=dim_per_state,
                     )
                 )
 
         else:
-            psi = encoder(point)
-
-            point_entropy = 0
             for bipartition in tqdm(
-                bipartitions, desc="[entanglement_entropy] bipartitions", leave=False
+                bipartitions,
+                desc="[entanglement_entropy] bipartitions",
+                leave=False,
+                disable=disable_tqdm,
             ):
+
                 M_to_SVD = create_correlation_matrix_bipartition(
-                    psi, bipartition, n_photons=num_photons, state_keys=state_keys
+                    psi,
+                    bipartition,
+                    n_photons=num_photons,
+                    state_keys=state_keys,
                 )
-                M_shape = np.shape(M_to_SVD)
 
-                num_singular_values = int(min(M_shape[0], M_shape[1]))
+                # Dense LAPACK SVD is faster for these matrix sizes
+                if sp.sparse.issparse(M_to_SVD):
+                    M_to_SVD = M_to_SVD.toarray()
 
-                try:
-                    schmidt_values_squared = sp.sparse.linalg.svds(
-                        M_to_SVD,
-                        k=num_singular_values,
-                        return_singular_vectors=False,
-                        solver="propack",
-                    )
-                except Exception as e:
-                    schmidt_values_squared = np.linalg.svd(
-                        (
-                            M_to_SVD.toarray()
-                            if sp.sparse.issparse(M_to_SVD)
-                            else M_to_SVD
-                        ),
-                        compute_uv=False,
-                    )
-                entropy_values = schmidt_values_squared**2
-                point_entropy += -np.sum(
-                    entropy_values * np.log(entropy_values + 1e-12)
+                schmidt_values = np.linalg.svd(
+                    M_to_SVD,
+                    compute_uv=False,
                 )
+
+                entropy_values = schmidt_values**2
+
+                # Remove numerical zeros
+                entropy_values = entropy_values[entropy_values > 1e-12]
+
+                point_entropy += -np.sum(entropy_values * np.log(entropy_values))
 
         total_entropy += point_entropy / num_bipartitions
 
