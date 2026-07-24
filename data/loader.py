@@ -6,6 +6,7 @@ https://github.com/takh04/neural-quantum-embedding
 
 import numpy as np
 import torch
+from data.data.hidden_maniflod import generate_hidden_manifold_model
 from sklearn.datasets import fetch_openml, make_moons, make_circles
 from merlin.datasets import spiral
 from sklearn.decomposition import PCA
@@ -23,6 +24,7 @@ def _load_datasets(
     noise_generated: float = 0.0,
     n_samples_generated: int = 1000,
     n_classes_spiral: int = 2,
+    manifold_dimension: int = 2,
 ):
     open_ml = False
     if dataset == "mnist":
@@ -139,6 +141,15 @@ def _load_datasets(
         # ---- Circles ----
         if dataset == "circles":
             X, y = make_circles(n_samples=n_samples_generated, noise=noise_generated)
+            return train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
+
+        # ---- Hidden manifold ----
+        if dataset == "manifold":
+            X, y = generate_hidden_manifold_model(
+                n_samples=n_samples_generated,
+                n_features=n_features_generated,
+                manifold_dimension=manifold_dimension,
+            )
             return train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
 
         raise ValueError(
@@ -282,3 +293,63 @@ def data_load_and_process(
             torch.as_tensor(y_train),
             torch.as_tensor(y_test),
         )
+
+
+# TODO Use when ready
+"""
+
+x_train, x_test, y_train, y_test = _load_datasets(dataset)
+
+# Apply PCA before selecting classes
+if isinstance(feature_reduction, int):
+    x_train_flat = x_train.reshape(len(x_train), -1)
+    x_test_flat = x_test.reshape(len(x_test), -1)
+
+    pca = PCA(feature_reduction)
+    x_train = pca.fit_transform(x_train_flat)
+    x_test = pca.transform(x_test_flat)
+
+    x_train, x_test = _minmax_normalize(x_train, x_test)
+
+if classes is not None:
+    mask_train = np.zeros(len(y_train), dtype=bool)
+    mask_test = np.zeros(len(y_test), dtype=bool)
+    for c in classes:
+        mask_train |= y_train == c
+        mask_test |= y_test == c
+
+    train_filter_tf = np.where(mask_train)
+    test_filter_tf = np.where(mask_test)
+
+    x_train, y_train = x_train[train_filter_tf], y_train[train_filter_tf]
+    x_test, y_test = x_test[test_filter_tf], y_test[test_filter_tf]
+
+    label_map = {c: i for i, c in enumerate(classes)}
+    y_train = np.array([label_map[c] for c in y_train], dtype=np.int64)
+    y_test = np.array([label_map[c] for c in y_test], dtype=np.int64)
+
+x_train, y_train = _limit_samples_per_class(x_train, y_train, samples_per_class)
+x_test, y_test = _limit_samples_per_class(
+    x_test, y_test, samples_per_class, random_state=43
+)
+
+# No PCA requested: normalize now
+if feature_reduction is None:
+    x_train, x_test = _minmax_normalize(x_train, x_test)
+
+if shuffle:
+    rng = np.random.default_rng(shuffle_seed)
+    train_perm = rng.permutation(len(x_train))
+    test_perm = rng.permutation(len(x_test))
+    x_train, y_train = x_train[train_perm], y_train[train_perm]
+    x_test, y_test = x_test[test_perm], y_test[test_perm]
+
+return (
+    torch.as_tensor(x_train, dtype=torch.float32),
+    torch.as_tensor(x_test, dtype=torch.float32),
+    torch.as_tensor(y_train),
+    torch.as_tensor(y_test),
+)
+
+
+"""

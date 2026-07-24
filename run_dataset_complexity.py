@@ -815,7 +815,7 @@ def dataset_complexity_induced_comparison(
         x_val = x_train_flat[val_idx]
         y_val = y_train_flat[val_idx]
 
-        search_samples = min(1250, len(x_search))
+        search_samples = min(750, len(x_search))
         idx = rng.choice(len(x_search), search_samples, replace=False)
         Xe = x_search[idx]
         ye = y_search[idx]
@@ -853,7 +853,7 @@ def dataset_complexity_induced_comparison(
             num_photons=num_photons_encoder,
             computation_space=computation_space,
             device=X_flat.device,
-            epochs=300,
+            epochs=400,
             batch_samples=64,
             lr=5e-4,
             seed=seed,
