@@ -13,8 +13,8 @@
           14.81933089047752
         ],
         [
-          -19.408121055678468,
-          19.408121055678468
+          -370.483272261938,
+          370.483272261938
         ],
         [
           0,
@@ -69,7 +69,9 @@
             0,
             1
           ]
-        ]
+        ],
+        "n_modes": 9,
+        "n_photons": 4
       },
       "dense_angle": {
         "hilbert_space_support_dim": 15.126955032348633,
@@ -109,7 +111,9 @@
             0,
             1
           ]
-        ]
+        ],
+        "n_modes": 8,
+        "n_photons": 4
       },
       "fourier": {
         "hilbert_space_support_dim": 71.12435150146484,
@@ -149,7 +153,9 @@
             0,
             1
           ]
-        ]
+        ],
+        "n_modes": 16,
+        "n_photons": 8
       },
       "amplitude": {
         "hilbert_space_support_dim": 7.999993670644452,
@@ -189,7 +195,9 @@
             0,
             1
           ]
-        ]
+        ],
+        "n_modes": 5,
+        "n_photons": 2
       },
       "dense_amplitude": {
         "hilbert_space_support_dim": 3.9999986904512808,
@@ -229,7 +237,9 @@
             0,
             1
           ]
-        ]
+        ],
+        "n_modes": 4,
+        "n_photons": 2
       },
       "evolution": null,
       "nqe": {
@@ -270,7 +280,9 @@
             0,
             1
           ]
-        ]
+        ],
+        "n_modes": 4,
+        "n_photons": 2
       },
       "egas": {
         "hilbert_space_support_dim": 3.748758283018165,
@@ -310,7 +322,9 @@
             0,
             1
           ]
-        ]
+        ],
+        "n_modes": 4,
+        "n_photons": 2
       }
     }
   },

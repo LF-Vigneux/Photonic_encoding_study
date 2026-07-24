@@ -12,8 +12,8 @@
           13.77313920671969
         ],
         [
-          -19.408121055678468,
-          19.408121055678468
+          -344.32848016799227,
+          344.32848016799227
         ],
         [
           0.0,
@@ -67,7 +67,9 @@
         "encoded_states_classes_overlap": 0.6444842219352722,
         "encoded_states_classes_distances": {
           "0-1": 0.3555157780647278
-        }
+        },
+        "n_modes": 9,
+        "n_photons": 4
       },
       "dense_angle": {
         "hilbert_space_support_dim": 14.65941047668457,
@@ -110,7 +112,9 @@
         "encoded_states_classes_overlap": 0.8147021532058716,
         "encoded_states_classes_distances": {
           "0-1": 0.18529784679412842
-        }
+        },
+        "n_modes": 8,
+        "n_photons": 4
       },
       "fourier": {
         "hilbert_space_support_dim": 44.0932731628418,
@@ -153,7 +157,9 @@
         "encoded_states_classes_overlap": 0.7823580503463745,
         "encoded_states_classes_distances": {
           "0-1": 0.2176419496536255
-        }
+        },
+        "n_modes": 16,
+        "n_photons": 8
       },
       "amplitude": {
         "hilbert_space_support_dim": 7.999986049982227,
@@ -196,7 +202,9 @@
         "encoded_states_classes_overlap": 0.7344122921582902,
         "encoded_states_classes_distances": {
           "0-1": 0.2655877078417098
-        }
+        },
+        "n_modes": 5,
+        "n_photons": 2
       },
       "dense_amplitude": {
         "hilbert_space_support_dim": 3.9999973697352775,
@@ -239,7 +247,9 @@
         "encoded_states_classes_overlap": 0.77096377676584,
         "encoded_states_classes_distances": {
           "0-1": 0.22903622323415995
-        }
+        },
+        "n_modes": 4,
+        "n_photons": 2
       },
       "evolution": null,
       "nqe": {
@@ -283,7 +293,9 @@
         "encoded_states_classes_overlap": 0.07137590646743774,
         "encoded_states_classes_distances": {
           "0-1": 0.9286240935325623
-        }
+        },
+        "n_modes": 4,
+        "n_photons": 2
       },
       "egas": {
         "hilbert_space_support_dim": 0.07752812250032859,
@@ -323,7 +335,9 @@
             0,
             1
           ]
-        ]
+        ],
+        "n_modes": 4,
+        "n_photons": 2
       }
     }
   },
