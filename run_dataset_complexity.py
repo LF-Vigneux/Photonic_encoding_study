@@ -33,14 +33,14 @@ from encodings_merlin.encoding_layers import (
 from encodings_merlin.utils import find_mode_photon_config
 from nn_embedding.lib.merlin_based_model import NeuralEmbeddingMerLinKernel
 from nn_embedding.utils.utils import TransparentModel
-from egas.lib.photonic_egas import (
+from egas.photonic_egas import (
     run_egas as run_photonic_egas,
     unique_sorted_candidates,
     refine_candidates,
     pairwise_energy,
 )
 from sklearn.model_selection import train_test_split
-from egas.lib.photonic_circuits import build_token_pool
+from egas.photonic_circuits import build_token_pool
 from dataset_complexity.plotter import (
     plot_complexity_comparison,
     plot_induced_per_encoding,
@@ -815,7 +815,7 @@ def dataset_complexity_induced_comparison(
         x_val = x_train_flat[val_idx]
         y_val = y_train_flat[val_idx]
 
-        search_samples = min(500, len(x_search))
+        search_samples = min(1250, len(x_search))
         idx = rng.choice(len(x_search), search_samples, replace=False)
         Xe = x_search[idx]
         ye = y_search[idx]

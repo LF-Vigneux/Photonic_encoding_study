@@ -644,122 +644,221 @@ def str_to_bool(s):
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Neural Quantum Embedding experiments")
+
     parser.add_argument(
         "--exp_to_run",
         type=str,
-        default="FIG2",
-        help="Which experiment to run: 'FIG2', 'FIG3', 'FIG4', 'FIG5', 'FIG6' (default: 'FIG2')",
+        default="INDUCED_DATASET_COMPLEXITY",
+        help="Experiment to run (default: 'INDUCED_DATASET_COMPLEXITY')",
     )
+
     parser.add_argument(
-        "--dataset",
+        "--dataset_name",
         type=str,
         default="mnist",
-        help="Dataset to use (default: 'mnist')",
+        help="Dataset name (default: 'mnist')",
     )
+
     parser.add_argument(
-        "--use_merlin",
-        action="store_true",
-        help="Use MerLin (photonic) backend instead of gate-based",
+        "--classes",
+        type=int_list,
+        default=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+        help="Dataset classes, comma-separated (default: '0,1,2,3,4,5,6,7,8,9')",
     )
+
     parser.add_argument(
-        "--batch_size",
+        "--feature_reduction",
         type=int,
-        default=100,
-        help="Batch size for training (default: 100)",
+        default=8,
+        help="Feature dimension after preprocessing (default: 8)",
     )
+
     parser.add_argument(
-        "--num_epochs_training_embedding",
+        "--n_modes",
         type=int,
-        default=50,
-        help="Number of epochs for embedding training (default: 50)",
+        default=None,
+        help="Number of optical modes",
     )
+
     parser.add_argument(
-        "--num_epochs_training_classifier",
+        "--n_photons",
         type=int,
-        default=1000,
-        help="Number of epochs for classifier training (default: 1000)",
+        default=None,
+        help="Number of photons",
     )
+
     parser.add_argument(
-        "--lr",
-        type=float,
-        default=0.01,
-        help="Learning rate (default: 0.01)",
-    )
-    parser.add_argument(
-        "--distance",
+        "--computation_space",
         type=str,
-        default="Trace",
-        help="Distance metric (default: 'Trace')",
+        default="UNBUNCHED",
+        help="Computation space (default: 'UNBUNCHED')",
     )
+
     parser.add_argument(
-        "--samples_per_class",
+        "--num_qubits_per_feature_fourier",
         type=int,
-        default=150,
-        help="Samples per class (default: 150)",
+        default=1,
+        help="Number of qubits per feature for Fourier encoding (default: 1)",
     )
+
     parser.add_argument(
-        "--num_classes",
+        "--hyper_parameters_classical",
+        type=float_list,
+        default=[1, 1, 1, 1, 1],
+        help="Hyperparameters for classical metrics, comma-separated",
+    )
+
+    parser.add_argument(
+        "--max_order_correlation_classical",
+        type=int,
+        default=4,
+        help="Maximum correlation order for classical metrics (default: 4)",
+    )
+
+    parser.add_argument(
+        "--max_dim_topology_classical",
         type=int,
         default=2,
-        help="Number of classes (default: 2)",
+        help="Maximum homology dimension for classical topology (default: 2)",
     )
+
     parser.add_argument(
-        "--num_repetitions",
-        type=int,
-        default=5,
-        help="Number of repetitions (default: 5)",
-    )
-    parser.add_argument(
-        "--layers_to_test",
-        type=int_list,
-        default=[1, 2, 3],
-        help="Layers to test for FIG3, comma-separated (default: '1,2,3')",
-    )
-    parser.add_argument(
-        "--samples_per_dataset",
-        type=int,
-        default=400,
-        help="Samples per dataset for FIG4 (default: 400)",
-    )
-    parser.add_argument(
-        "--num_datasets",
-        type=int,
-        default=10,
-        help="Number of datasets for FIG4 (default: 10)",
-    )
-    parser.add_argument(
-        "--num_repetitions_per_dataset",
-        type=int,
-        default=20,
-        help="Repetitions per dataset for FIG4 (default: 20)",
-    )
-    parser.add_argument(
-        "--epsilon",
-        type=float,
-        default=0.01,
-        help="Epsilon for FIG4 (default: 0.01)",
-    )
-    parser.add_argument(
-        "--num_samples_int",
-        type=int,
-        default=100,
-        help="Number of integration samples for FIG4 (default: 100)",
-    )
-    parser.add_argument(
-        "--weights",
+        "--weights_topology_classical",
         type=float_list,
-        default=np.arange(0.1, 1, 0.1).tolist(),
-        help="Weights for FIG5, comma-separated (default: '0.1,0.2,...,0.9')",
+        default=None,
+        help="Weights for classical topology, comma-separated",
     )
+
+    parser.add_argument(
+        "--max_samples_topology_classical",
+        type=int,
+        default=1000,
+        help="Maximum samples for classical topology (default: 1000)",
+    )
+
+    parser.add_argument(
+        "--hyper_parameters_induced",
+        type=float_list,
+        default=[1, 1, 1, 1, 1, 1, 1],
+        help="Hyperparameters for induced metrics, comma-separated",
+    )
+
+    parser.add_argument(
+        "--epsilon_hilbert_support_dim_induced",
+        type=float,
+        default=1e-8,
+        help="Threshold for Hilbert support dimension (default: 1e-8)",
+    )
+
+    parser.add_argument(
+        "--n_samples_loc_vs_express_induced",
+        type=int,
+        default=1000,
+        help="Samples for locality vs expressivity estimation (default: 1000)",
+    )
+
+    parser.add_argument(
+        "--n_bins_loc_vs_express_induced",
+        type=int,
+        default=50,
+        help="Histogram bins for locality vs expressivity (default: 50)",
+    )
+
+    parser.add_argument(
+        "--max_dim_topology_induced",
+        type=int,
+        default=2,
+        help="Maximum homology dimension for induced topology (default: 2)",
+    )
+
+    parser.add_argument(
+        "--weights_topology_induced",
+        type=float_list,
+        default=None,
+        help="Weights for induced topology, comma-separated",
+    )
+
+    parser.add_argument(
+        "--max_samples_topology_induced",
+        type=int,
+        default=1000,
+        help="Maximum samples for induced topology (default: 1000)",
+    )
+
+    parser.add_argument(
+        "--max_samples_induced",
+        type=int,
+        default=1000,
+        help="Maximum induced samples (default: 1000)",
+    )
+
+    parser.add_argument(
+        "--evaluate_evolution",
+        action="store_true",
+        help="Evaluate embedding evolution",
+    )
+
+    parser.add_argument(
+        "--randomize_entangling",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Randomize entangling gates (default: True)",
+    )
+
+    parser.add_argument(
+        "--generate_umap_plots",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Generate UMAP plots (default: True)",
+    )
+
+    parser.add_argument(
+        "--generate_umap_2d",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Generate 2D UMAP plots (default: True)",
+    )
+
+    parser.add_argument(
+        "--generate_umap_3d",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Generate 3D UMAP plots (default: True)",
+    )
+
+    parser.add_argument(
+        "--umap_state",
+        type=int,
+        default=42,
+        help="Random seed for UMAP (default: 42)",
+    )
+
+    parser.add_argument(
+        "--umap_num_points_per_class",
+        type=int,
+        default=50,
+        help="Number of points per class for UMAP (default: 50)",
+    )
+
+    parser.add_argument(
+        "--umap_n_neighbors",
+        type=int,
+        default=15,
+        help="UMAP n_neighbors parameter (default: 15)",
+    )
+
+    parser.add_argument(
+        "--umap_n_epochs",
+        type=int,
+        default=200,
+        help="UMAP optimization epochs (default: 200)",
+    )
+
     parser.add_argument(
         "--config",
         type=str,
         default=None,
         help="Optional JSON config file to override CLI arguments",
     )
-    parser.add_argument(
-        "--dont_generate_graph",
-        action="store_true",
-        help="Disable graph generation",
-    )
+
     return parser.parse_args()

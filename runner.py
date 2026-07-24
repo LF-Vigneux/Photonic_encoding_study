@@ -6,16 +6,8 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT))
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from nn_embedding.lib.figure_reproductions import (  # noqa: E402
-    reproduce_figure_2,
-    reproduce_figure_3,
-    reproduce_figure_4,
-    reproduce_figure_5,
-    reproduce_figure_6,
-)
 from nn_embedding.utils.utils import (  # noqa: E402
     parse_args,
-    str_to_bool,
 )
 
 
@@ -35,104 +27,8 @@ def train_and_evaluate(cfg, run_dir: Path) -> None:
     None
     """
     exp_to_run = cfg.get("exp_to_run", "FIG2")
-    use_merlin = str_to_bool(cfg.get("use_merlin", False))
-    generate_graph = not str_to_bool(cfg.get("dont_generate_graph", False))
 
-    if exp_to_run == "FIG2":
-        print("Running the FIG2 experiment")
-        reproduce_figure_2(
-            dataset=cfg.get("dataset", "mnist"),
-            use_merlin=use_merlin,
-            batch_size=cfg.get("batch_size", 100),
-            num_epochs_training_embedding=cfg.get("num_epochs_training_embedding", 50),
-            num_epochs_training_classifier=cfg.get(
-                "num_epochs_training_classifier", 1000
-            ),
-            lr=cfg.get("lr", 0.01),
-            distance=cfg.get("distance", "Trace"),
-            samples_per_class=cfg.get("samples_per_class", 150),
-            num_classes=cfg.get("num_classes", 2),
-            num_repetitions=cfg.get("num_repetitions", 5),
-            run_dir=run_dir,
-            generate_graph=generate_graph,
-        )
-    elif exp_to_run == "FIG3":
-        print("Running the FIG3 experiment")
-        layers = cfg.get("layers_to_test", None)
-        if isinstance(layers, str):
-            layers = list(map(int, layers.split(",")))
-        elif isinstance(layers, list):
-            layers = [int(x) for x in layers]
-        reproduce_figure_3(
-            dataset=cfg.get("dataset", "mnist"),
-            use_merlin=use_merlin,
-            batch_size=cfg.get("batch_size", 100),
-            num_epochs_training_embedding=cfg.get("num_epochs_training_embedding", 50),
-            num_epochs_training_classifier=cfg.get(
-                "num_epochs_training_classifier", 1000
-            ),
-            lr=cfg.get("lr", 0.01),
-            distance=cfg.get("distance", "Trace"),
-            samples_per_class=cfg.get("samples_per_class", 150),
-            num_classes=cfg.get("num_classes", 2),
-            num_repetitions=cfg.get("num_repetitions", 5),
-            layers_to_test=layers,
-            run_dir=run_dir,
-            generate_graph=generate_graph,
-        )
-    elif exp_to_run == "FIG4":
-        print("Running the FIG4 experiment")
-        reproduce_figure_4(
-            use_merlin=use_merlin,
-            batch_size=cfg.get("batch_size", 25),
-            num_epochs_training_embedding=cfg.get("num_epochs_training_embedding", 100),
-            lr=cfg.get("lr", 0.01),
-            distance=cfg.get("distance", "Trace"),
-            samples_per_dataset=cfg.get("samples_per_dataset", 400),
-            num_datasets=cfg.get("num_datasets", 10),
-            num_repetitions_per_dataset=cfg.get("num_repetitions_per_dataset", 20),
-            epsilon=cfg.get("epsilon", 0.01),
-            num_samples_int=cfg.get("num_samples_int", 100),
-            run_dir=run_dir,
-            generate_graph=generate_graph,
-        )
-    elif exp_to_run == "FIG5":
-        print("Running the FIG5 experiment")
-        weights = cfg.get("weights", None)
-        if isinstance(weights, str):
-            weights = list(map(float, weights.split(",")))
-        elif isinstance(weights, list):
-            weights = [float(w) for w in weights]
-        reproduce_figure_5(
-            dataset=cfg.get("dataset", "mnist"),
-            use_merlin=use_merlin,
-            batch_size=cfg.get("batch_size", 100),
-            num_epochs_training_embedding=cfg.get(
-                "num_epochs_training_embedding", 1000
-            ),
-            lr=cfg.get("lr", 0.01),
-            distance=cfg.get("distance", "Trace"),
-            samples_per_class=cfg.get("samples_per_class", 500),
-            num_repetitions=cfg.get("num_repetitions", 5),
-            weights=weights,
-            run_dir=run_dir,
-            generate_graph=generate_graph,
-        )
-    elif exp_to_run == "FIG6":
-        print("Running the FIG6 experiment")
-        reproduce_figure_6(
-            dataset=cfg.get("dataset", "mnist"),
-            use_merlin=use_merlin,
-            batch_size=cfg.get("batch_size", 100),
-            num_epochs_training_embedding=cfg.get("num_epochs_training_embedding", 50),
-            lr=cfg.get("lr", 0.01),
-            distance=cfg.get("distance", "Trace"),
-            samples_per_class=cfg.get("samples_per_class", 150),
-            num_repetitions=cfg.get("num_repetitions", 5),
-            run_dir=run_dir,
-            generate_graph=generate_graph,
-        )
-    elif exp_to_run == "INDUCED_DATASET_COMPLEXITY":
+    if exp_to_run == "INDUCED_DATASET_COMPLEXITY":
         print("Running the DATASET_COMPLEXITY experiment")
         from run_dataset_complexity import (
             dataset_complexity_induced_comparison,
@@ -198,80 +94,55 @@ def train_and_evaluate(cfg, run_dir: Path) -> None:
 
 def main():
     args = parse_args()
-    generate_graph = not args.dont_generate_graph
+    if args.exp_to_run == "INDUCED_DATASET_COMPLEXITY":
+        print("Running the DATASET_COMPLEXITY experiment")
+        from run_dataset_complexity import (
+            dataset_complexity_induced_comparison,
+        )  # noqa: E402
 
-    if args.exp_to_run == "FIG2":
-        print("Running the FIG2 experiment")
-        reproduce_figure_2(
-            dataset=args.dataset,
-            use_merlin=args.use_merlin,
-            batch_size=args.batch_size,
-            num_epochs_training_embedding=args.num_epochs_training_embedding,
-            num_epochs_training_classifier=args.num_epochs_training_classifier,
-            lr=args.lr,
-            distance=args.distance,
-            samples_per_class=args.samples_per_class,
-            num_classes=args.num_classes,
-            num_repetitions=args.num_repetitions,
-            generate_graph=generate_graph,
-        )
-    elif args.exp_to_run == "FIG3":
-        print("Running the FIG3 experiment")
-        reproduce_figure_3(
-            dataset=args.dataset,
-            use_merlin=args.use_merlin,
-            batch_size=args.batch_size,
-            num_epochs_training_embedding=args.num_epochs_training_embedding,
-            num_epochs_training_classifier=args.num_epochs_training_classifier,
-            lr=args.lr,
-            distance=args.distance,
-            samples_per_class=args.samples_per_class,
-            num_classes=args.num_classes,
-            num_repetitions=args.num_repetitions,
-            layers_to_test=args.layers_to_test,
-            generate_graph=generate_graph,
-        )
-    elif args.exp_to_run == "FIG4":
-        print("Running the FIG4 experiment")
-        reproduce_figure_4(
-            use_merlin=args.use_merlin,
-            batch_size=args.batch_size,
-            num_epochs_training_embedding=args.num_epochs_training_embedding,
-            lr=args.lr,
-            distance=args.distance,
-            samples_per_dataset=args.samples_per_dataset,
-            num_datasets=args.num_datasets,
-            num_repetitions_per_dataset=args.num_repetitions_per_dataset,
-            epsilon=args.epsilon,
-            num_samples_int=args.num_samples_int,
-            generate_graph=generate_graph,
-        )
-    elif args.exp_to_run == "FIG5":
-        print("Running the FIG5 experiment")
-        reproduce_figure_5(
-            dataset=args.dataset,
-            use_merlin=args.use_merlin,
-            batch_size=args.batch_size,
-            num_epochs_training_embedding=args.num_epochs_training_embedding,
-            lr=args.lr,
-            distance=args.distance,
-            samples_per_class=args.samples_per_class,
-            num_repetitions=args.num_repetitions,
-            weights=args.weights,
-            generate_graph=generate_graph,
-        )
-    elif args.exp_to_run == "FIG6":
-        print("Running the FIG6 experiment")
-        reproduce_figure_6(
-            dataset=args.dataset,
-            use_merlin=args.use_merlin,
-            batch_size=args.batch_size,
-            num_epochs_training_embedding=args.num_epochs_training_embedding,
-            lr=args.lr,
-            distance=args.distance,
-            samples_per_class=args.samples_per_class,
-            num_repetitions=args.num_repetitions,
-            generate_graph=generate_graph,
+        classes_raw = args.classes
+        if isinstance(classes_raw, list):
+            classes_raw = tuple(classes_raw)
+
+        hyper_cls_raw = args.hyper_parameters_classical
+        hyper_ind_raw = args.hyper_parameters_induced
+        weights_cls_raw = args.weights_topology_classical
+        weights_ind_raw = args.weights_topology_induced
+
+        cs_name = args.computation_space
+        import merlin as _ml
+
+        computation_space = _ml.ComputationSpace[cs_name]
+
+        dataset_complexity_induced_comparison(
+            dataset_name=args.dataset_name,
+            classes=args.feature_reduction,
+            n_modes=args.n_modes,
+            n_photons=args.n_photons,
+            computation_space=computation_space,
+            num_qubits_per_feature_fourier=args.num_qubits_per_feature_fourier,
+            hyper_parameters_classical=hyper_cls_raw,
+            max_order_correlation_classical=args.max_order_correlation_classical,
+            max_dim_topology_classical=args.max_dim_topology_classical,
+            weights_topology_classical=weights_cls_raw,
+            max_samples_topology_classical=args.max_samples_topology_classical,
+            hyper_parameters_induced=hyper_ind_raw,
+            epsilon_hilbert_support_dim_induced=args.epsilon_hilbert_support_dim_induced,
+            n_samples_loc_vs_express_induced=args.n_samples_loc_vs_express_induced,
+            n_bins_loc_vs_express_induced=args.n_bins_loc_vs_express_induced,
+            max_dim_topology_induced=args.max_dim_topology_induced,
+            weights_topology_induced=weights_ind_raw,
+            max_samples_topology_induced=args.max_samples_topology_induced,
+            max_samples_induced=args.max_samples_induced,
+            evaluate_evolution=args.evaluate_evolution,
+            randomize_entangling=args.randomize_entangling,
+            generate_umap_plots=args.generate_umap_plots,
+            generate_umap_2d=args.generate_umap_2d,
+            generate_umap_3d=args.generate_umap_3d,
+            umap_state=args.umap_state,
+            umap_num_points_per_class=args.umap_num_points_per_class,
+            umap_n_neighbors=args.umap_n_neighbors,
+            umap_n_epochs=args.umap_n_epochs,
         )
     else:
         raise NameError(f"No experiment with the name '{args.exp_to_run}'")

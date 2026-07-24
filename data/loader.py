@@ -75,7 +75,7 @@ def _load_datasets(
             )
 
         transform_32 = Compose([Resize((32, 32)), ToTensor()])
-        root = "datasets/data"
+        root = "data/data"
         # ---- CIFAR-10 ----
         if dataset in ["cifar10", "cifar-10"]:
             train_base = datasets.CIFAR10(
