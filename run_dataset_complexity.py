@@ -37,7 +37,9 @@ from egas.lib.photonic_egas import (
     run_egas as run_photonic_egas,
     unique_sorted_candidates,
     refine_candidates,
+    pairwise_energy,
 )
+from sklearn.model_selection import train_test_split
 from egas.lib.photonic_circuits import build_token_pool
 from dataset_complexity.plotter import (
     plot_complexity_comparison,
@@ -799,26 +801,40 @@ def dataset_complexity_induced_comparison(
         pool = build_token_pool(num_modes_encoder, X_flat.shape[-1])
         seed = 0
         rng = np.random.default_rng(seed)
-        search_samples = min(256, len(x_train_flat))
-        idx = rng.choice(len(x_train_flat), search_samples, replace=False)
-        Xe = x_train_flat[idx]
-        ye = y_train_flat[idx]
+
+        all_indices = np.arange(len(x_train_flat))
+        search_idx, val_idx = train_test_split(
+            all_indices,
+            test_size=0.2,
+            random_state=seed,
+            stratify=y_train.cpu().numpy(),
+        )
+
+        x_search = x_train_flat[search_idx]
+        y_search = y_train_flat[search_idx]
+        x_val = x_train_flat[val_idx]
+        y_val = y_train_flat[val_idx]
+
+        search_samples = min(500, len(x_search))
+        idx = rng.choice(len(x_search), search_samples, replace=False)
+        Xe = x_search[idx]
+        ye = y_search[idx]
 
         gpt, history, buffer = run_photonic_egas(
             pool,
             Xe,
             ye,
             num_modes_encoder,
-            seq_len=num_modes_encoder * 3 + 4,
+            seq_len=max(28, num_modes_encoder * 3 + 4),
             num_photons=num_photons_encoder,
             computation_space=computation_space,
-            n_iters=1000 * num_modes_encoder,
-            n_candidates=24,
-            select_k=6,
+            n_iters=4000,
+            n_candidates=48,
+            select_k=10,
             gamma=0.1,
             lr=5e-5,
-            temp_max=100.0,
-            temp_min=0.04,
+            temp_max=10.0,
+            temp_min=0.1,
             d_model=64,
             n_layers=2,
             n_heads=4,
@@ -837,15 +853,24 @@ def dataset_complexity_induced_comparison(
             num_photons=num_photons_encoder,
             computation_space=computation_space,
             device=X_flat.device,
-            epochs=400,
-            batch_samples=25,
+            epochs=300,
+            batch_samples=64,
             lr=5e-4,
             seed=seed,
         )
         if not refined:
             raise RuntimeError("EGAS produced no refined candidates")
 
-        best = min(refined, key=lambda item: item["E_after"])
+        X_val = _flatten_for_egas(x_val).to(X_flat.device)
+        Y_val = y_val.to(X_flat.device)
+
+        for candidate in refined:
+            candidate["encoder"].eval()
+            with torch.no_grad():
+                states = candidate["encoder"](X_val)
+                candidate["validation_energy"] = pairwise_energy(states, Y_val).item()
+
+        best = min(refined, key=lambda candidate: candidate["validation_energy"])
         print(
             f"Selected EGAS candidate with E_before={best['E_before']:.6f}, E_after={best['E_after']:.6f} "
             f"and sequence length={len(best['seq'])}"
