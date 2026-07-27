@@ -285,14 +285,14 @@
         "n_photons": 2
       },
       "egas": {
-        "hilbert_space_support_dim": 7.126673381895967,
-        "quantum_fisher_information_spread": 764.4575643437021,
-        "entanglement_entropy": 0.6678628921508789,
-        "kernel_spectrum_flatness": 7.956866060720189,
-        "locality_vs_expressibility": 0.023115063501048378,
-        "topological_invariants_of_embedding": 83.51872164011002,
-        "encoded_states_classes_overlap": 0.5659356117248535,
-        "total": 864.3167389938051,
+        "hilbert_space_support_dim": 9.585165131632575,
+        "quantum_fisher_information_spread": 319.8275533428312,
+        "entanglement_entropy": 0.9256889820098877,
+        "kernel_spectrum_flatness": 12.378197322966791,
+        "locality_vs_expressibility": 0.01718727727130362,
+        "topological_invariants_of_embedding": 137.63968884944916,
+        "encoded_states_classes_overlap": 0.36471590399742126,
+        "total": 480.73819681015834,
         "min_max": [
           [
             1,

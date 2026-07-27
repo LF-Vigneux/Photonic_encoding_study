@@ -275,12 +275,6 @@ def dataset_complexity_induced_comparison(
         _save()
         print(f"UMAP")
         _save_umap_projection("classical")
-    K = min(X.shape[1], max_order_correlation_classical)
-    output["classical"]["min_max"][1] = [
-        -np.log2(X.shape[0]) * ((2 ** (K + 1)) - K - 3),
-        np.log2(X.shape[0]) * ((2 ** (K + 1)) - K - 3),
-    ]
-    _save()
     print(f"Complexity of {_total(output['classical'])}")
     if (
         output["classical"] is not None

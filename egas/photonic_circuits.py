@@ -148,15 +148,22 @@ def create_quantum_module(
                 hidden = 32
             if gain is None:
                 gain = 10.0
-            # Get current device and dtype from the existing bias (or any parameter)
-            param = next(self.parameters())
-            device = param.device
-            dtype = param.dtype
-            self.bias = BiasMLP(
-                n_in=num_features,
-                output_size=len(input_parameters),
-                hidden=hidden,
-                gain=gain,
-            ).to(device=device, dtype=dtype)
+
+            try:
+                param = next(self.parameters())
+            except StopIteration:
+                self.bias = BiasMLP(
+                    n_in=num_features,
+                    output_size=len(input_parameters),
+                    hidden=hidden,
+                    gain=gain,
+                )
+            else:
+                self.bias = BiasMLP(
+                    n_in=num_features,
+                    output_size=len(input_parameters),
+                    hidden=hidden,
+                    gain=gain,
+                ).to(device=param.device, dtype=param.dtype)
 
     return QuantumModule()
