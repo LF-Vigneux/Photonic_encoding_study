@@ -16,3 +16,4 @@ nn_embedding/utils/__pycache__/utils.cpython-312.pyc
 nn_embedding/
 datasets/
 data/data/cifar-10-python.tar.gz
+data/data/

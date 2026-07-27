@@ -2,7 +2,7 @@
 #SBATCH --job-name=Dataset_complexity
 #SBATCH --output=Dataset_complexity_%j.out
 #SBATCH --error=Dataset_complexity_%j.err
-#SBATCH --time=48:00:00
+#SBATCH --time=72:00:00
 #SBATCH --cpus-per-task=36
 #SBATCH --mem=100000
 export OMP_NUM_THREADS=36
