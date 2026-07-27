@@ -1,0 +1,377 @@
+{
+  "results": {
+    "classical": {
+      "distributional_entropy": 8.699514748210191,
+      "correlation_order": 26.072453116332618,
+      "kolmogorov_complexity": 0.87490625,
+      "topological_complexity": 81.3714325579349,
+      "wasserstein distance": 0.9354791641235352,
+      "total": 117.95378583660124,
+      "min_max": [
+        [
+          0,
+          12.550746785383243
+        ],
+        [
+          -313.7686696345811,
+          313.7686696345811
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          36000004999
+        ],
+        [
+          0,
+          8
+        ]
+      ]
+    },
+    "induced": {
+      "angle": {
+        "hilbert_space_support_dim": 96.33320678200164,
+        "quantum_fisher_information_spread": 18.658052654879754,
+        "entanglement_entropy": 1.8803988695144653,
+        "kernel_spectrum_flatness": 1.0986056327819824,
+        "locality_vs_expressibility": 0.0672230197667516,
+        "topological_invariants_of_embedding": 5.053656756877899,
+        "encoded_states_classes_overlap": 0.6641021966934204,
+        "total": 123.75524591251592,
+        "min_max": [
+          [
+            1,
+            126
+          ],
+          [
+            0,
+            3.1999999999999994e+17
+          ],
+          [
+            0,
+            3.4886399617499584
+          ],
+          [
+            1,
+            1000
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            166667499
+          ],
+          [
+            0,
+            1
+          ]
+        ],
+        "n_modes": 9,
+        "n_photons": 4
+      },
+      "dense_angle": {
+        "hilbert_space_support_dim": 14.641352868854383,
+        "quantum_fisher_information_spread": 4.900173838767097,
+        "entanglement_entropy": 0.04261965677142143,
+        "kernel_spectrum_flatness": 1.0831234455108643,
+        "locality_vs_expressibility": 0.0009289702866226435,
+        "topological_invariants_of_embedding": 3.0084020495414734,
+        "encoded_states_classes_overlap": 0.8105469942092896,
+        "total": 24.48714782394115,
+        "min_max": [
+          [
+            1,
+            16
+          ],
+          [
+            0,
+            3.1999999999999994e+17
+          ],
+          [
+            0,
+            2.0
+          ],
+          [
+            1,
+            1000
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            166667499
+          ],
+          [
+            0,
+            1
+          ]
+        ],
+        "n_modes": 8,
+        "n_photons": 4
+      },
+      "fourier": {
+        "hilbert_space_support_dim": 47.00293342480366,
+        "quantum_fisher_information_spread": 8.020213240763532,
+        "entanglement_entropy": 0.5153102874755859,
+        "kernel_spectrum_flatness": 0.9919151663780212,
+        "locality_vs_expressibility": 0.03440073877573013,
+        "topological_invariants_of_embedding": 7.68899917602539e-06,
+        "encoded_states_classes_overlap": 0.8045850992202759,
+        "total": 57.36936564641598,
+        "min_max": [
+          [
+            1,
+            256
+          ],
+          [
+            0,
+            3.1999999999999994e+17
+          ],
+          [
+            0,
+            4.0
+          ],
+          [
+            1,
+            1000
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            166667499
+          ],
+          [
+            0,
+            1
+          ]
+        ],
+        "n_modes": 16,
+        "n_photons": 8
+      },
+      "amplitude": {
+        "hilbert_space_support_dim": 7.999980480027618,
+        "quantum_fisher_information_spread": 14.446661816331506,
+        "entanglement_entropy": 0.8954601750643036,
+        "kernel_spectrum_flatness": 1.0924902981894138,
+        "locality_vs_expressibility": 0.10621813529824933,
+        "topological_invariants_of_embedding": 4.1980292039843246,
+        "encoded_states_classes_overlap": 0.7285425198358472,
+        "total": 29.467382628731265,
+        "min_max": [
+          [
+            1,
+            10
+          ],
+          [
+            0,
+            3.1999999999999994e+17
+          ],
+          [
+            0,
+            1.660964047443681
+          ],
+          [
+            1,
+            1000
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            166667499
+          ],
+          [
+            0,
+            1
+          ]
+        ],
+        "n_modes": 5,
+        "n_photons": 2
+      },
+      "dense_amplitude": {
+        "hilbert_space_support_dim": 3.9999966565533294,
+        "quantum_fisher_information_spread": 12.382885833296138,
+        "entanglement_entropy": 0.740844122867058,
+        "kernel_spectrum_flatness": 1.0924902981894136,
+        "locality_vs_expressibility": 0.11359940510621763,
+        "topological_invariants_of_embedding": 4.19802920398432,
+        "encoded_states_classes_overlap": 0.7501855472099173,
+        "total": 23.278031067206395,
+        "min_max": [
+          [
+            1,
+            6
+          ],
+          [
+            0,
+            3.1999999999999994e+17
+          ],
+          [
+            0,
+            1.292481250360578
+          ],
+          [
+            1,
+            1000
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            166667499
+          ],
+          [
+            0,
+            1
+          ]
+        ],
+        "n_modes": 4,
+        "n_photons": 2
+      },
+      "evolution": null,
+      "nqe": {
+        "hilbert_space_support_dim": 5.9999446901998335,
+        "quantum_fisher_information_spread": 87.56491480665093,
+        "entanglement_entropy": 0.63306725025177,
+        "kernel_spectrum_flatness": 2.080866575241089,
+        "locality_vs_expressibility": 0.0812512055440223,
+        "topological_invariants_of_embedding": 0.20565307140350342,
+        "encoded_states_classes_overlap": 0.06445807218551636,
+        "total": 96.63015567147667,
+        "min_max": [
+          [
+            1,
+            6
+          ],
+          [
+            0,
+            3.1999999999999994e+17
+          ],
+          [
+            0,
+            1.292481250360578
+          ],
+          [
+            1,
+            1000
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            166667499
+          ],
+          [
+            0,
+            1
+          ]
+        ],
+        "n_modes": 4,
+        "n_photons": 2
+      },
+      "egas": {
+        "hilbert_space_support_dim": 7.510859856985441,
+        "quantum_fisher_information_spread": 73.79030315367771,
+        "entanglement_entropy": 0.7750051617622375,
+        "kernel_spectrum_flatness": 2.8719508454972074,
+        "locality_vs_expressibility": 0.1017500107416598,
+        "topological_invariants_of_embedding": 4.9560441970825195,
+        "encoded_states_classes_overlap": 0.18415164947509766,
+        "total": 90.19006487522186,
+        "min_max": [
+          [
+            1,
+            10
+          ],
+          [
+            0,
+            3.1999999999999994e+17
+          ],
+          [
+            0,
+            1.660964047443681
+          ],
+          [
+            1,
+            1000
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            166667499
+          ],
+          [
+            0,
+            1
+          ]
+        ],
+        "n_modes": 4,
+        "n_photons": 2
+      }
+    }
+  },
+  "config": {
+    "dataset_name": "eurosat",
+    "classes": [
+      0,
+      1
+    ],
+    "feature_reduction": 8,
+    "n_modes": null,
+    "n_photons": null,
+    "computation_space": "UNBUNCHED",
+    "num_qubits_per_feature_fourier": 1,
+    "hyper_parameters_classical": [
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "max_order_correlation_classical": 4,
+    "max_dim_topology_classical": 2,
+    "weights_topology_classical": null,
+    "hyper_parameters_induced": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "epsilon_hilbert_support_dim_induced": 1e-08,
+    "n_samples_loc_vs_express_induced": 1000,
+    "n_bins_loc_vs_express_induced": 50,
+    "max_dim_topology_induced": 2,
+    "weights_topology_induced": null,
+    "max_samples_topology_induced": 1000,
+    "max_samples_induced": 1000,
+    "randomize_entangling": true,
+    "generate_umap_plots": true,
+    "generate_umap_2d": true,
+    "generate_umap_3d": true,
+    "umap_state": 42,
+    "umap_num_points_per_class": 50,
+    "umap_n_neighbors": 15,
+    "umap_n_epochs": 200
+  }
+}
