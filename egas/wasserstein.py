@@ -13,8 +13,6 @@ import numpy as np
 import torch
 from scipy.optimize import linear_sum_assignment
 
-from .circuits import zz_feature_states
-
 
 def wasserstein1_l1(
     X_pos: np.ndarray, X_neg: np.ndarray, max_per_class: int = 500, seed: int = 0
@@ -78,39 +76,3 @@ def trace_distance_states(states_pos: torch.Tensor, states_neg: torch.Tensor) ->
     diff = rho_p - rho_n
     eig = torch.linalg.eigvalsh(diff)
     return 0.5 * eig.abs().sum().item()
-
-
-def fig1_curve(
-    n_qubits: int = 4,
-    n_layers: int = 1,
-    n_per_class: int = 60,
-    shifts=None,
-    sigma: float = 0.3,
-    seed: int = 0,
-):
-    """Fig 1: trace distance vs input W1 for a ZZ feature map.
-
-    Two Gaussian clouds in input space; one is fixed, the other translated to sweep W1.
-    Returns (w1_values, trace_distances).
-    """
-    if shifts is None:
-        shifts = np.linspace(0.0, 1.2, 9)
-    rng = np.random.default_rng(seed)
-    base = rng.normal(0.0, sigma, size=(n_per_class, n_qubits))
-    w1s, tds = [], []
-    for sh in shifts:
-        Xp = base
-        Xn = rng.normal(0.0, sigma, size=(n_per_class, n_qubits)) + sh
-        # rescale jointly into a sensible angle range [0, 2pi]
-        allX = np.vstack([Xp, Xn])
-        lo, hi = allX.min(0), allX.max(0)
-        rng_span = np.where(hi - lo > 1e-9, hi - lo, 1.0)
-        Xp_s = (Xp - lo) / rng_span * (2 * np.pi)
-        Xn_s = (Xn - lo) / rng_span * (2 * np.pi)
-        w1 = wasserstein1_l1(Xp_s, Xn_s, seed=seed)
-        sp = zz_feature_states(torch.tensor(Xp_s), n_qubits, n_layers=n_layers)
-        sn = zz_feature_states(torch.tensor(Xn_s), n_qubits, n_layers=n_layers)
-        td = trace_distance_states(sp, sn)
-        w1s.append(w1)
-        tds.append(td)
-    return np.array(w1s), np.array(tds)

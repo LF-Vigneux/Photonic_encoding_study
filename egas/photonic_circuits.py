@@ -73,7 +73,7 @@ def create_quantum_module(
     num_features: int,
     n_modes: int,
     num_photons: int = 2,
-    computation_space: ml.ComputationSpace = ml.ComputationSpace.UNBUNCHED,
+    computation_space: ml.ComputationSpace = ml.ComputationSpace.FOCK,
 ):
     circuit, input_parameters, trainable_parameters = create_perceval_circuit(
         sequence, n_modes=n_modes
@@ -143,7 +143,11 @@ def create_quantum_module(
                 layer_input = torch.zeros(x.shape[0], 0, dtype=x.dtype, device=x.device)
                 return self.layer()
 
-        def reset_bias(self, hidden: int | None = None, gain: float | None = None):
+        def reset_bias(
+            self,
+            hidden: int | None = None,
+            gain: float | None = None,
+        ):
             if hidden is None:
                 hidden = 32
             if gain is None:
@@ -158,6 +162,7 @@ def create_quantum_module(
                     hidden=hidden,
                     gain=gain,
                 )
+                return
             else:
                 self.bias = BiasMLP(
                     n_in=num_features,
@@ -165,5 +170,12 @@ def create_quantum_module(
                     hidden=hidden,
                     gain=gain,
                 ).to(device=param.device, dtype=param.dtype)
+
+            for module in self.bias.net[:-1]:
+                if isinstance(module, nn.Linear):
+                    module.reset_parameters()
+            # The output head stays zero-initialised (set in BiasMLP.__init__).
+            nn.init.zeros_(self.bias.net[-1].weight)
+            nn.init.zeros_(self.bias.net[-1].bias)
 
     return QuantumModule()

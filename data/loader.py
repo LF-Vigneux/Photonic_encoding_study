@@ -15,7 +15,7 @@ import numpy as np
 import torch
 from torchvision import datasets
 from torchvision.transforms import Compose, Resize, ToTensor
-from sklearn.datasets import load_breast_cancer, load_diabetes
+from sklearn.datasets import load_breast_cancer, load_wine
 
 
 def _load_datasets(
@@ -67,8 +67,8 @@ def _load_datasets(
                 stratify=targets,
             )
 
-        if dataset == "diabetes":
-            data, targets = load_diabetes(return_X_y=True)
+        if dataset == "wine":
+            data, targets = load_wine(return_X_y=True)
             return train_test_split(
                 data.astype(np.float32),
                 targets.astype(np.float32),
@@ -119,9 +119,11 @@ def _load_datasets(
             )
 
             x_train = np.stack([img.numpy() for img, _ in train_base])
-            y_train = np.array([label for _, label in train_base], dtype=np.int64)
+            y_train = np.array(
+                [label for _, label in train_base], dtype=np.int64
+            ).ravel()
             x_test = np.stack([img.numpy() for img, _ in eval_base])
-            y_test = np.array([label for _, label in eval_base], dtype=np.int64)
+            y_test = np.array([label for _, label in eval_base], dtype=np.int64).ravel()
             return x_train, x_test, y_train, y_test
 
         # ---- Spiral ----

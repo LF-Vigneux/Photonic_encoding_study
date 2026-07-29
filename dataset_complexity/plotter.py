@@ -386,7 +386,7 @@ def plot_normalized_complexities_classical(
     dataset_name: str = "",
     figsize: tuple[float, float] = (10.0, 6.0),
     run_dir: Path | None = None,
-    filename: str = "dataset_complexities_normalized.pdf",
+    filename: str = "classical_complexities_normalized.pdf",
 ) -> Path:
     """Create a normalized (0–1) bar plot of the dataset complexity metrics."""
 

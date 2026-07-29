@@ -853,7 +853,7 @@ def kl_div(
         kernel_matrix = embedder.compute_kernel_matrix(rand_inputs)
         D = embedder.quantum_embedding_layer.output_size
     else:
-        kernel_matrix = compute_kernel_matrix_without_nqe(x, embedder)
+        kernel_matrix = compute_kernel_matrix_without_nqe(rand_inputs, embedder)
         D = embedder.output_size
 
     # Ensure kernel_matrix is 2D and extract upper triangle as 1D

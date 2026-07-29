@@ -15,9 +15,22 @@ import merlin as ml
 import numpy as np
 import torch
 
-from .egas import pairwise_energy
 from .photonic_circuits import create_quantum_module
 from .statevec import fidelity_matrix
+
+
+def pairwise_energy(states: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
+    """E = mean_{i!=j} |delta_{y_i,y_j} - F(x_i,x_j)| for one embedding."""
+    # Ensure states and labels have matching first dimension
+    if states.shape[0] == 1 and labels.shape[0] > 1:
+        states = states.expand(labels.shape[0], -1)
+
+    F = fidelity_matrix(states)  # (S, S)
+    same = (labels.unsqueeze(0) == labels.unsqueeze(1)).double()  # delta
+    loss = (same - F).abs()
+    S = states.shape[0]
+    off = ~torch.eye(S, dtype=torch.bool, device=states.device)
+    return loss[off].mean()
 
 
 def _bce_pair_loss(states, labels, eps=1e-3):
@@ -46,7 +59,7 @@ def refine_bias(
     num_features,
     *,
     num_photons=2,
-    computation_space=ml.ComputationSpace.UNBUNCHED,
+    computation_space=ml.ComputationSpace.FOCK,
     epochs=100,
     batch_samples=25,
     lr=5e-4,
