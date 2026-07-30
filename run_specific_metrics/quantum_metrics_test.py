@@ -29,21 +29,51 @@ ENCODING_NAMES = {
     "egas": "EGAS",
 }
 
+# ENCODINGS = [
+#     "angle",
+#     "amplitude",
+# ]
+# ENCODING_NAMES = {
+#     "angle": "Angle",
+#     "amplitude": "Amplitude",
+# }
+
+
 METRICS = {
+    "hilbert_space_support_dim": (
+        0,
+        "Hilbert Space Support Dimension",
+        "hilbert_space_support_dim.pdf",
+    ),
     "quantum_fisher_information_spread": (
         1,
         "Quantum Fisher Information Spread",
         "quantum_fisher_information_spread.pdf",
+    ),
+    "entanglement_entropy": (
+        2,
+        "Entanglement Entropy",
+        "entanglement_entropy.pdf",
     ),
     "kernel_spectrum_flatness": (
         3,
         "Kernel Spectrum Flatness",
         "kernel_spectrum_flatness.pdf",
     ),
+    "locality_vs_expressibility": (
+        4,
+        "Locality vs Expressibility",
+        "locality_vs_expressibility.pdf",
+    ),
     "topological_invariants_of_embedding": (
         5,
         "Topological Invariants of Embedding",
         "topological_invariants_of_embedding.pdf",
+    ),
+    "encoded_states_classes_overlap": (
+        6,
+        "Encoded States Class Overlap",
+        "encoded_states_classes_overlap.pdf",
     ),
 }
 
