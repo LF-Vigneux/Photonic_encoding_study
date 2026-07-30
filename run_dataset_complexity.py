@@ -825,7 +825,6 @@ def dataset_complexity_induced_comparison(
             n_iters=4000,
             n_candidates=12,
             select_k=6,
-            gamma=0.1,
             lr=5e-5,
             n_layers=1,
             n_heads=2,

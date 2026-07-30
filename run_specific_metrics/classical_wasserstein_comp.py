@@ -5,7 +5,10 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 
-RESULTS_DIR = Path("results")
+from pathlib import Path
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+RESULTS_DIR = SCRIPT_DIR.parent / "results"
 
 
 def collect_wasserstein():
@@ -86,7 +89,7 @@ def plot_raw(data):
 
     plt.ylim(0, ymax)
     plt.tight_layout()
-    plt.savefig("results/classical_wasserstein.pdf")
+    plt.savefig(RESULTS_DIR / "classical_wasserstein.pdf")
     plt.close()
 
 
@@ -114,7 +117,7 @@ def plot_normalized(data):
         )
 
     plt.tight_layout()
-    plt.savefig("results/classical_wasserstein_normalized.pdf")
+    plt.savefig(RESULTS_DIR / "classical_wasserstein_normalized.pdf")
     plt.close()
 
 
@@ -124,11 +127,12 @@ def main():
     if not data:
         raise RuntimeError("No complexity JSON files found.")
 
-    # Sort by increasing Wasserstein distance
-    data.sort(key=lambda d: d["value"])
+    # Sort independently for each plot
+    raw_data = sorted(data, key=lambda d: d["value"])
+    normalized_data = sorted(data, key=lambda d: d["normalized"])
 
-    plot_raw(data)
-    plot_normalized(data)
+    plot_raw(raw_data)
+    plot_normalized(normalized_data)
 
     print("Generated:")
     print("  results/classical_wasserstein.pdf")

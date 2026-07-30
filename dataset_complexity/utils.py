@@ -301,6 +301,9 @@ def entanglement_entropy(
 
     total_entropy = 0.0
 
+    if num_bipartitions == 0:
+        return total_entropy
+
     for point in tqdm(x, desc="[entanglement_entropy] points", disable=disable_tqdm):
 
         psi = encoder(point)
@@ -565,6 +568,9 @@ def average_bipartite_entanglement_entropy(
     num_bipartitions = len(bipartitions)
 
     total_entropy = 0
+
+    if num_bipartitions == 0:
+        return total_entropy
 
     for point in x:
         # Getting the density matrix in the right encoding
