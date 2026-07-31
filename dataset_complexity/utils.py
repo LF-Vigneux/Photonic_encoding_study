@@ -38,16 +38,17 @@ from scipy.optimize import linear_sum_assignment
 # Classical
 ############################################################################################################
 def distributional_entropy(X: torch.Tensor) -> float:
-    N = X.size(0)
-    _, frequencies = torch.unique(X, dim=0, return_counts=True)
-    if frequencies.size(0) == N:
-        return np.log(N)
+    B = min(64, X.shape[0])  # Number of bins
 
-    probs = frequencies / N
-    entropy = 0
-    for prob in probs:
-        entropy += prob * np.log(prob)
-    return (-1) * entropy
+    mins = X.min(dim=0).values
+    maxs = X.max(dim=0).values
+
+    Xq = (X - mins) / (maxs - mins + 1e-12)
+    Xq = torch.clamp((Xq * B).floor(), 0, B - 1).to(torch.int64)
+
+    _, counts = torch.unique(Xq, dim=0, return_counts=True)
+    probs = counts.float() / counts.sum()
+    return -(probs * probs.log2()).sum()
 
 
 def correlation_order(
@@ -63,9 +64,7 @@ def correlation_order(
 
     def joint_entropy(indices: list[int]) -> float:
         X_sub = X_np[:, indices]
-        _, counts = np.unique(X_sub, axis=0, return_counts=True)
-        probs = counts / N
-        return float(-np.sum(probs * np.log(probs)))
+        return distributional_entropy(X_sub)
 
     def multivariate_mi(S: tuple) -> float:
         mi = 0.0
@@ -178,7 +177,7 @@ def hilbert_space_support_dim(
     eps: float = 1e-8,
 ) -> int:
     """
-    Per the kernel effective dim of p.8 eq 12
+    Per the kernel effective dim of p.8 eq 12. We apply it here to the average encoded state.
     """
     if isinstance(embedder, NeuralEmbeddingMerLinKernel):
 
@@ -720,7 +719,7 @@ def quantum_entropy(rho: torch.Tensor) -> float:
     entropy = 0
     for val in eigvals:
         if val > 1e-8:
-            entropy += val * np.log(val)
+            entropy += val * np.log2(val)
     return (-1) * entropy
 
 
