@@ -378,6 +378,7 @@ def kernel_spectrum_flatness(
         kernel_matrix = compute_kernel_matrix_without_nqe(x, embedder)
 
     eigvals = torch.linalg.eigvalsh(kernel_matrix)
+    eigvals = torch.clamp_min(eigvals, 0)
     eigvals_square = eigvals**2
     result = (torch.sum(eigvals) ** 2) / torch.sum(eigvals_square)
     for _ in tqdm(range(1), desc="[kernel_spectrum_flatness] eigvals"):
