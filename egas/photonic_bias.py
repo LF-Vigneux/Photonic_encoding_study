@@ -19,20 +19,6 @@ from .photonic_circuits import create_quantum_module
 from .statevec import fidelity_matrix
 
 
-def pairwise_energy(states: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
-    """E = mean_{i!=j} |delta_{y_i,y_j} - F(x_i,x_j)| for one embedding."""
-    # Ensure states and labels have matching first dimension
-    if states.shape[0] == 1 and labels.shape[0] > 1:
-        states = states.expand(labels.shape[0], -1)
-
-    F = fidelity_matrix(states)  # (S, S)
-    same = (labels.unsqueeze(0) == labels.unsqueeze(1)).double()  # delta
-    loss = (same - F).abs()
-    S = states.shape[0]
-    off = ~torch.eye(S, dtype=torch.bool, device=states.device)
-    return loss[off].mean()
-
-
 def _bce_pair_loss(states, labels, eps=1e-3):
     F = fidelity_matrix(states)
     Fbar = F.clamp(eps, 1 - eps)
@@ -77,6 +63,8 @@ def refine_bias(
     optimising ``encoder.bias`` (which produces the per-PS phase offsets ``phi``).
     ``hidden`` and ``gain`` configure the bias MLP via ``encoder.reset_bias``.e.
     """
+    from .photonic_egas import pairwise_energy
+    
     torch.manual_seed(seed)
     Xt = torch.as_tensor(X, dtype=torch.float32, device=device)
     yt = torch.as_tensor(y, dtype=torch.long, device=device)

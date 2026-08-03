@@ -14,6 +14,7 @@ import torch
 from scipy.optimize import linear_sum_assignment
 
 
+
 def wasserstein1_l1(
     X_pos: np.ndarray, X_neg: np.ndarray, max_per_class: int = 500, seed: int = 0
 ) -> float:
