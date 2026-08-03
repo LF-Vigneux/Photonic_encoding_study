@@ -60,10 +60,8 @@ def correlation_order(
         max_order = d
     max_order = min(max_order, d)
 
-    X_np = X.detach().numpy()
-
     def joint_entropy(indices: list[int]) -> float:
-        X_sub = X_np[:, indices]
+        X_sub = X[:, indices]
         return distributional_entropy(X_sub)
 
     def multivariate_mi(S: tuple) -> float:
