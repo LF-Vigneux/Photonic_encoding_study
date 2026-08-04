@@ -17,3 +17,16 @@ nn_embedding/
 datasets/
 data/data/cifar-10-python.tar.gz
 data/data/
+.DS_Store
+__pycache__/run_dataset_complexity.cpython-312.pyc
+__pycache__/runner.cpython-312.pyc
+data/__pycache__/loader.cpython-312.pyc
+dataset_complexity/__pycache__/complexity_metrics.cpython-312.pyc
+dataset_complexity/__pycache__/plotter.cpython-312.pyc
+dataset_complexity/__pycache__/utils.cpython-312.pyc
+encodings_merlin/__pycache__/encoding_layers.cpython-312.pyc
+encodings_merlin/__pycache__/utils.cpython-312.pyc
+nn_embedding/lib/__pycache__/merlin_based_model.cpython-312.pyc
+nn_embedding/utils/__pycache__/merlin_model_utils.cpython-312.pyc
+nn_embedding/utils/__pycache__/utils.cpython-312.pyc
+results/.DS_Store

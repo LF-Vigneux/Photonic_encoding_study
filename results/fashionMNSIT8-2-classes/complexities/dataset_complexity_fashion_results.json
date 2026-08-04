@@ -1,12 +1,12 @@
 {
   "results": {
     "classical": {
-      "distributional_entropy": 9.546812608597396,
-      "correlation_order": 28.62461921692155,
+      "distributional_entropy": 13.772079467773438,
+      "correlation_order": -1.0402413606643677,
       "kolmogorov_complexity": 0.8824642857142857,
       "topological_complexity": 93.21535578742623,
       "wasserstein distance": 1.0529439449310303,
-      "total": 133.3221958435905,
+      "total": 107.88259887695312,
       "min_max": [
         [
           0,
