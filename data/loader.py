@@ -20,7 +20,7 @@ from sklearn.datasets import load_breast_cancer, load_wine
 
 def _load_datasets(
     dataset: str,
-    n_features_generated: int = 2,
+    n_features_generated: int = 8,
     noise_generated: float = 0.0,
     n_samples_generated: int = 1000,
     n_classes_spiral: int = 2,
@@ -214,6 +214,7 @@ def data_load_and_process(
     feature_reduction: int | None = None,
     classes=(0, 1),
     samples_per_class: int | None = None,
+    noise_generated: float = 0.0,
     shuffle: bool = True,
     shuffle_seed: int = 42,
 ):
@@ -237,7 +238,10 @@ def data_load_and_process(
         y_test = [1 if y ==1 else -1 for y in y_test]
     """
 
-    x_train, x_test, y_train, y_test = _load_datasets(dataset)
+    x_train, x_test, y_train, y_test = _load_datasets(
+        dataset,
+        noise_generated=noise_generated,
+    )
 
     if classes is not None:
         mask_train = np.zeros(len(y_train), dtype=bool)
@@ -281,6 +285,7 @@ def data_load_and_process(
         pca = PCA(feature_reduction)
         X_train = pca.fit_transform(x_train_flat)
         X_test = pca.transform(x_test_flat)
+        
 
         x_train, x_test = _minmax_normalize(X_train, X_test)
         if shuffle:

@@ -30,6 +30,13 @@
       "apply": { "kind": "config_path", "path": "feature_reduction" }
     },
     {
+      "flags": ["--noise_generated"],
+      "help": "Noise level for generated synthetic datasets (default: 0.0).",
+      "type": "float",
+      "default": 0.0,
+      "apply": { "kind": "config_path", "path": "noise_generated" }
+    },
+    {
       "flags": ["--n_modes"],
       "help": "Number of optical modes.",
       "type": "int",

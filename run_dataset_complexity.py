@@ -55,6 +55,7 @@ def dataset_complexity_induced_comparison(
     dataset_name: str,
     classes: tuple | None = None,
     feature_reduction: int | None = None,
+    noise_generated: float = 0.0,
     n_modes: int | None = None,
     n_photons: int | None = None,
     computation_space: ml.ComputationSpace = ml.ComputationSpace.UNBUNCHED,
@@ -90,7 +91,10 @@ def dataset_complexity_induced_comparison(
     _t0 = _time.perf_counter()
     print("Loading dataset...", flush=True)
     x_train, x_test, y_train, y_test = data_load_and_process(
-        dataset=dataset_name, classes=classes, feature_reduction=feature_reduction
+        dataset=dataset_name,
+        classes=classes,
+        feature_reduction=feature_reduction,
+        noise_generated=noise_generated,
     )
     print(f"Dataset loaded in {_time.perf_counter() - _t0:.1f}s", flush=True)
     X = torch.cat((x_train, x_test), 0)
@@ -163,6 +167,7 @@ def dataset_complexity_induced_comparison(
         "weights_topology_induced": weights_topology_induced,
         "max_samples_topology_induced": max_samples_topology_induced,
         "max_samples_induced": max_samples_induced,
+        "noise_generated": noise_generated,
         "randomize_entangling": randomize_entangling,
         "generate_umap_plots": generate_umap_plots,
         "generate_umap_2d": generate_umap_2d,

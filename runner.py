@@ -52,6 +52,7 @@ def train_and_evaluate(cfg, run_dir: Path) -> None:
             dataset_name=cfg.get("dataset_name", "mnist"),
             classes=classes_raw,
             feature_reduction=cfg.get("feature_reduction", None),
+            noise_generated=cfg.get("noise_generated", 0.0),
             n_modes=cfg.get("n_modes", None),
             n_photons=cfg.get("n_photons", None),
             computation_space=computation_space,
@@ -116,7 +117,9 @@ def main():
 
         dataset_complexity_induced_comparison(
             dataset_name=args.dataset_name,
-            classes=args.feature_reduction,
+            classes=classes_raw,
+            feature_reduction=args.feature_reduction,
+            noise_generated=args.noise_generated,
             n_modes=args.n_modes,
             n_photons=args.n_photons,
             computation_space=computation_space,

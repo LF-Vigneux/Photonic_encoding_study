@@ -2,8 +2,8 @@
     "description": "Run the INDUCED_DATASET_COMPLEXITY experiment",
     "outdir": "results",
     "exp_to_run": "INDUCED_DATASET_COMPLEXITY",
-    "dataset_name": "wine",
-    "classes": [0,1,2],
+    "dataset_name": "manifold",
+    "classes": [0,1],
     "feature_reduction": 8,
     "n_modes": null,
     "n_photons": null,
@@ -30,5 +30,6 @@
     "umap_state": 42,
     "umap_num_points_per_class": 50,
     "umap_n_neighbors": 15,
-    "umap_n_epochs": 200
+    "umap_n_epochs": 200,
+    "noise_generated": 0.1
 }

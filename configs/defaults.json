@@ -5,6 +5,7 @@
     "dataset_name": "mnist",
     "classes": [0,1,2,3,4,5,6,7,8,9],
     "feature_reduction": 8,
+    "noise_generated": 0.0,
     "n_modes": null,
     "n_photons": null,
     "computation_space": "UNBUNCHED",

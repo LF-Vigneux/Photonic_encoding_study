@@ -62,8 +62,8 @@ def generate_hidden_manifold_model(n_samples, n_features, manifold_dimension):
 
     # post-process the labels to get balanced classes
     y = y - np.median(y)
-    y = np.array([-1 if y_ < 0 else 1 for y_ in y])
+    y = np.array([0 if y_ < 0 else 1 for y_ in y], dtype=np.int64)
     assert len(X[y == 1]) == n_samples // 2
-    assert len(X[y == -1]) == n_samples // 2
+    assert len(X[y == 0]) == n_samples // 2
 
     return X, y
