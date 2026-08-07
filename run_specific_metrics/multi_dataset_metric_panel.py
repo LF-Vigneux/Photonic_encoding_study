@@ -1,5 +1,10 @@
 """
-python3 multi_dataset_metric_panel.py   --datasets moons mnist_binary breast_binary wine_3_classes cifar_4_classes cifar_10_classes   --metrics hilbert_space_support_dim entanglement_entropy locality_vs_expressibility encoded_states_classes_overlap   --output results/my_panel.pdf
+python3 multi_dataset_metric_panel.py   --datasets moons mnist_binary breast_binary wine_3_classes cifar_4_classes cifar_10_classes   --metrics hilbert_space_support_dim entanglement_entropy locality_vs_expressibility encoded_states_classes_overlap   --output results/embedding_results.pdf
+
+
+Others
+python3 multi_dataset_metric_panel.py   --datasets noisy_moons mnist_4_classes mnist_10_classes eurosat kmnist fashion_mnist manifold path_mnist --metrics hilbert_space_support_dim entanglement_entropy locality_vs_expressibility encoded_states_classes_overlap   --output results/embedding_appendix.pdf
+
 """
 from __future__ import annotations
 
@@ -17,11 +22,23 @@ RESULTS_DIR = SCRIPT_DIR.parent / "results"
 
 DATASET_FOLDER_MAP = {
     "moons": "moons2-2-classes",
+    "noisy_moons": "noisy_moons2-2-classes",
     "mnist_binary": "MNIST8-2-classes",
+    "mnist_4_classes": "MNIST8-4-classes",
+    "mnist_10_classes": "MNIST8-10-classes",
     "breast_binary": "breast8-2-classes",
     "wine_3_classes": "wine8-3-classes",
     "cifar_4_classes": "CIFAR8-4-classes",
     "cifar_10_classes": "CIFAR8-10-classes",
+    "eurosat": "EuroSAT8-2-classes",
+    "euro_sat": "EuroSAT8-2-classes",
+    "pathmnist": "pathmnist8-4-classes",
+    "path_mnist": "pathmnist8-4-classes",
+    "path-mnist": "pathmnist8-4-classes",
+    "kmnist": "kMNIST8-2-classes",
+    "manifold": "manifold8-2-classes",
+    "fashion_mnist": "fashionMNSIT8-2-classes",
+    "fashion_mnsit": "fashionMNSIT8-2-classes",
 }
 
 ENCODINGS = [
@@ -161,10 +178,9 @@ def plot_panel(
     encodings: list[str],
     output_path: Path,
 ) -> Path:
-    rows = 2
     cols = 3
-    max_panels = rows * cols
-    dataset_keys = dataset_keys[:max_panels]
+    num_datasets = len(dataset_keys)
+    rows = (num_datasets + cols - 1) // cols
     subplot_width = 11.5
     subplot_height = 7.5
     fig, axes = plt.subplots(
@@ -177,7 +193,9 @@ def plot_panel(
     axes_flat = axes.flatten()
     color_map = plt.get_cmap("tab10")
     colors = [color_map(i) for i in range(len(encodings))]
-    subplot_labels = ["(a)", "(b)", "(c)", "(d)", "(e)", "(f)"]
+    subplot_labels = [
+        f"({chr(ord('a') + i)})" for i in range(num_datasets)
+    ]
 
     all_encoding_labels: list[str] = []
 
@@ -253,6 +271,28 @@ def plot_panel(
     for empty_idx in range(len(dataset_keys), rows * cols):
         axes_flat[empty_idx].axis("off")
 
+    fig.subplots_adjust(top=0.91, bottom=0.15, left=0.05, right=0.99, hspace=0.45, wspace=0.28)
+
+    last_row_count = num_datasets % cols
+    if last_row_count != 0:
+        full_row_left = axes_flat[0].get_position().x0
+        full_row_right = axes_flat[cols - 1].get_position().x0 + axes_flat[cols - 1].get_position().width
+        full_center = 0.5 * (full_row_left + full_row_right)
+        last_row_start = (rows - 1) * cols
+        last_axes = [axes_flat[last_row_start + i] for i in range(last_row_count)]
+        current_left = last_axes[0].get_position().x0
+        current_right = last_axes[-1].get_position().x0 + last_axes[-1].get_position().width
+        current_center = 0.5 * (current_left + current_right)
+        shift = full_center - current_center
+        for ax in last_axes:
+            pos = ax.get_position()
+            ax.set_position([
+                pos.x0 + shift,
+                pos.y0,
+                pos.width,
+                pos.height,
+            ])
+
     encoding_handles = []
     for i, label in enumerate(all_encoding_labels):
         hatch = "//" if label in {"NQE", "EGAS"} else None
@@ -269,11 +309,12 @@ def plot_panel(
         for k in metrics
     ]
 
+    legend_y = 1.01
     encoding_legend = fig.legend(
         handles=encoding_handles,
         title="Encodings",
         loc="upper right",
-        bbox_to_anchor=(0.50, 1.05),
+        bbox_to_anchor=(0.5, legend_y),
         ncol=len(encoding_handles),
         frameon=False,
         fontsize=16,
@@ -283,7 +324,7 @@ def plot_panel(
         handles=metric_handles,
         title="Metrics",
         loc="upper left",
-        bbox_to_anchor=(0.50, 1.05),
+        bbox_to_anchor=(0.5, legend_y),
         ncol=2,
         frameon=False,
         fontsize=15,
@@ -291,7 +332,16 @@ def plot_panel(
     )
     fig.add_artist(encoding_legend)
     fig.add_artist(metric_legend)
-    fig.subplots_adjust(top=0.90, bottom=0.15, left=0.05, right=0.99, hspace=0.45, wspace=0.28)
+
+    # Measure rendered legend widths and re-center the pair as a single block.
+    fig.canvas.draw()
+    inv_transform = fig.transFigure.inverted()
+    encoding_bbox = encoding_legend.get_window_extent().transformed(inv_transform)
+    metric_bbox = metric_legend.get_window_extent().transformed(inv_transform)
+    combined_width = (encoding_bbox.x1 - encoding_bbox.x0) + (metric_bbox.x1 - metric_bbox.x0)
+    split_x = 0.5 - combined_width / 2.0 + (encoding_bbox.x1 - encoding_bbox.x0)
+    encoding_legend.set_bbox_to_anchor((split_x, legend_y), transform=fig.transFigure)
+    metric_legend.set_bbox_to_anchor((split_x, legend_y), transform=fig.transFigure)
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(output_path, dpi=300, bbox_inches="tight")
