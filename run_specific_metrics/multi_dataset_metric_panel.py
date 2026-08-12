@@ -20,6 +20,20 @@ import numpy as np
 SCRIPT_DIR = Path(__file__).resolve().parent
 RESULTS_DIR = SCRIPT_DIR.parent / "results"
 
+# Font size hyperparameters
+TITLE_FONTSIZE = 25
+BAR_VALUE_FONTSIZE = 16
+XTICK_FONTSIZE = 16
+YTICK_FONTSIZE = 16
+YLABEL_FONTSIZE = 15
+ENCODING_LEGEND_FONTSIZE = 24
+ENCODING_LEGEND_TITLE_FONTSIZE = 26
+METRIC_LEGEND_FONTSIZE = 23
+METRIC_LEGEND_TITLE_FONTSIZE = 25
+
+# Bar size hyperparameter (fraction of the per-metric slot filled by all bars)
+BAR_GROUP_WIDTH = 0.75
+
 DATASET_FOLDER_MAP = {
     "moons": "moons2-2-classes",
     "noisy_moons": "noisy_moons2-2-classes",
@@ -178,11 +192,12 @@ def plot_panel(
     encodings: list[str],
     output_path: Path,
 ) -> Path:
-    cols = 3
+    total_fig_width = 3 * 11.5
+    cols = min(2, len(dataset_keys))
     num_datasets = len(dataset_keys)
     rows = (num_datasets + cols - 1) // cols
-    subplot_width = 11.5
-    subplot_height = 7.5
+    subplot_width = total_fig_width / cols
+    subplot_height = 9.5
     fig, axes = plt.subplots(
         rows,
         cols,
@@ -209,7 +224,7 @@ def plot_panel(
         n_encodings = len(rows_data)
         if n_encodings == 0:
             continue
-        bar_width = 0.70 / n_encodings
+        bar_width = BAR_GROUP_WIDTH / n_encodings
 
         for encoding_idx, (label, values) in enumerate(zip(labels, rows_data)):
             offset = (encoding_idx - n_encodings / 2 + 0.5) * bar_width
@@ -234,7 +249,7 @@ def plot_panel(
                         f"{height:.2f}",
                         ha="center",
                         va="bottom",
-                        fontsize=7,
+                        fontsize=BAR_VALUE_FONTSIZE,
                         rotation=45,
                     )
 
@@ -245,14 +260,15 @@ def plot_panel(
         title = f"{subplot_labels[idx]} {dataset_name}"
         if class_label:
             title += f" ({class_label})"
-        ax.set_title(title, fontsize=12, fontweight="bold", pad=14)
+        ax.set_title(title, fontsize=TITLE_FONTSIZE, fontweight="bold", pad=18)
         ax.set_xticks(x)
         ax.set_xticklabels(
             [METRIC_ABBREVIATIONS[m] for m in metrics],
             rotation=45,
             ha="right",
-            fontsize=10,
+            fontsize=XTICK_FONTSIZE,
         )
+        ax.tick_params(axis="y", labelsize=YTICK_FONTSIZE)
         ax.set_xlim(-0.5, len(metrics) - 0.5)
         ax.set_ylim(0.0, 1.0)
         ax.grid(True, axis="y", linestyle="--", alpha=0.25)
@@ -266,12 +282,12 @@ def plot_panel(
             )
 
         if idx % cols == 0:
-            ax.set_ylabel("Normalized complexity", fontsize=10)
+            ax.set_ylabel("Normalized complexity", fontsize=YLABEL_FONTSIZE)
 
     for empty_idx in range(len(dataset_keys), rows * cols):
         axes_flat[empty_idx].axis("off")
 
-    fig.subplots_adjust(top=0.91, bottom=0.15, left=0.05, right=0.99, hspace=0.45, wspace=0.28)
+    fig.subplots_adjust(top=0.91, bottom=0.15, left=0.05, right=0.99, hspace=0.30, wspace=0.15)
 
     last_row_count = num_datasets % cols
     if last_row_count != 0:
@@ -317,8 +333,8 @@ def plot_panel(
         bbox_to_anchor=(0.5, legend_y),
         ncol=len(encoding_handles),
         frameon=False,
-        fontsize=16,
-        title_fontsize=17,
+        fontsize=ENCODING_LEGEND_FONTSIZE,
+        title_fontsize=ENCODING_LEGEND_TITLE_FONTSIZE,
     )
     metric_legend = fig.legend(
         handles=metric_handles,
@@ -327,8 +343,8 @@ def plot_panel(
         bbox_to_anchor=(0.5, legend_y),
         ncol=2,
         frameon=False,
-        fontsize=15,
-        title_fontsize=16,
+        fontsize=METRIC_LEGEND_FONTSIZE,
+        title_fontsize=METRIC_LEGEND_TITLE_FONTSIZE,
     )
     fig.add_artist(encoding_legend)
     fig.add_artist(metric_legend)
