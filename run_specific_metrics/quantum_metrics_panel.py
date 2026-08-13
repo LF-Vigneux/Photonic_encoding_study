@@ -45,37 +45,37 @@ METRICS = {
     "hilbert_space_support_dim": (
         0,
         "Hilbert Space Support Dimension",
-        "hilbert_space_support_dim.pdf",
+        "hilbert_space_support_dim_per_encoding.pdf",
     ),
     "quantum_fisher_information_spread": (
         1,
         "Quantum Fisher Information Spread",
-        "quantum_fisher_information_spread.pdf",
+        "quantum_fisher_information_spread_per_encoding.pdf",
     ),
     "entanglement_entropy": (
         2,
         "Entanglement Entropy",
-        "entanglement_entropy.pdf",
+        "entanglement_entropy_per_encoding.pdf",
     ),
     "kernel_spectrum_flatness": (
         3,
         "Kernel Spectrum Flatness",
-        "kernel_spectrum_flatness.pdf",
+        "kernel_spectrum_flatness_per_encoding.pdf",
     ),
     "locality_vs_expressibility": (
         4,
         "Locality vs Expressibility",
-        "locality_vs_expressibility.pdf",
+        "locality_vs_expressibility_per_encoding.pdf",
     ),
     "topological_invariants_of_embedding": (
         5,
         "Topological Invariants of Embedding",
-        "topological_invariants_of_embedding.pdf",
+        "topological_invariants_of_embedding_per_encoding.pdf",
     ),
     "encoded_states_classes_overlap": (
         6,
         "Encoded States Class Overlap",
-        "encoded_states_classes_overlap.pdf",
+        "encoded_states_classes_overlap_per_encoding.pdf",
     ),
 }
 
