@@ -18,8 +18,8 @@ SUBPLOT_TITLE_FONTSIZE = 20
 YLABEL_FONTSIZE = 11
 XTICK_FONTSIZE = 12
 BAR_VALUE_FONTSIZE = 10
-LEGEND_FONTSIZE = 12
-LEGEND_TITLE_FONTSIZE = 13
+LEGEND_FONTSIZE = 18
+LEGEND_TITLE_FONTSIZE = 20
 
 ENCODINGS = [
     "angle",
@@ -244,7 +244,7 @@ def plot_metric_file(metric_name: str, metric_index: int, title: str, output_pat
         for label in dataset_labels
     ]
 
-    fig.suptitle(title, fontsize=16, fontweight="bold", y=1.04)
+    fig.suptitle(title, fontsize=32, fontweight="bold", y=1.02)
     fig.legend(
         handles=legend_handles,
         title="Dataset",
@@ -256,7 +256,7 @@ def plot_metric_file(metric_name: str, metric_index: int, title: str, output_pat
         frameon=False,
     )
 
-    fig.tight_layout(rect=(0, 0, 1, 0.94))
+    fig.tight_layout(rect=(0, 0, 1, 0.96))
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(output_path, dpi=300, bbox_inches="tight")
