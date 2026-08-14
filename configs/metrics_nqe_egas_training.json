@@ -1,0 +1,5 @@
+{
+    "description": "Train NQE and EGAS models with performance instrumentation and training curves",
+    "outdir": "results",
+    "exp_to_run": "NQE_EGAS_TRAINING_CURVES"
+}

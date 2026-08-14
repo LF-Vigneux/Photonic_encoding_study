@@ -12,6 +12,7 @@ A comprehensive research project investigating and comparing different photonic 
   - [Main Arguments](#main-arguments)
   - [Example Commands](#example-commands)
 - [Output and Results](#output-and-results)
+- [Metric Analysis and Visualization](#metric-analysis-and-visualization)
 - [Datasets](#datasets)
 - [Encoding Strategies](#encoding-strategies)
 - [Complexity Metrics](#complexity-metrics)
@@ -98,9 +99,16 @@ Photonic_encoding_study/
 │       ├── complexities/              # Complexity metrics (JSON)
 │       └── umaps/                     # UMAP visualizations (HTML/PNG)
 │
-└── run_specific_metrics/              # Specific metric computation scripts
-    ├── classical_wasserstein_comp.py
-    └── quantum_metrics_test.py
+└── metric_analysis/                   # Analysis and visualization scripts
+    ├── classical_metrics_table.py       # LaTeX table of classical metrics
+    ├── wasserstein_comparison.py        # Wasserstein distance analysis
+    ├── quantum_multi_dataset_panel.py   # Quantum metrics panel across multiple datasets
+    ├── normalized_summary.py            # Normalized metrics summary
+    ├── nqe_egas_comparison.py           # NQE vs EGAS metrics comparison
+    ├── nqe_egas_training_curves.py      # Training curves and performance analysis
+    ├── quantum_metrics_panel.py         # Quantum metrics panel visualization
+    ├── test_quantum_metrics.py          # Quantum metrics unit tests
+    └── results/                         # Generated analysis outputs
 ```
 
 ## Installation
@@ -124,14 +132,18 @@ Photonic_encoding_study/
    ```
 
 3. **Dependencies Overview**:
-   - `merlinquantum==0.4.0`: Photonic quantum circuit simulation
-   - `pennylane`: Quantum machine learning library
+   - `merlinquantum==0.4.0`: Photonic quantum circuit simulation (automatically includes PyTorch)
+   - `torch==2.10.0`, `torchvision==0.25.0`: Deep learning framework
+   - `perceval-quandela==1.2.3`: Photonic quantum computing framework
+   - `numpy`, `scipy`, `scikit-learn`: Scientific computing and machine learning
+   - `quimb==1.13.0`: Quantum information utilities
    - `matplotlib`, `plotly`: Visualization
+   - `pandas`: Data analysis
    - `umap-learn`: Dimensionality reduction for embeddings
    - `ripser`: Topological data analysis (persistent homology)
-   - `scipy`: Scientific computing
-   - `torch`, `torchvision`: Deep learning frameworks
-   - `quimb`: Quantum information utilities
+   - `tqdm`: Progress bars
+   - `pytest`: Testing framework
+   - `absl-py`: Logging utilities
 
 ## Usage
 
@@ -273,6 +285,57 @@ python runner.py \
   --randomize_entangling false
 ```
 
+### Running Metric Analysis from implementation.py
+
+Metric analysis scripts can be executed directly via the main `implementation.py` script using predefined config files. This provides a convenient way to run analysis without navigating to the `metric_analysis/` directory.
+
+#### Quick Start - Available Metric Analyses
+
+```bash
+# Quantum metrics panel (one PDF per metric showing all encodings)
+python implementation.py --config configs/metrics_quantum_panel.json
+
+# Multi-dataset quantum panel (compare metrics across datasets)
+python implementation.py --config configs/metrics_multi_dataset_panel.json
+
+# NQE vs EGAS training comparison (with timing and memory instrumentation)
+python implementation.py --config configs/metrics_nqe_egas_training.json
+
+# Wasserstein distance comparison across datasets
+python implementation.py --config configs/metrics_wasserstein_comparison.json
+
+# Classical metrics LaTeX table
+python implementation.py --config configs/metrics_classical_table.json
+
+# NQE vs EGAS metrics comparison
+python implementation.py --config configs/metrics_nqe_egas_comparison.json
+
+# Normalized metrics summary
+python implementation.py --config configs/metrics_normalized_summary.json
+```
+
+#### Creating Custom Metric Configs
+
+You can create custom config files to run metric analyses with different parameters. Example template:
+
+```json
+{
+    "description": "Custom metric analysis",
+    "outdir": "results",
+    "exp_to_run": "QUANTUM_METRICS_PANEL"
+}
+```
+
+Supported `exp_to_run` values:
+- `INDUCED_DATASET_COMPLEXITY` - Main complexity experiment (default)
+- `QUANTUM_METRICS_PANEL` - Per-encoding quantum metrics visualization
+- `QUANTUM_MULTI_DATASET_PANEL` - Multi-dataset quantum metrics panel
+- `NQE_EGAS_TRAINING_CURVES` - NQE/EGAS training comparison with instrumentation
+- `WASSERSTEIN_COMPARISON` - Wasserstein distance analysis
+- `CLASSICAL_METRICS_TABLE` - LaTeX classical metrics table
+- `NQE_EGAS_COMPARISON` - Direct NQE vs EGAS comparison
+- `NORMALIZED_SUMMARY` - Normalized metrics summary
+
 ## Output and Results
 
 ### Generated Output Structure
@@ -338,6 +401,118 @@ These interactive HTML plots allow:
 - Color-coded by class
 - Zoom and pan functionality
 - Visualization of encoding effectiveness (good separation = good encoding)
+
+## Metric Analysis and Visualization
+
+The `metric_analysis/` directory contains specialized scripts for generating publication-quality visualizations and comparative analyses of metrics across datasets and encoding strategies.
+
+### Available Analysis Scripts
+
+#### 1. **classical_metrics_table.py**
+Generates a LaTeX table summarizing normalized classical complexity metrics across all datasets.
+
+```bash
+python metric_analysis/classical_metrics_table.py --output results/classical_metrics_table.tex
+```
+
+**Output**:
+- LaTeX table with multi-level headers
+- Normalized metric values (0-1 scale)
+- Dataset-feature-class labeling format
+
+#### 2. **quantum_metrics_panel.py**
+Creates PDF panels comparing quantum metrics with one subplot per encoding strategy and bars for each dataset.
+
+```bash
+python metric_analysis/quantum_metrics_panel.py --output-dir results
+```
+
+**Output**:
+- One PDF file per quantum metric (e.g., `hilbert_space_support_dim_per_encoding.pdf`)
+- Bar charts with dataset-colored bars
+- Legend showing all datasets
+
+**Key Features**:
+- Vertical bar labels with percentages
+- 2-column layout for optimal readability
+- Configurable figure size and font sizes via hyperparameters
+
+#### 3. **quantum_multi_dataset_panel.py**
+Generates quantum metrics panel plots comparing multiple datasets with bars for each encoding strategy.
+
+```bash
+python metric_analysis/quantum_multi_dataset_panel.py --output results/quantum_multi_dataset_comparison.pdf
+```
+
+**Output**:
+- Multi-row/multi-column subplot layout for quantum metrics
+- One row per dataset, bars for encodings
+- Unified legend
+
+#### 4. **nqe_egas_comparison.py**
+Compares specific metrics between NQE (Neural Quantum Embedding) and EGAS (Evolutionary Quantum Algorithm Search) methods.
+
+```bash
+python metric_analysis/nqe_egas_comparison.py \
+  --metrics hilbert_space_support_dim entanglement_entropy \
+  --output results/nqe_egas_comparison.pdf
+```
+
+**Output**:
+- Side-by-side comparison plots (NQE vs EGAS)
+- Highlights performance differences
+
+#### 5. **nqe_egas_training_curves.py**
+Trains both NQE and EGAS on a chosen dataset and generates training curves, accuracy/loss analysis, and resource usage statistics.
+
+```bash
+python metric_analysis/nqe_egas_training_curves.py
+```
+
+**Configurable hyperparameters** (at script top):
+- `DATASET_NAME`: Dataset to use (default: "wine")
+- `FEATURE_REDUCTION`: PCA reduced dimension (default: 8)
+- `CLASSES`: Class indices to include (default: (0, 1, 2))
+- `NQE_NUM_EPOCHS`: Training epochs for NQE (default: 1000)
+- `EGAS_NUM_EPOCHS`: Search iterations for EGAS (default: 4000)
+- `EGAS_REFINE_EPOCHS`: Bias refinement epochs (default: 400)
+
+**Output**:
+- `nqe_egas_training_curves.pdf`: Training curve plots
+- `nqe_egas_training_summary.json`: Detailed summary including:
+  - Train/test/total accuracy and loss
+  - Training time and time-per-epoch
+  - Peak memory usage and memory growth
+  - Dataset/split sizes
+
+#### 6. **wasserstein_comparison.py**
+Analyzes Wasserstein distance metrics across datasets and encodings.
+
+```bash
+python metric_analysis/wasserstein_comparison.py --output results/wasserstein_analysis.pdf
+```
+
+#### 7. **normalized_summary.py**
+Generates a normalized summary of all metrics with standardized scaling.
+
+```bash
+python metric_analysis/normalized_summary.py --output results/summary.pdf
+```
+
+#### 8. **test_quantum_metrics.py**
+Unit tests for quantum metric computation and visualization functions.
+
+```bash
+python metric_analysis/test_quantum_metrics.py
+```
+
+### Visualization Conventions
+
+All analysis scripts follow consistent conventions:
+- **Dataset labeling**: `{dataset}-{features}-{classes}c` format (e.g., "mnist-8-2c")
+- **Encoding colors**: Tab10/Tab20 colormaps for consistent encoding representation
+- **Output format**: PDFs at 300 DPI for publication quality
+- **LaTeX tables**: `\shortstack` headers for compact multi-line column labels
 
 ## Datasets
 

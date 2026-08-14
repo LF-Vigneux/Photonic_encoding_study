@@ -1,10 +1,33 @@
+# Core quantum and tensor computing
 merlinquantum==0.4.0
+torch==2.10.0
+torchvision==0.25.0
+
+# Photonic quantum framework
+perceval-quandela==1.2.3
+
+# Scientific computing
+numpy==2.4.2
+scipy==1.17.0
+scikit-learn==1.8.0
+
+# Quantum information utilities
+quimb==1.13.0
+
+# Visualization
+matplotlib==3.10.8
+plotly==6.7.0
+
+# Data analysis
+pandas==3.0.0
+umap-learn==0.5.12
+
+# Topological analysis
 ripser==0.6.14
-matplotlib
-pennylane
-quimb
-torchvision
-scipy
-tqdm
-umap-learn
-plotly
+
+# Utilities
+tqdm==4.67.2
+absl-py==2.4.0
+
+# Testing
+pytest==9.0.2

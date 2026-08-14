@@ -1,0 +1,5 @@
+{
+    "description": "Generate normalized summary of all metrics with standardized scaling",
+    "outdir": "results",
+    "exp_to_run": "NORMALIZED_SUMMARY"
+}

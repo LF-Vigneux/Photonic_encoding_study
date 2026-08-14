@@ -3,7 +3,7 @@
   "arguments": [
     {
       "flags": ["--exp_to_run"],
-      "help": "Experiment to run.",
+      "help": "Experiment to run: INDUCED_DATASET_COMPLEXITY, QUANTUM_METRICS_PANEL, QUANTUM_MULTI_DATASET_PANEL, NQE_EGAS_TRAINING_CURVES, WASSERSTEIN_COMPARISON, CLASSICAL_METRICS_TABLE, NQE_EGAS_COMPARISON, or NORMALIZED_SUMMARY.",
       "type": "str",
       "default": "INDUCED_DATASET_COMPLEXITY",
       "apply": { "kind": "config_path", "path": "exp_to_run" }

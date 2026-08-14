@@ -1,0 +1,5 @@
+{
+    "description": "Generate quantum metrics multi-dataset panel for cross-dataset comparison",
+    "outdir": "results",
+    "exp_to_run": "QUANTUM_MULTI_DATASET_PANEL"
+}
