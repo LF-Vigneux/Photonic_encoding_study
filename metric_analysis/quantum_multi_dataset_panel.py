@@ -1,9 +1,9 @@
 """
-python3 multi_dataset_metric_panel.py   --datasets moons mnist_binary breast_binary wine_3_classes cifar_4_classes cifar_10_classes   --metrics hilbert_space_support_dim entanglement_entropy locality_vs_expressibility encoded_states_classes_overlap   --output results/embedding_results.pdf
+python3 quantum_multi_dataset_panel.py   --datasets moons mnist_binary breast_binary wine_3_classes cifar_4_classes cifar_10_classes   --metrics hilbert_space_support_dim entanglement_entropy locality_vs_expressibility encoded_states_classes_overlap   --output results/embedding_results.pdf
 
 
 Others
-python3 multi_dataset_metric_panel.py   --datasets noisy_moons mnist_4_classes mnist_10_classes eurosat kmnist fashion_mnist manifold path_mnist --metrics hilbert_space_support_dim entanglement_entropy locality_vs_expressibility encoded_states_classes_overlap   --output results/embedding_appendix.pdf
+python3 quantum_multi_dataset_panel.py   --datasets mnist_4_classes mnist_10_classes eurosat kmnist fashion_mnist manifold path_mnist --metrics hilbert_space_support_dim entanglement_entropy locality_vs_expressibility encoded_states_classes_overlap   --output results/embedding_appendix.pdf
 
 """
 from __future__ import annotations

@@ -1,7 +1,7 @@
 """
-python3 nqe_egas_metric_comparison.py --output results/nqe_egas_comparison.pdf
+python3 nqe_egas_comparison.py --output results/nqe_egas_comparison.pdf
 
-python3 nqe_egas_metric_comparison.py --metrics hilbert_space_support_dim entanglement_entropy locality_vs_expressibility encoded_states_classes_overlap --output results/nqe_egas_comparison.pdf
+python3 nqe_egas_comparison.py --metrics hilbert_space_support_dim entanglement_entropy locality_vs_expressibility encoded_states_classes_overlap --output results/nqe_egas_comparison.pdf
 """
 from __future__ import annotations
 
