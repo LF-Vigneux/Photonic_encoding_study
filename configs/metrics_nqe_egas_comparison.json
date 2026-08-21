@@ -1,0 +1,5 @@
+{
+    "description": "Compare specific quantum metrics between NQE and EGAS methods",
+    "outdir": "results",
+    "exp_to_run": "NQE_EGAS_COMPARISON"
+}

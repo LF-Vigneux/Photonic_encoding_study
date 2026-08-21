@@ -89,6 +89,55 @@ def train_and_evaluate(cfg, run_dir: Path) -> None:
             umap_n_epochs=cfg.get("umap_n_epochs", 200),
             run_dir=run_dir,
         )
+    elif exp_to_run == "QUANTUM_METRICS_PANEL":
+        print("Running QUANTUM_METRICS_PANEL analysis")
+        from metric_analysis.quantum_metrics_panel import main as run_quantum_metrics
+        import sys
+        sys.argv = ["quantum_metrics_panel.py"]
+        run_quantum_metrics()
+    
+    elif exp_to_run == "QUANTUM_MULTI_DATASET_PANEL":
+        print("Running QUANTUM_MULTI_DATASET_PANEL analysis")
+        from metric_analysis.quantum_multi_dataset_panel import main as run_multi_dataset
+        import sys
+        sys.argv = ["quantum_multi_dataset_panel.py"]
+        run_multi_dataset()
+    
+    elif exp_to_run == "NQE_EGAS_TRAINING_CURVES":
+        print("Running NQE_EGAS_TRAINING_CURVES analysis")
+        from metric_analysis.nqe_egas_training_curves import main as run_training_curves
+        import sys
+        sys.argv = ["nqe_egas_training_curves.py"]
+        run_training_curves()
+    
+    elif exp_to_run == "WASSERSTEIN_COMPARISON":
+        print("Running WASSERSTEIN_COMPARISON analysis")
+        from metric_analysis.wasserstein_comparison import main as run_wasserstein
+        import sys
+        sys.argv = ["wasserstein_comparison.py"]
+        run_wasserstein()
+    
+    elif exp_to_run == "CLASSICAL_METRICS_TABLE":
+        print("Running CLASSICAL_METRICS_TABLE analysis")
+        from metric_analysis.classical_metrics_table import main as run_classical_table
+        import sys
+        sys.argv = ["classical_metrics_table.py"]
+        run_classical_table()
+    
+    elif exp_to_run == "NQE_EGAS_COMPARISON":
+        print("Running NQE_EGAS_COMPARISON analysis")
+        from metric_analysis.nqe_egas_comparison import main as run_nqe_egas_comp
+        import sys
+        sys.argv = ["nqe_egas_comparison.py"]
+        run_nqe_egas_comp()
+    
+    elif exp_to_run == "NORMALIZED_SUMMARY":
+        print("Running NORMALIZED_SUMMARY analysis")
+        from metric_analysis.normalized_summary import main as run_normalized
+        import sys
+        sys.argv = ["normalized_summary.py"]
+        run_normalized()
+    
     else:
         raise NameError(f"No experiment with the name '{exp_to_run}'")
 
@@ -147,6 +196,42 @@ def main():
             umap_n_neighbors=args.umap_n_neighbors,
             umap_n_epochs=args.umap_n_epochs,
         )
+    
+    elif args.exp_to_run == "QUANTUM_METRICS_PANEL":
+        print("Running QUANTUM_METRICS_PANEL analysis")
+        from metric_analysis.quantum_metrics_panel import main as run_quantum_metrics
+        run_quantum_metrics()
+    
+    elif args.exp_to_run == "QUANTUM_MULTI_DATASET_PANEL":
+        print("Running QUANTUM_MULTI_DATASET_PANEL analysis")
+        from metric_analysis.quantum_multi_dataset_panel import main as run_multi_dataset
+        run_multi_dataset()
+    
+    elif args.exp_to_run == "NQE_EGAS_TRAINING_CURVES":
+        print("Running NQE_EGAS_TRAINING_CURVES analysis")
+        from metric_analysis.nqe_egas_training_curves import main as run_training_curves
+        run_training_curves()
+    
+    elif args.exp_to_run == "WASSERSTEIN_COMPARISON":
+        print("Running WASSERSTEIN_COMPARISON analysis")
+        from metric_analysis.wasserstein_comparison import main as run_wasserstein
+        run_wasserstein()
+    
+    elif args.exp_to_run == "CLASSICAL_METRICS_TABLE":
+        print("Running CLASSICAL_METRICS_TABLE analysis")
+        from metric_analysis.classical_metrics_table import main as run_classical_table
+        run_classical_table()
+    
+    elif args.exp_to_run == "NQE_EGAS_COMPARISON":
+        print("Running NQE_EGAS_COMPARISON analysis")
+        from metric_analysis.nqe_egas_comparison import main as run_nqe_egas_comp
+        run_nqe_egas_comp()
+    
+    elif args.exp_to_run == "NORMALIZED_SUMMARY":
+        print("Running NORMALIZED_SUMMARY analysis")
+        from metric_analysis.normalized_summary import main as run_normalized
+        run_normalized()
+    
     else:
         raise NameError(f"No experiment with the name '{args.exp_to_run}'")
 

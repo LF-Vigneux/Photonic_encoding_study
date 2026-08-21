@@ -1,0 +1,5 @@
+{
+    "description": "Generate quantum metrics panel PDFs comparing all encodings across datasets",
+    "outdir": "results",
+    "exp_to_run": "QUANTUM_METRICS_PANEL"
+}

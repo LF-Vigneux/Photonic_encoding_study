@@ -1,0 +1,5 @@
+{
+    "description": "Generate LaTeX table of classical complexity metrics across all datasets",
+    "outdir": "results",
+    "exp_to_run": "CLASSICAL_METRICS_TABLE"
+}

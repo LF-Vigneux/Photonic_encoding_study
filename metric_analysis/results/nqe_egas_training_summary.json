@@ -1,0 +1,50 @@
+{
+  "config": {
+    "dataset_name": "wine",
+    "feature_reduction": 8,
+    "classes": [
+      0,
+      1,
+      2
+    ],
+    "nqe_num_epochs": 1000,
+    "egas_num_epochs": 4000
+  },
+  "dataset_sizes": {
+    "n_train": 142,
+    "n_test": 36,
+    "n_total": 178
+  },
+  "nqe": {
+    "train_loss": 0.0002773522865027189,
+    "test_loss": 0.05562247708439827,
+    "total_loss": 0.01806693896651268,
+    "train_accuracy": 1.0,
+    "test_accuracy": 0.9722222222222222,
+    "total_accuracy": 0.9943820224719101,
+    "train_time_s": 12.200353541993536,
+    "train_time_per_epoch_s": 0.012200353541993536,
+    "train_peak_rss_mb": 562.59375,
+    "train_rss_growth_mb": 17.234375
+  },
+  "egas": {
+    "train_loss": 0.1383303701877594,
+    "test_loss": 0.11556217074394226,
+    "total_loss": 0.1339596062898636,
+    "train_accuracy": 0.9859154929577465,
+    "test_accuracy": 1.0,
+    "total_accuracy": 0.9887640449438202,
+    "search_time_s": 199.81646299999557,
+    "search_time_per_epoch_s": 0.04995411574999889,
+    "search_peak_rss_mb": 562.59375,
+    "search_rss_growth_mb": 0.0,
+    "refine_time_s": 6.172964208992198,
+    "refine_time_per_epoch_s": 0.003086482104496099,
+    "refine_peak_rss_mb": 562.59375,
+    "refine_rss_growth_mb": 0.0,
+    "total_time_s": 205.98942720898776,
+    "n_search_pool": 113,
+    "n_search_samples": 113,
+    "n_val": 29
+  }
+}

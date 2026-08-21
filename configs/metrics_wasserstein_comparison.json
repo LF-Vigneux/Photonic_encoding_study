@@ -1,0 +1,5 @@
+{
+    "description": "Analyze and compare Wasserstein distance metrics across datasets and encodings",
+    "outdir": "results",
+    "exp_to_run": "WASSERSTEIN_COMPARISON"
+}
