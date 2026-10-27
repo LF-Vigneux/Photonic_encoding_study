@@ -1,0 +1,137 @@
+{
+  "rows": [
+    {
+      "encoding": "angle",
+      "data_access": "native circuit (classical features set phases; no state loading)",
+      "n_modes": 9,
+      "n_photons": 4,
+      "hilbert_dim": 126,
+      "n_BS": 648,
+      "n_PS": 656,
+      "n_other": 81,
+      "depth": 413,
+      "components": {
+        "BS": 648,
+        "PS": 656,
+        "Barrier": 81
+      },
+      "P_postselect": 0.25402379035949707,
+      "P_postselect_sd": 0.011724219657480717,
+      "P_survive_eps0.0005": 0.43770655063492553,
+      "P_total_eps0.0005": 0.11118787705746491,
+      "P_survive_eps0.001": 0.1915078362027201,
+      "P_total_eps0.001": 0.04864754643576068,
+      "P_survive_eps0.005": 0.00025335494887251595,
+      "P_total_eps0.005": 6.435818441893308e-05,
+      "P_survive_eps0.01": 6.156607614819358e-08,
+      "P_total_eps0.01": 1.563924802072556e-08
+    },
+    {
+      "encoding": "dense_angle",
+      "data_access": "native circuit (classical features set phases; no state loading)",
+      "n_modes": 8,
+      "n_photons": 4,
+      "hilbert_dim": 16,
+      "n_BS": 4,
+      "n_PS": 4,
+      "n_other": 0,
+      "depth": 2,
+      "components": {
+        "BS": 4,
+        "PS": 4
+      },
+      "P_postselect": 1.0,
+      "P_postselect_sd": 0.0,
+      "P_survive_eps0.0005": 0.9960069930043737,
+      "P_total_eps0.0005": 0.9960069930043737,
+      "P_survive_eps0.001": 0.992027944069944,
+      "P_total_eps0.001": 0.992027944069944,
+      "P_survive_eps0.005": 0.9606930435754368,
+      "P_total_eps0.005": 0.9606930435754368,
+      "P_survive_eps0.01": 0.9227446944279201,
+      "P_total_eps0.01": 0.9227446944279201
+    },
+    {
+      "encoding": "fourier",
+      "data_access": "native circuit (classical features set phases; no state loading)",
+      "n_modes": 16,
+      "n_photons": 8,
+      "hilbert_dim": 256,
+      "n_BS": 8,
+      "n_PS": 0,
+      "n_other": 0,
+      "depth": 1,
+      "components": {
+        "BS": 8
+      },
+      "P_postselect": 1.0,
+      "P_postselect_sd": 0.0,
+      "P_survive_eps0.0005": 0.9960069930043737,
+      "P_total_eps0.0005": 0.9960069930043737,
+      "P_survive_eps0.001": 0.992027944069944,
+      "P_total_eps0.001": 0.992027944069944,
+      "P_survive_eps0.005": 0.9606930435754368,
+      "P_total_eps0.005": 0.9606930435754368,
+      "P_survive_eps0.01": 0.9227446944279201,
+      "P_total_eps0.01": 0.9227446944279201
+    },
+    {
+      "encoding": "amplitude",
+      "data_access": "Mode Q (coherent, QRAM-like loading assumed)",
+      "n_modes": 5,
+      "n_photons": 2,
+      "hilbert_dim": 10,
+      "n_BS": null,
+      "n_PS": null,
+      "depth": null,
+      "P_postselect": null,
+      "dof_interferometer": 25,
+      "dof_state_needed": 18,
+      "note": "no circuit in repo: amplitudes written directly (oracle / QRAM-like loading)"
+    },
+    {
+      "encoding": "dense_amplitude",
+      "data_access": "Mode Q (coherent, QRAM-like loading assumed)",
+      "n_modes": 4,
+      "n_photons": 2,
+      "hilbert_dim": 6,
+      "n_BS": null,
+      "n_PS": null,
+      "depth": null,
+      "P_postselect": null,
+      "dof_interferometer": 16,
+      "dof_state_needed": 10,
+      "note": "no circuit in repo: amplitudes written directly (oracle / QRAM-like loading)"
+    }
+  ],
+  "config": {
+    "description": "Revisions 2.8: resource table + data-access mode (confirm labels against v2 Sec. 4.5)",
+    "outdir": "results/revisions",
+    "seed": 0,
+    "n_features": 8,
+    "n_classes": 2,
+    "n_data_samples": 50,
+    "encodings": [
+      "angle",
+      "dense_angle",
+      "fourier",
+      "amplitude",
+      "dense_amplitude"
+    ],
+    "loss_per_component": [
+      0.0005,
+      0.001,
+      0.005,
+      0.01
+    ],
+    "data_access": {
+      "angle": "native circuit (classical features set phases; no state loading)",
+      "dense_angle": "native circuit (classical features set phases; no state loading)",
+      "fourier": "native circuit (classical features set phases; no state loading)",
+      "amplitude": "Mode Q (coherent, QRAM-like loading assumed)",
+      "dense_amplitude": "Mode Q (coherent, QRAM-like loading assumed)"
+    },
+    "_config_sha256": "7eb6ca9ef98048e7ac69440efda5e09d715ab5384246214d6a43817498ae4066",
+    "_started": "2026-10-18T22:13:58"
+  }
+}

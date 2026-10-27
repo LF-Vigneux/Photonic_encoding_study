@@ -1,0 +1,22 @@
+ensemble,metric,expected,observed,ok,note
+identical,M1 support dim,1.0,0.9999999893050497,True,
+identical,M4 kernel flatness,1.0,1.0000000000000122,True,
+identical,M7 class overlap,1.0,1.0,True,
+orthogonal_2cls,M1 support dim,1.9999999600000007,1.9999999600000007,True,
+orthogonal_2cls,M4 kernel flatness,2.0,2.000000000000012,True,
+orthogonal_2cls,M7 class overlap,0.0,0.0,True,
+orthogonal_4cls,M1 support dim,3.9999998400000063,3.9999998400000063,True,
+orthogonal_4cls,M4 kernel flatness,4.0,4.000000000000013,True,
+orthogonal_4cls,M7 class overlap,0.0,0.0,True,
+haar_D16,M1 support dim (-> D),16.0,15.999997375857648,True,needs N >> D
+haar_D16,M4 kernel flatness,111.02040816326532,30.441587702631534,False,
+haar_D16,KL expressibility (-> ~0),0.0,0.5646358097662049,False,finite-sample bias; absolute tol
+haar_D64,M1 support dim (-> D),64.0,63.9999543997931,True,needs N >> D
+haar_D64,M4 kernel flatness,465.84546472564386,105.71722269343222,False,
+haar_D64,KL expressibility (-> ~0),0.0,1.9517192922779267,False,finite-sample bias; absolute tol
+product_2q,"M3 entanglement entropy (bits, avg bipartition)",0.0,2.2690937735355646e-17,True,ratio observed/expected = nan -> units/normalisation check
+ghz_2q,"M3 entanglement entropy (bits, avg bipartition)",0.5203132738323216,0.5203125055076455,True,ratio observed/expected = 1.000 -> units/normalisation check
+product_3q,"M3 entanglement entropy (bits, avg bipartition)",0.0,7.207709633583563e-17,True,ratio observed/expected = nan -> units/normalisation check
+ghz_3q,"M3 entanglement entropy (bits, avg bipartition)",0.5363161065090257,0.5363160946176664,True,ratio observed/expected = 1.000 -> units/normalisation check
+product_4q,"M3 entanglement entropy (bits, avg bipartition)",0.0,9.49968502500349e-17,True,ratio observed/expected = nan -> units/normalisation check
+ghz_4q,"M3 entanglement entropy (bits, avg bipartition)",0.5704306307302021,0.5704306043981723,True,ratio observed/expected = 1.000 -> units/normalisation check

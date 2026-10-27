@@ -1,0 +1,178 @@
+{
+  "spearman_M7_vs_accuracy": {
+    "pooled": {
+      "rho": -0.5050230643991878,
+      "p": 0.00018377700822386146,
+      "n": 50,
+      "ci95": [
+        -0.7140889598330077,
+        -0.22832196108956423
+      ]
+    },
+    "pooled_within_dataset_centered": {
+      "rho": -0.5624761585008211
+    },
+    "per_dataset": {
+      "breast_cancer-2c": {
+        "rho": -0.8944271909999157,
+        "n": 5
+      },
+      "cifar10-2c": {
+        "rho": -0.5773502691896257,
+        "n": 5
+      },
+      "eurosat-2c": {
+        "rho": -0.8999999999999998,
+        "n": 5
+      },
+      "fashion-2c": {
+        "rho": -0.7,
+        "n": 5
+      },
+      "kmnist-2c": {
+        "rho": 0.3,
+        "n": 5
+      },
+      "manifold-2c": {
+        "rho": -0.8944271909999157,
+        "n": 5
+      },
+      "mnist-2c": {
+        "rho": -0.35909242322980395,
+        "n": 5
+      },
+      "mnist-4c": {
+        "rho": -0.7999999999999999,
+        "n": 5
+      },
+      "moons-2c": {
+        "rho": -0.6,
+        "n": 5
+      },
+      "wine-3c": {
+        "rho": NaN,
+        "n": 5
+      }
+    },
+    "per_encoding_across_datasets": {
+      "amplitude": {
+        "rho": -0.4666666666666666,
+        "n": 10
+      },
+      "angle": {
+        "rho": -0.34545454545454546,
+        "n": 10
+      },
+      "dense_amplitude": {
+        "rho": -0.4424242424242424,
+        "n": 10
+      },
+      "dense_angle": {
+        "rho": -0.35757575757575755,
+        "n": 10
+      },
+      "fourier": {
+        "rho": -0.5151515151515151,
+        "n": 10
+      }
+    }
+  },
+  "config": {
+    "description": "Revisions 2.5 + 2.6: headroom, classical sweep, Spearman(M7, kernel-SVM accuracy)",
+    "outdir": "results/revisions",
+    "seed": 0,
+    "feature_reduction": 8,
+    "max_per_split": 400,
+    "randomize_entangling": true,
+    "encodings": [
+      "angle",
+      "dense_angle",
+      "fourier",
+      "amplitude",
+      "dense_amplitude"
+    ],
+    "svm_C": [
+      0.05,
+      1.0
+    ],
+    "n_boot": 2000,
+    "datasets": [
+      {
+        "name": "breast_cancer",
+        "classes": [
+          0,
+          1
+        ]
+      },
+      {
+        "name": "wine",
+        "classes": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "name": "moons",
+        "classes": [
+          0,
+          1
+        ],
+        "feature_reduction": null
+      },
+      {
+        "name": "manifold",
+        "classes": [
+          0,
+          1
+        ]
+      },
+      {
+        "name": "mnist",
+        "classes": [
+          0,
+          1
+        ]
+      },
+      {
+        "name": "mnist",
+        "classes": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "name": "fashion",
+        "classes": [
+          0,
+          1
+        ]
+      },
+      {
+        "name": "kmnist",
+        "classes": [
+          0,
+          1
+        ]
+      },
+      {
+        "name": "cifar10",
+        "classes": [
+          0,
+          1
+        ]
+      },
+      {
+        "name": "eurosat",
+        "classes": [
+          0,
+          1
+        ]
+      }
+    ],
+    "_config_sha256": "dc9ccedd50752ae8f8441c463c61594c8bc4f775783ad172757484bd95db0a35",
+    "_started": "2026-10-18T22:14:04"
+  }
+}

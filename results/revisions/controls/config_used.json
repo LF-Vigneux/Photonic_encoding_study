@@ -1,0 +1,81 @@
+{
+  "description": "Revisions 2.7: closed-form validation, random-label control, parity family",
+  "outdir": "results/revisions",
+  "seed": 0,
+  "run": {
+    "closed_form": true,
+    "random_label": true,
+    "parity": true
+  },
+  "feature_reduction": 8,
+  "max_per_split": 300,
+  "encodings": [
+    "angle",
+    "dense_angle",
+    "fourier",
+    "amplitude",
+    "dense_amplitude"
+  ],
+  "n_states": 600,
+  "tolerance": 0.05,
+  "orthogonal_classes": [
+    2,
+    4
+  ],
+  "haar_dims": [
+    16,
+    64
+  ],
+  "kl_samples": 400,
+  "kl_bins": 50,
+  "entanglement_qubits": [
+    2,
+    3,
+    4
+  ],
+  "n_perm": 50,
+  "datasets": [
+    {
+      "name": "breast_cancer",
+      "classes": [
+        0,
+        1
+      ]
+    },
+    {
+      "name": "wine",
+      "classes": [
+        0,
+        1,
+        2
+      ]
+    },
+    {
+      "name": "mnist",
+      "classes": [
+        0,
+        1
+      ]
+    },
+    {
+      "name": "mnist",
+      "classes": [
+        0,
+        1,
+        2,
+        3
+      ]
+    }
+  ],
+  "parity_orders": [
+    1,
+    2,
+    3,
+    4,
+    6
+  ],
+  "parity_samples": 1000,
+  "parity_svm_C": 1.0,
+  "_config_sha256": "4a329de1364fe1196d9812c72e5e855bcaafa80770ba2792f8514941b269ddc4",
+  "_started": "2026-10-18T23:12:58"
+}

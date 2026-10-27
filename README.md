@@ -13,6 +13,7 @@ A comprehensive research project investigating and comparing different photonic 
   - [Example Commands](#example-commands)
 - [Output and Results](#output-and-results)
 - [Metric Analysis and Visualization](#metric-analysis-and-visualization)
+- [Revision Experiments](#revision-experiments)
 - [Datasets](#datasets)
 - [Encoding Strategies](#encoding-strategies)
 - [Complexity Metrics](#complexity-metrics)
@@ -98,6 +99,15 @@ Photonic_encoding_study/
 │   └── wine8-*/
 │       ├── complexities/              # Complexity metrics (JSON)
 │       └── umaps/                     # UMAP visualizations (HTML/PNG)
+│
+├── revision_experiments/              # Additional experiments (headroom, controls, resources, statistics)
+│   ├── common.py                      # Shared helpers (state-based M1/M4/M7, encoders, data)
+│   ├── exp_headroom_svm.py            # Classical headroom + kernel-SVM / Spearman(M7, acc)
+│   ├── exp_controls.py                # Closed-form checks, random-label control, parity family
+│   ├── exp_resources.py               # Hardware resource / photon-loss table
+│   ├── exp_statistics.py              # Seed repeats, subsample intervals, held-out datasets
+│   ├── run_all.sh                     # Smoke / full / overnight drivers
+│   └── configs/                       # One JSON config per experiment
 │
 └── metric_analysis/                   # Analysis and visualization scripts
     ├── classical_metrics_table.py       # LaTeX table of classical metrics
@@ -513,6 +523,33 @@ All analysis scripts follow consistent conventions:
 - **Encoding colors**: Tab10/Tab20 colormaps for consistent encoding representation
 - **Output format**: PDFs at 300 DPI for publication quality
 - **LaTeX tables**: `\shortstack` headers for compact multi-line column labels
+
+## Revision Experiments
+
+The `revision_experiments/` directory (see its own [README](revision_experiments/README.md) for setup details) holds additional experiments added after the publication of [Does Data Complexity Predict Quantum Advantage? A framework, a pre-specified test, and an attribution of the measured edge](https://arxiv.org/abs/2509.16410) in October 2026, after the original writing of the draft. They only add files; the original pipeline is untouched. Outputs go to `results/revisions/<experiment>/`, logs to `results/revisions_logs/`.
+
+| Section | Script | Question | Outputs |
+|---|---|---|---|
+| §2.5 / §2.6 | `exp_headroom_svm.py` | Is there room for a quantum encoding to help (classical headroom)? Does M7 (class overlap) predict kernel-SVM accuracy? | `headroom.csv/.tex`, `classical_sweep.csv`, `encoding_kernel_svm.csv`, `spearman.json` |
+| §2.7 | `exp_controls.py` | Do the metrics behave correctly on known states, and are they more than label-independent artefacts? | `closed_form.csv`, `random_label.csv`, `parity.csv` |
+| §2.8 | `exp_resources.py` | What do the encodings cost on photonic hardware (BS/PS counts, depth, post-selection, loss)? | `resource_table.csv/.tex/.json` |
+| §2.9 | `exp_statistics.py` | How stable are the metrics across seeds and subsamples? Do they hold on held-out datasets? | `statistics.csv/.json`, per-dataset checkpoints |
+
+Encodings covered: angle, dense_angle, fourier, amplitude, dense_amplitude (NQE/EGAS are not included).
+
+```bash
+export PYTHONPATH="$PWD/revision_experiments:$PWD"
+
+python revision_experiments/exp_headroom_svm.py --config headroom_svm.json
+python revision_experiments/exp_controls.py     --config controls.json
+python revision_experiments/exp_resources.py    --config resources.json
+python revision_experiments/exp_statistics.py   --config statistics_main.json
+
+bash revision_experiments/run_all.sh smoke   # quick check that the code runs
+bash revision_experiments/run_all.sh full    # everything (a failing step does not stop the others)
+```
+
+`statistics_heldout.json` is deliberately **not** part of `run_all.sh`: fill and commit its `prereg` block first, then run it manually.
 
 ## Datasets
 
